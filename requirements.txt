@@ -1,0 +1,15 @@
+PySide6>=6.6.0
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+playwright>=1.41.0
+SQLAlchemy>=2.0.25
+aiosqlite>=0.20.0
+httpx>=0.26.0
+matplotlib>=3.8.2
+pandas>=2.2.0
+pydantic>=2.5.3
+python-dateutil>=2.8.2
+tenacity>=8.2.3
+loguru>=0.7.2
+aiohttp>=3.9.3
+pyqtgraph>=0.13.4

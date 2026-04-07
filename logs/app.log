@@ -1,0 +1,23 @@
+2026-04-07 22:01:56 | INFO | __main__:105 | API thread started
+2026-04-07 22:01:57 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-07 22:01:57 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-07 22:01:57 | INFO | __main__:55 | Backend loop started and registered
+2026-04-07 22:01:57 | INFO | __main__:134 | API ready, launching GUI
+2026-04-07 22:01:58 | INFO | __main__:138 | Application started successfully
+2026-04-07 22:05:15 | INFO | app.backend.database:126 | Created property id=1 cat=Квартиры
+2026-04-07 22:05:22 | INFO | app.backend.api:52 | Parsing property 1: https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30
+2026-04-07 22:05:22 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30
+2026-04-07 22:05:22 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:12334
+2026-04-07 22:05:22 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:12334
+2026-04-07 22:05:22 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&g
+2026-04-07 22:05:23 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-07 22:05:24 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-07 22:06:03 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 1: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-07 22:06:08 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&g
+2026-04-07 22:06:10 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-07 22:06:46 | DEBUG | app.parser.ostrovok_parser:123 | OstrovokParser XHR collected: [8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0]
+2026-04-07 22:06:46 | DEBUG | app.parser.base_parser:238 | [OstrovokParser] attempt=2 price=8518.0 status=ok
+2026-04-07 22:06:46 | INFO | app.backend.api:68 | Parsed 1: price=8518.0 status=ok dates=27.04.2026-30.04.2026
