@@ -57,7 +57,7 @@ async def _run_parse(property_id: int):
             error  = result.get("error")
             title  = result.get("title")
 
-            if title and title != prop.title and len(title) > 2:
+            if title and title != prop.title and len(title) > 2 and not getattr(prop, 'title_locked', False):
                 await PropertyRepository.update(property_id, title=title)
 
             await PriceRepository.add_record(

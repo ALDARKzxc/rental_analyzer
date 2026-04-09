@@ -66,18 +66,38 @@ class ApiClient:
 
     def create_property(self, title: str, url: str,
                         category: str = "Квартиры",
-                        notes: str = None) -> Dict:
+                        notes: str = None,
+                        title_locked: bool = False) -> Dict:
         from app.backend.database import PropertyRepository
         from app.parser.dispatcher import ParserDispatcher
 
         async def _():
-            existing = await PropertyRepository.get_by_url(url)
-            if existing:
+            # Активный объект с таким URL — настоящий дубликат
+            existing_active = await PropertyRepository.get_by_url(url)
+            if existing_active:
                 raise ValueError("Property with this URL already exists")
+
+            # Мягко-удалённый объект (is_active=False) — реактивируем
+            any_existing = await PropertyRepository.get_by_url_any(url)
+            if any_existing and not any_existing.is_active:
+                prop = await PropertyRepository.update(
+                    any_existing.id,
+                    title=title, category=category, notes=notes,
+                    title_locked=title_locked, is_active=True
+                )
+                return {"id": prop.id, "title": prop.title, "url": prop.url,
+                        "site": prop.site, "category": prop.category,
+                        "parse_dates": prop.parse_dates,
+                        "is_active": prop.is_active,
+                        "created_at": prop.created_at.isoformat(),
+                        "latest_price": None, "latest_status": None}
+
+            # Создаём новый
             site = ParserDispatcher().detect_site(url)
             prop = await PropertyRepository.create(
                 title=title, url=url, site=site,
-                category=category, notes=notes
+                category=category, notes=notes,
+                title_locked=title_locked
             )
             return {"id": prop.id, "title": prop.title, "url": prop.url,
                     "site": prop.site, "category": prop.category,

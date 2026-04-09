@@ -144,6 +144,7 @@ QLineEdit, QTextEdit {
     selection-background-color: #e54b4b;
 }
 QLineEdit:focus, QTextEdit:focus { border-color: #ffa987; }
+QLineEdit:disabled { background: #1e1e24; border-color: #3a3938; color: #5a5554; }
 
 QComboBox {
     background: #2a2a32; border: 1.5px solid #5a5554;

@@ -20,17 +20,18 @@ CATEGORIES = ["Квартиры", "Апартаменты", "Дома", "Кот�
 
 class Property(Base):
     __tablename__ = "properties"
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    title       = Column(String(500), nullable=False)
-    url         = Column(String(2000), nullable=False)
-    site        = Column(String(50),  nullable=True)
-    external_id = Column(String(200), nullable=True)
-    category    = Column(String(50),  nullable=True, default="Квартиры")
-    parse_dates = Column(String(30),  nullable=True)
-    notes       = Column(Text,        nullable=True)
-    is_active   = Column(Boolean, default=True)
-    created_at  = Column(DateTime, default=datetime.utcnow)
-    updated_at  = Column(DateTime, default=datetime.utcnow)
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    title        = Column(String(500), nullable=False)
+    url          = Column(String(2000), nullable=False)
+    site         = Column(String(50),  nullable=True)
+    external_id  = Column(String(200), nullable=True)
+    category     = Column(String(50),  nullable=True, default="Квартиры")
+    parse_dates  = Column(String(30),  nullable=True)
+    notes        = Column(Text,        nullable=True)
+    is_active    = Column(Boolean, default=True)
+    title_locked = Column(Boolean, default=False)   # если True — парсер не перезаписывает название
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    updated_at   = Column(DateTime, default=datetime.utcnow)
 
     price_records = relationship(
         "PriceRecord", back_populates="property",
@@ -60,11 +61,10 @@ AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=F
 async def _migrate(conn):
     """Добавляем новые колонки в существующую БД если их нет."""
     migrations = [
-        ("properties", "category",    "TEXT DEFAULT 'Квартиры'"),
-        ("properties", "parse_dates", "TEXT"),
+        ("properties", "category",     "TEXT DEFAULT 'Квартиры'"),
+        ("properties", "parse_dates",  "TEXT"),
+        ("properties", "title_locked", "INTEGER DEFAULT 0"),
         ("price_records", "parse_dates", "TEXT"),
-        # Убираем UNIQUE ограничение на url — нельзя в SQLite просто так,
-        # но новые записи будут работать через get_by_url с фильтром is_active
     ]
     for table, col, col_def in migrations:
         try:
@@ -102,6 +102,7 @@ class PropertyRepository:
 
     @staticmethod
     async def get_by_url(url: str) -> Optional[Property]:
+        """Возвращает только активный объект с таким URL."""
         base = url.split("?")[0]
         async with AsyncSessionLocal() as s:
             props = (await s.execute(
@@ -113,12 +114,25 @@ class PropertyRepository:
             return None
 
     @staticmethod
+    async def get_by_url_any(url: str) -> Optional[Property]:
+        """Возвращает объект с таким URL независимо от is_active (включая удалённые)."""
+        base = url.split("?")[0]
+        async with AsyncSessionLocal() as s:
+            props = (await s.execute(select(Property))).scalars().all()
+            for p in props:
+                if p.url.split("?")[0] == base:
+                    return p
+            return None
+
+    @staticmethod
     async def create(title: str, url: str, site: str = None,
-                     category: str = "Квартиры", notes: str = None) -> Property:
+                     category: str = "Квартиры", notes: str = None,
+                     title_locked: bool = False) -> Property:
         async with AsyncSessionLocal() as s:
             prop = Property(
                 title=title, url=url.split("?")[0],
-                site=site, category=category, notes=notes
+                site=site, category=category, notes=notes,
+                title_locked=title_locked
             )
             s.add(prop)
             await s.commit()
