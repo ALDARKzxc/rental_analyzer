@@ -21,3 +21,132 @@ Call log:
 2026-04-07 22:06:46 | DEBUG | app.parser.ostrovok_parser:123 | OstrovokParser XHR collected: [8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0]
 2026-04-07 22:06:46 | DEBUG | app.parser.base_parser:238 | [OstrovokParser] attempt=2 price=8518.0 status=ok
 2026-04-07 22:06:46 | INFO | app.backend.api:68 | Parsed 1: price=8518.0 status=ok dates=27.04.2026-30.04.2026
+2026-04-07 22:26:07 | INFO | __main__:105 | API thread started
+2026-04-07 22:26:07 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-07 22:26:07 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-07 22:26:07 | INFO | __main__:55 | Backend loop started and registered
+2026-04-07 22:26:07 | INFO | __main__:134 | API ready, launching GUI
+2026-04-07 22:26:08 | INFO | __main__:138 | Application started successfully
+2026-04-07 22:26:14 | INFO | app.backend.api:52 | Parsing property 1: https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30
+2026-04-07 22:26:14 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30
+2026-04-07 22:26:14 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:12334
+2026-04-07 22:26:14 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:12334
+2026-04-07 22:26:14 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&g
+2026-04-07 22:26:15 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-07 22:26:20 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-07 22:26:53 | DEBUG | app.parser.ostrovok_parser:123 | OstrovokParser XHR collected: [8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0]
+2026-04-07 22:26:53 | DEBUG | app.parser.base_parser:238 | [OstrovokParser] attempt=1 price=8518.0 status=ok
+2026-04-07 22:26:53 | INFO | app.backend.api:68 | Parsed 1: price=8518.0 status=ok dates=27.04.2026-30.04.2026
+2026-04-07 22:32:20 | INFO | app.backend.database:126 | Created property id=2 cat=Квартиры
+2026-04-07 22:32:44 | INFO | app.backend.api:52 | Parsing property 2: https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-07 22:32:44 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-07 22:32:44 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:12334
+2026-04-07 22:32:44 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:12334
+2026-04-07 22:32:44 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-07 22:32:45 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-07 22:32:46 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[19619.0, 19619.0, 19827.0, 19827.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-07 22:33:17 | DEBUG | app.parser.ostrovok_parser:123 | OstrovokParser XHR collected: [19619.0, 19619.0, 19827.0, 19827.0]
+2026-04-07 22:33:17 | DEBUG | app.parser.base_parser:238 | [OstrovokParser] attempt=1 price=19619.0 status=ok
+2026-04-07 22:33:17 | INFO | app.backend.api:68 | Parsed 2: price=19619.0 status=ok dates=27.04.2026-30.04.2026
+2026-04-09 17:10:48 | INFO | __main__:105 | API thread started
+2026-04-09 17:10:50 | INFO | app.backend.database:82 | Database ready: C:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-09 17:10:50 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-09 17:10:50 | INFO | __main__:55 | Backend loop started and registered
+2026-04-09 17:10:50 | INFO | __main__:134 | API ready, launching GUI
+2026-04-09 17:10:51 | INFO | __main__:138 | Application started successfully
+2026-04-09 17:11:01 | INFO | app.backend.api:52 | Parsing property 2: https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-09 17:11:01 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-09 17:11:02 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-09 17:11:02 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-09 17:11:02 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-09 17:11:03 | INFO | app.backend.api:52 | Parsing property 1: https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16
+2026-04-09 17:11:03 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16
+2026-04-09 17:11:03 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-09 17:11:03 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-09 17:11:03 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16.04.2026&g
+2026-04-09 17:11:10 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-09 17:11:10 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-09 17:11:13 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[17054.0, 17054.0, 17235.0, 17235.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:11:15 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 17037.0, 17037.0, 18000.0, 18000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:11:51 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 1: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:11:51 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 1: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=13.04.2026-16.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:11:56 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16.04.2026&g
+2026-04-09 17:11:56 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-09 17:11:57 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[17054.0, 17054.0, 17235.0, 17235.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:11:59 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 17037.0, 17037.0, 18000.0, 18000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:12:36 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 2: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:12:36 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 2: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=13.04.2026-16.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:12:41 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16.04.2026&g
+2026-04-09 17:12:41 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-09 17:12:42 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[17054.0, 17054.0, 17235.0, 17235.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:12:45 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 11358.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 12000.0, 17037.0, 17037.0, 18000.0, 18000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:13:21 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 3: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=13.04.2026-16.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:13:21 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 3: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=13.04.2026-16.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:13:21 | INFO | app.backend.api:68 | Parsed 1: price=None status=error dates=13.04.2026-16.04.2026
+2026-04-09 17:13:21 | INFO | app.backend.api:68 | Parsed 2: price=None status=error dates=13.04.2026-16.04.2026
+2026-04-09 17:13:49 | INFO | app.backend.api:52 | Parsing property 2: https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-09 17:13:49 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-09 17:13:49 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-09 17:13:49 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-09 17:13:49 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-09 17:13:49 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-09 17:13:49 | INFO | app.backend.api:52 | Parsing property 1: https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30
+2026-04-09 17:13:49 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30
+2026-04-09 17:13:49 | DEBUG | app.parser.base_parser:55 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-09 17:13:49 | INFO | app.parser.base_parser:73 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-09 17:13:49 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&g
+2026-04-09 17:13:50 | DEBUG | app.parser.base_parser:121 | BaseParser: browser launched proxy=yes
+2026-04-09 17:13:51 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[19619.0, 19619.0, 19827.0, 19827.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:13:54 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 11358.0, 11358.0, 12000.0, 12000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:14:29 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 1: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:14:30 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 1: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:14:34 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-09 17:14:35 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&g
+2026-04-09 17:14:36 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[19619.0, 19619.0, 19827.0, 19827.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:14:39 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 11358.0, 11358.0, 12000.0, 12000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:15:14 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 2: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:15:15 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 2: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:15:19 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-09 17:15:20 | INFO | app.parser.ostrovok_parser:42 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&g
+2026-04-09 17:15:21 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[19619.0, 19619.0, 19827.0, 19827.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:15:24 | DEBUG | app.parser.ostrovok_parser:91 | OstrovokParser XHR prices=[8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 8518.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 9000.0, 11358.0, 11358.0, 12000.0, 12000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-09 17:15:59 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 3: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:15:59 | INFO | app.backend.api:68 | Parsed 2: price=None status=error dates=27.04.2026-30.04.2026
+2026-04-09 17:16:00 | ERROR | app.parser.base_parser:255 | [OstrovokParser] Error attempt 3: Page.goto: Timeout 40000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=27.04.2026-30.04.2026&guests=2", waiting until "domcontentloaded"
+
+2026-04-09 17:16:00 | INFO | app.backend.api:68 | Parsed 1: price=None status=error dates=27.04.2026-30.04.2026
