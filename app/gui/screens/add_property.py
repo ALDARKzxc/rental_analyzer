@@ -108,18 +108,33 @@ class AddPropertyScreen(QWidget):
         scroll.setWidget(content); outer.addWidget(scroll, stretch=1)
 
         # Buttons — outside scroll so they are always visible
-        btn_bar = QWidget()
-        btn_bar.setStyleSheet("background:#1e1e24; border-top: 1px solid #5a5554;")
+        btn_bar = QFrame()
+        btn_bar.setAutoFillBackground(True)
+        btn_bar.setStyleSheet("QFrame { background:#252530; border-top:1px solid #5a5554; }")
         btn_row = QHBoxLayout(btn_bar)
-        btn_row.setContentsMargins(36, 12, 36, 12); btn_row.setSpacing(10)
+        btn_row.setContentsMargins(36, 14, 36, 14); btn_row.setSpacing(12)
         btn_row.addStretch()
 
-        self.btn_cancel = QPushButton("  Отмена  ")
-        self.btn_cancel.setObjectName("secondaryBtn"); self.btn_cancel.setFixedHeight(40)
+        self.btn_cancel = QPushButton("Отмена")
+        self.btn_cancel.setFixedHeight(42)
+        self.btn_cancel.setMinimumWidth(120)
+        self.btn_cancel.setStyleSheet("""
+            QPushButton { background:#444140; color:#ffa987; border:1.5px solid #ffa987;
+                          border-radius:9px; font-weight:600; font-size:13px; padding:0 20px; }
+            QPushButton:hover { background:#3a3938; color:#f7ebe8; }
+        """)
         self.btn_cancel.clicked.connect(self.cancelled.emit); btn_row.addWidget(self.btn_cancel)
 
-        self.btn_save = QPushButton("  ◈  Сохранить  ")
-        self.btn_save.setObjectName("primaryBtn"); self.btn_save.setFixedHeight(40)
+        self.btn_save = QPushButton("◈  Сохранить")
+        self.btn_save.setFixedHeight(42)
+        self.btn_save.setMinimumWidth(150)
+        self.btn_save.setStyleSheet("""
+            QPushButton { background:#ffa987; color:#1e1e24; border:none;
+                          border-radius:9px; font-weight:700; font-size:13px; padding:0 20px; }
+            QPushButton:hover   { background:#ffb99a; }
+            QPushButton:pressed { background:#e08060; }
+            QPushButton:disabled{ background:#5a5554; color:#888; }
+        """)
         self.btn_save.clicked.connect(self._save); btn_row.addWidget(self.btn_save)
 
         outer.addWidget(btn_bar)
@@ -136,7 +151,7 @@ class AddPropertyScreen(QWidget):
         self.prop_id = None
         self.inp_title.clear(); self.inp_url.clear(); self.inp_notes.clear()
         self.combo_cat.setCurrentIndex(0)
-        self.btn_save.setEnabled(True); self.btn_save.setText("  ◈  Сохранить  ")
+        self.btn_save.setEnabled(True); self.btn_save.setText("◈  Сохранить")
         self.page_title.setText("НОВЫЙ ОБЪЕКТ")
         if prop:
             self.prop_id = prop.get("id")
@@ -156,7 +171,7 @@ class AddPropertyScreen(QWidget):
         if not url.startswith("http"):
             QMessageBox.warning(self, "Ошибка", "Введите корректную ссылку"); return
 
-        self.btn_save.setEnabled(False); self.btn_save.setText("  Сохранение...  ")
+        self.btn_save.setEnabled(False); self.btn_save.setText("Сохранение...")
         data = {
             "title": title, "url": url,
             "category": self.combo_cat.currentText(),
@@ -171,20 +186,28 @@ class AddPropertyScreen(QWidget):
         self._worker.finished.connect(self._thread.quit)
         self._thread.start()
 
+    _SAVE_STYLE = """
+        QPushButton { background:#ffa987; color:#1e1e24; border:none;
+                      border-radius:9px; font-weight:700; font-size:13px; padding:0 20px; }
+        QPushButton:hover { background:#ffb99a; }
+        QPushButton:disabled{ background:#5a5554; color:#888; }
+    """
+
     def _on_saved(self, _):
         self.reset()
-        self.btn_save.setText("  ✓  Сохранено!  ")
+        self.btn_save.setText("✓  Сохранено!")
         self.btn_save.setStyleSheet("""
             QPushButton { background:#1a4731; color:#4ade80; border:none;
-            border-radius:9px; padding:0 18px; font-weight:600; }""")
+                          border-radius:9px; font-weight:700; font-size:13px; padding:0 20px; }
+        """)
         QTimer.singleShot(1200, self._after_save)
 
     def _after_save(self):
-        self.btn_save.setStyleSheet("")
-        self.btn_save.setText("  ◈  Сохранить  ")
+        self.btn_save.setStyleSheet(self._SAVE_STYLE)
+        self.btn_save.setText("◈  Сохранить")
         self.saved.emit()
 
     def _on_error(self, e):
-        self.btn_save.setEnabled(True); self.btn_save.setText("  ◈  Сохранить  ")
+        self.btn_save.setEnabled(True); self.btn_save.setText("◈  Сохранить")
         msg = "Объект с таким URL уже добавлен" if "already exists" in e else e
         QMessageBox.critical(self, "Ошибка сохранения", msg)

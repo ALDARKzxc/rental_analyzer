@@ -239,13 +239,25 @@ class PropertyCard(QFrame):
         ac = QVBoxLayout(); ac.setSpacing(6)
         ac.setAlignment(Qt.AlignmentFlag.AlignVCenter); ac.setContentsMargins(6,0,0,0)
 
-        self.btn_parse = QPushButton("  Обновить  "); self.btn_parse.setObjectName("primaryBtn")
-        self.btn_parse.setMinimumWidth(108); self.btn_parse.setFixedHeight(32)
+        self.btn_parse = QPushButton("Обновить")
+        self.btn_parse.setFixedHeight(34); self.btn_parse.setMinimumWidth(110)
+        self.btn_parse.setStyleSheet("""
+            QPushButton { background:#ffa987; color:#1e1e24; border:none; border-radius:8px;
+                          font-weight:700; font-size:13px; padding:0 12px; }
+            QPushButton:hover   { background:#ffb99a; }
+            QPushButton:pressed { background:#e08060; }
+            QPushButton:disabled{ background:#5a5554; color:#888; }
+        """)
         self.btn_parse.clicked.connect(partial(self.parse_requested.emit, self.prop_id))
         ac.addWidget(self.btn_parse)
 
-        bd = QPushButton("  Удалить  "); bd.setObjectName("dangerBtn")
-        bd.setMinimumWidth(108); bd.setFixedHeight(32)
+        bd = QPushButton("Удалить")
+        bd.setFixedHeight(34); bd.setMinimumWidth(110)
+        bd.setStyleSheet("""
+            QPushButton { background:#2a1010; color:#e54b4b; border:1.5px solid #e54b4b;
+                          border-radius:8px; font-weight:600; font-size:13px; padding:0 12px; }
+            QPushButton:hover { background:#3a1515; }
+        """)
         bd.clicked.connect(partial(self.delete_requested.emit, self.prop_id)); ac.addWidget(bd)
         lay.addLayout(ac)
 
@@ -254,14 +266,14 @@ class PropertyCard(QFrame):
         self._parsing = on
         if on:
             self._dot_cnt = 0; self.btn_parse.setEnabled(False)
-            self.btn_parse.setText("  Парсинг   "); self._timer.start(380)
+            self.btn_parse.setText("Парсинг..."); self._timer.start(380)
         else:
             self._timer.stop(); self.btn_parse.setEnabled(True)
-            self.btn_parse.setText("  Обновить  ")
+            self.btn_parse.setText("Обновить")
 
     def _tick(self):
         self._dot_cnt = (self._dot_cnt+1)%4
-        self.btn_parse.setText(f"  Парсинг{'.'*self._dot_cnt:<3}")
+        self.btn_parse.setText(f"Парсинг{'.'*self._dot_cnt:<3}")
 
     @staticmethod
     def _badge(st):
