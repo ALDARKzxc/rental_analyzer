@@ -11,7 +11,6 @@ from PySide6.QtGui import QFont, QColor, QPalette
 from app.gui.styles import STYLESHEET
 from app.gui.screens.property_list import PropertyListScreen
 from app.gui.screens.add_property import AddPropertyScreen
-from app.gui.screens.detail import DetailScreen
 from app.gui.api_client import ApiClient
 
 
@@ -47,20 +46,16 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget(); root.addWidget(self.stack, stretch=1)
 
-        self.screen_list   = PropertyListScreen(self.api)
-        self.screen_add    = AddPropertyScreen(self.api)
-        self.screen_detail = DetailScreen(self.api)
+        self.screen_list = PropertyListScreen(self.api)
+        self.screen_add  = AddPropertyScreen(self.api)
 
         self.stack.addWidget(self.screen_list)
         self.stack.addWidget(self.screen_add)
-        self.stack.addWidget(self.screen_detail)
 
         self.screen_list.open_add.connect(self._show_add)
-        self.screen_list.open_detail.connect(self._show_detail)
         self.screen_add.saved.connect(self._on_saved)
         self.screen_add.cancelled.connect(self._show_list)
         self.screen_add.go_back.connect(self._show_list)
-        self.screen_detail.go_back.connect(self._show_list)
         self._show_list()
 
     def _build_sidebar(self) -> QWidget:
@@ -116,10 +111,6 @@ class MainWindow(QMainWindow):
     def _show_add(self):
         self.screen_add.reset(); self.stack.setCurrentIndex(1)
         self.btn_list.setChecked(False); self.btn_add.setChecked(True)
-
-    def _show_detail(self, prop_id: int):
-        self.screen_detail.load(prop_id); self.stack.setCurrentIndex(2)
-        self.btn_list.setChecked(False); self.btn_add.setChecked(False)
 
     def _on_saved(self): self._show_list()
 

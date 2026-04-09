@@ -45,7 +45,7 @@ class AddPropertyScreen(QWidget):
 
     def _setup_ui(self):
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -103,9 +103,17 @@ class AddPropertyScreen(QWidget):
         self.inp_notes.setFixedHeight(80); cl.addWidget(self.inp_notes)
 
         lay.addWidget(card)
+        lay.addStretch()
 
-        # Buttons
-        btn_row = QHBoxLayout(); btn_row.setSpacing(10); btn_row.addStretch()
+        scroll.setWidget(content); outer.addWidget(scroll, stretch=1)
+
+        # Buttons — outside scroll so they are always visible
+        btn_bar = QWidget()
+        btn_bar.setStyleSheet("background:#1e1e24; border-top: 1px solid #5a5554;")
+        btn_row = QHBoxLayout(btn_bar)
+        btn_row.setContentsMargins(36, 12, 36, 12); btn_row.setSpacing(10)
+        btn_row.addStretch()
+
         self.btn_cancel = QPushButton("  Отмена  ")
         self.btn_cancel.setObjectName("secondaryBtn"); self.btn_cancel.setFixedHeight(40)
         self.btn_cancel.clicked.connect(self.cancelled.emit); btn_row.addWidget(self.btn_cancel)
@@ -113,9 +121,8 @@ class AddPropertyScreen(QWidget):
         self.btn_save = QPushButton("  ◈  Сохранить  ")
         self.btn_save.setObjectName("primaryBtn"); self.btn_save.setFixedHeight(40)
         self.btn_save.clicked.connect(self._save); btn_row.addWidget(self.btn_save)
-        lay.addLayout(btn_row); lay.addStretch()
 
-        scroll.setWidget(content); outer.addWidget(scroll)
+        outer.addWidget(btn_bar)
 
     def _lbl(self, t):
         l = QLabel(t); l.setObjectName("formLabel"); return l

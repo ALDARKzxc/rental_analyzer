@@ -169,7 +169,6 @@ class DatePickerPopup(QWidget):
 # ── Card ──────────────────────────────────────────────────────────
 
 class PropertyCard(QFrame):
-    clicked          = Signal(int)
     parse_requested  = Signal(int)
     delete_requested = Signal(int)
 
@@ -240,10 +239,6 @@ class PropertyCard(QFrame):
         ac = QVBoxLayout(); ac.setSpacing(6)
         ac.setAlignment(Qt.AlignmentFlag.AlignVCenter); ac.setContentsMargins(6,0,0,0)
 
-        ba = QPushButton("  Анализ  "); ba.setObjectName("secondaryBtn")
-        ba.setMinimumWidth(108); ba.setFixedHeight(32)
-        ba.clicked.connect(partial(self.clicked.emit, self.prop_id)); ac.addWidget(ba)
-
         self.btn_parse = QPushButton("  Обновить  "); self.btn_parse.setObjectName("primaryBtn")
         self.btn_parse.setMinimumWidth(108); self.btn_parse.setFixedHeight(32)
         self.btn_parse.clicked.connect(partial(self.parse_requested.emit, self.prop_id))
@@ -280,8 +275,7 @@ class PropertyCard(QFrame):
 # ── Screen ────────────────────────────────────────────────────────
 
 class PropertyListScreen(QWidget):
-    open_add    = Signal()
-    open_detail = Signal(int)
+    open_add = Signal()
 
     def __init__(self, api):
         super().__init__()
@@ -459,7 +453,6 @@ class PropertyListScreen(QWidget):
 
         for prop in props:
             card = PropertyCard(prop)
-            card.clicked.connect(self.open_detail.emit)
             card.parse_requested.connect(self._parse_one)
             card.delete_requested.connect(self._delete)
             self._cl.insertWidget(self._cl.count()-1, card)
@@ -509,7 +502,6 @@ class PropertyListScreen(QWidget):
         self._cl.takeAt(idx); old.deleteLater()
 
         new_card = PropertyCard(prop)
-        new_card.clicked.connect(self.open_detail.emit)
         new_card.parse_requested.connect(self._parse_one)
         new_card.delete_requested.connect(self._delete)
         self._cl.insertWidget(min(idx, self._cl.count()), new_card)
