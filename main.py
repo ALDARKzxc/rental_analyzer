@@ -7,10 +7,8 @@ import time
 
 # PyInstaller: добавляем папку с exe в sys.path
 if getattr(sys, 'frozen', False):
-    # Запущено как exe
     BASE_DIR = os.path.dirname(sys.executable)
     sys.path.insert(0, BASE_DIR)
-    # Меняем рабочую папку на папку с exe
     os.chdir(BASE_DIR)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -37,42 +35,47 @@ logger.add(
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{line} | {message}"
 )
 
+# Флаг ошибки запуска бэкенда — виден из основного потока
+_backend_error: str = ""
+
 
 def start_api_server():
     """Запускаем asyncio loop бэкенда и регистрируем его для прямых вызовов."""
+    global _backend_error
     import asyncio
     from app.backend.database import init_db
     from app.backend import api as backend_api  # noqa — регистрирует роуты
     from app.gui.api_client import register_backend_loop
 
     async def _main():
-        # Инициализируем БД внутри loop бэкенда
         await init_db()
-
-        # Регистрируем текущий loop чтобы GUI мог вызывать функции напрямую
         loop = asyncio.get_event_loop()
         register_backend_loop(loop)
         logger.info("Backend loop started and registered")
-
-        # Держим loop живым вечно
         while True:
             await asyncio.sleep(1)
 
-    asyncio.run(_main())
+    try:
+        asyncio.run(_main())
+    except Exception as e:
+        _backend_error = str(e)
+        logger.error(f"Backend thread crashed: {e}", exc_info=True)
 
 
-def wait_for_api(timeout: float = 15.0) -> bool:
+def wait_for_api(timeout: float = 30.0) -> bool:
     """Ждём пока backend loop зарегистрируется."""
-    import time
-    from app.gui.api_client import _backend_loop
+    global _backend_error
+    from app.gui import api_client as _ac
     deadline = time.time() + timeout
     while time.time() < deadline:
-        from app.gui import api_client as _ac
+        # Быстрый выход если бэкенд упал
+        if _backend_error:
+            return False
         with _ac._backend_loop_lock:
             loop = _ac._backend_loop
         if loop is not None and loop.is_running():
             return True
-        time.sleep(0.3)
+        time.sleep(0.2)
     return False
 
 
@@ -104,7 +107,6 @@ def main():
     api_thread.start()
     logger.info("API thread started")
 
-    # Ждём готовности API (увеличено до 30 сек для exe)
     splash.showMessage(
         "RENTAL PRICE ANALYZER\n\nОжидание API...",
         Qt.AlignmentFlag.AlignCenter,
@@ -116,7 +118,7 @@ def main():
     splash.close()
 
     if not ready:
-        # Показываем лог для диагностики
+        error_detail = f"\n\nПричина: {_backend_error}" if _backend_error else ""
         log_path = LOGS_DIR / "app.log"
         log_hint = f"\n\nЛог: {log_path}" if log_path.exists() else ""
         QMessageBox.critical(
@@ -127,7 +129,7 @@ def main():
             "1. Перезапустить приложение\n"
             "2. Временно отключить антивирус\n"
             "3. Проверить порт: netstat -ano | findstr 8765"
-            + log_hint,
+            + error_detail + log_hint,
         )
         sys.exit(1)
 

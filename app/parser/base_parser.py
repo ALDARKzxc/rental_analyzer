@@ -38,7 +38,6 @@ def _detect_system_proxy() -> Optional[str]:
         val = os.environ.get(key)
         if val:
             return val
-    # Windows registry proxy (через winreg)
     if sys.platform == "win32":
         try:
             import winreg
@@ -60,10 +59,7 @@ def _detect_system_proxy() -> Optional[str]:
 
 
 class BaseParser(ABC):
-    """
-    Abstract base for all site parsers.
-    Auto-detects and uses system proxy for Playwright.
-    """
+    """Abstract base for all site parsers."""
 
     def __init__(self):
         self._browser = None
@@ -78,12 +74,10 @@ class BaseParser(ABC):
         return random.choice(PARSER_USER_AGENTS)
 
     def _playwright_proxy_config(self) -> Optional[dict]:
-        """Формируем конфиг прокси для Playwright."""
         if not self._proxy:
             return None
         proxy_url = self._proxy
         config = {"server": proxy_url}
-        # Если прокси требует аутентификацию (http://user:pass@host:port)
         m = re.match(r'https?://([^:@]+):([^@]+)@', proxy_url)
         if m:
             config["username"] = m.group(1)
@@ -91,7 +85,7 @@ class BaseParser(ABC):
         return config
 
     async def _get_browser(self):
-        """Lazy browser initialization с поддержкой прокси и exe-окружения."""
+        """Lazy browser initialization с поддержкой прокси."""
         if self._browser is None:
             from playwright.async_api import async_playwright
             self._playwright = await async_playwright().start()
@@ -105,9 +99,6 @@ class BaseParser(ABC):
             ]
 
             proxy_config = self._playwright_proxy_config()
-
-            # В exe-режиме Playwright может не найти chromium автоматически.
-            # Ищем executable_path явно.
             executable_path = self._find_chromium_executable()
             if executable_path:
                 logger.info(f"BaseParser: using chromium at {executable_path}")
@@ -116,7 +107,7 @@ class BaseParser(ABC):
                 headless=True,
                 args=launch_args,
                 proxy=proxy_config,
-                executable_path=executable_path,  # None = ищет сам
+                executable_path=executable_path,
             )
             logger.debug(
                 f"BaseParser: browser launched "
@@ -126,35 +117,29 @@ class BaseParser(ABC):
 
     def _find_chromium_executable(self) -> Optional[str]:
         """Ищем chrome.exe внутри exe-пакета или рядом с exe."""
-        import sys
         from pathlib import Path
+        import platform
 
         search_roots = []
-
         if getattr(sys, 'frozen', False):
-            # Внутри PyInstaller
             search_roots.append(Path(sys._MEIPASS) / "ms-playwright")
             search_roots.append(Path(sys.executable).parent / "ms-playwright")
 
-        # Системный путь Playwright
         pw_path = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
         if pw_path:
             search_roots.append(Path(pw_path))
 
-        import platform
         exe_name = "chrome.exe" if platform.system() == "Windows" else "chrome"
 
         for root in search_roots:
             if not root.exists():
                 continue
-            # Ищем рекурсивно chrome.exe / chrome
             for found in root.rglob(exe_name):
                 if found.is_file():
                     logger.debug(f"Found chromium: {found}")
                     return str(found)
 
-        return None  # Playwright найдёт сам через PATH
-        return self._browser
+        return None
 
     async def _new_context(self):
         browser = await self._get_browser()
@@ -167,7 +152,7 @@ class BaseParser(ABC):
                 "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             },
-            ignore_https_errors=True,   # прокси часто подменяют SSL
+            ignore_https_errors=True,
         )
         await context.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -180,19 +165,12 @@ class BaseParser(ABC):
         await asyncio.sleep(random.uniform(min_s, max_s))
 
     def _detect_block(self, html: str) -> bool:
-        """
-        Улучшенная детекция блокировки.
-        Слова 'cloudflare' и 'forbidden' могут быть в скриптах аналитики —
-        проверяем контекст и несколько признаков одновременно.
-        """
         if len(html) < 2000:
-            # Слишком короткий HTML — почти наверняка блок
             block_words = ["captcha", "robot", "forbidden", "access denied",
                            "429", "cloudflare", "ddos-guard"]
             html_lower = html.lower()
             return any(w in html_lower for w in block_words)
 
-        # Для нормальных страниц требуем совпадение нескольких признаков
         html_lower = html.lower()
         hard_blocks = [
             "access denied",
@@ -205,17 +183,13 @@ class BaseParser(ABC):
         if any(w in html_lower for w in hard_blocks):
             return True
 
-        # Капча — однозначная блокировка
         captcha_signs = [
             'type="checkbox"' in html and "captcha" in html_lower,
             "recaptcha" in html_lower,
             "hcaptcha" in html_lower,
             "cf-challenge" in html_lower,
         ]
-        if any(captcha_signs):
-            return True
-
-        return False
+        return any(captcha_signs)
 
     def _extract_price_from_text(self, text: str) -> Optional[float]:
         text = re.sub(r"(\d)\s+(\d)", r"\1\2", text)
@@ -235,7 +209,10 @@ class BaseParser(ABC):
         for attempt in range(1, PARSER_RETRY_COUNT + 1):
             try:
                 result = await self._fetch_once(url)
-                logger.debug(f"[{self.__class__.__name__}] attempt={attempt} price={result.get('price')} status={result.get('status')}")
+                logger.debug(
+                    f"[{self.__class__.__name__}] attempt={attempt} "
+                    f"price={result.get('price')} status={result.get('status')}"
+                )
                 return result
             except CaptchaError as e:
                 logger.warning(f"[{self.__class__.__name__}] Captcha attempt {attempt}: {e}")
@@ -246,17 +223,22 @@ class BaseParser(ABC):
             except BlockedError as e:
                 logger.warning(f"[{self.__class__.__name__}] Blocked attempt {attempt}: {e}")
                 if attempt < PARSER_RETRY_COUNT:
-                    await asyncio.sleep(PARSER_RETRY_DELAY * attempt * 2)
+                    await asyncio.sleep(PARSER_RETRY_DELAY * attempt)
                 else:
                     return self._unavailable("blocked", str(e))
             except DataNotFoundError as e:
                 return self._unavailable("not_found", str(e))
             except Exception as e:
                 logger.error(f"[{self.__class__.__name__}] Error attempt {attempt}: {e}")
+                # Сбрасываем браузер между попытками — следующая попытка стартует чисто
+                try:
+                    await self.close()
+                except Exception:
+                    pass
                 if attempt < PARSER_RETRY_COUNT:
                     await asyncio.sleep(PARSER_RETRY_DELAY)
                 else:
-                    return self._unavailable("error", str(e))
+                    return self._unavailable("error", str(e)[:500])
         return self._unavailable("error", "Max retries exceeded")
 
     def _unavailable(self, status: str, error: str) -> Dict[str, Any]:
@@ -269,8 +251,14 @@ class BaseParser(ABC):
 
     async def close(self):
         if self._browser:
-            await self._browser.close()
+            try:
+                await self._browser.close()
+            except Exception:
+                pass
         if self._playwright:
-            await self._playwright.stop()
+            try:
+                await self._playwright.stop()
+            except Exception:
+                pass
         self._browser = None
         self._playwright = None

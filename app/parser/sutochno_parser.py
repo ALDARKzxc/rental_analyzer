@@ -14,16 +14,29 @@ class SutochnoParser(BaseParser):
         context = await self._new_context()
         page = await context.new_page()
         try:
+            # "commit" резолвится быстро; затем ждём DOMContentLoaded отдельно
+            try:
+                response = await page.goto(url, timeout=PARSER_TIMEOUT, wait_until="commit")
+                if response and response.status in (403, 429, 503):
+                    raise BlockedError(f"HTTP {response.status}")
+                # Ждём DOM до 15 сек, но не зависаем если не дождались
+                try:
+                    await page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                except Exception:
+                    pass
+            except BlockedError:
+                raise
+            except Exception as e:
+                logger.warning(f"SutochnoParser: nav error ({e.__class__.__name__}) — trying extraction anyway")
+
             await self._human_delay(1, 2)
-            response = await page.goto(url, timeout=PARSER_TIMEOUT, wait_until="domcontentloaded")
 
-            if response and response.status in (403, 429, 503):
-                raise BlockedError(f"HTTP {response.status}")
+            try:
+                html = await page.content()
+            except Exception:
+                html = ""
 
-            await self._human_delay(2, 3)
-            html = await page.content()
-
-            if self._detect_block(html):
+            if html and self._detect_block(html):
                 raise BlockedError("Blocked")
 
             title = None
@@ -53,7 +66,7 @@ class SutochnoParser(BaseParser):
                 except Exception:
                     pass
 
-            if price is None:
+            if price is None and html:
                 price = self._extract_price_from_text(html[:30000])
 
             external_id = re.search(r"/(\d+)", url)
@@ -67,5 +80,15 @@ class SutochnoParser(BaseParser):
                 "error": None if price else "Price not found"
             }
         finally:
-            await page.close()
-            await context.close()
+            try:
+                await page.close()
+            except Exception:
+                pass
+            try:
+                await context.close()
+            except Exception:
+                pass
+            try:
+                await self.close()
+            except Exception:
+                pass

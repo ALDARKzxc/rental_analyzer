@@ -13,16 +13,27 @@ class GenericParser(BaseParser):
         context = await self._new_context()
         page = await context.new_page()
         try:
+            try:
+                response = await page.goto(url, timeout=PARSER_TIMEOUT, wait_until="commit")
+                if response and response.status in (403, 429, 503):
+                    raise BlockedError(f"HTTP {response.status}")
+                try:
+                    await page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                except Exception:
+                    pass
+            except BlockedError:
+                raise
+            except Exception as e:
+                logger.warning(f"GenericParser: nav error ({e.__class__.__name__}) — trying extraction anyway")
+
             await self._human_delay(1, 2)
-            response = await page.goto(url, timeout=PARSER_TIMEOUT, wait_until="domcontentloaded")
 
-            if response and response.status in (403, 429, 503):
-                raise BlockedError(f"HTTP {response.status}")
+            try:
+                html = await page.content()
+            except Exception:
+                html = ""
 
-            await self._human_delay(1, 2)
-            html = await page.content()
-
-            if self._detect_block(html):
+            if html and self._detect_block(html):
                 raise BlockedError("Blocked")
 
             title = None
@@ -37,7 +48,6 @@ class GenericParser(BaseParser):
             except Exception:
                 pass
 
-            # Try meta price
             price = None
             for sel in ["meta[itemprop='price']", "span[itemprop='price']"]:
                 try:
@@ -51,7 +61,7 @@ class GenericParser(BaseParser):
                 except Exception:
                     pass
 
-            if not price:
+            if not price and html:
                 price = self._extract_price_from_text(html[:40000])
 
             ext_id = re.search(r"/(\d{4,})", url)
@@ -64,8 +74,18 @@ class GenericParser(BaseParser):
                 "error": None if price else "Could not extract price from generic page"
             }
         finally:
-            await page.close()
-            await context.close()
+            try:
+                await page.close()
+            except Exception:
+                pass
+            try:
+                await context.close()
+            except Exception:
+                pass
+            try:
+                await self.close()
+            except Exception:
+                pass
 
 
 class BookingParser(GenericParser):

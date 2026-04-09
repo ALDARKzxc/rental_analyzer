@@ -1,14 +1,12 @@
 """
-Ostrovok.ru parser — переписан с нуля.
+Ostrovok.ru parser.
 
-Ключевые исправления vs предыдущей версии:
-1. Фейковая цена 1800 — _price_from_regex матчил случайные числа.
-   Теперь regex только по строго специфичным JSON-полям Ostrovok.
-2. Масштабирование до 100 страниц — каждый парсер создаёт
-   свой браузер (не shared), контекст и страница закрываются сразу.
-3. Приоритет: XHR /hotel/search → DOM ₽-спаны → __NEXT_DATA__ → httpx.
-4. _clean_rub_price теперь требует цифру до ₽ (не ловит "2024 год" и т.п.)
-5. Прокси пробрасывается в браузер (из реестра / env).
+Стратегии (по приоритету):
+1. Playwright + XHR-перехват /hotel/search → самая надёжная.
+   page.goto с wait_until="commit" (резолвится сразу как сервер начал отвечать).
+   XHR с ценами приходит через 5–20 сек пока страница грузится в фоне.
+   Если page.goto таймаутит — проверяем, есть ли уже XHR-цены и возвращаем их.
+2. httpx — резерв без браузера (пробует с прокси и без).
 """
 from __future__ import annotations
 
@@ -26,12 +24,11 @@ from loguru import logger
 from app.parser.base_parser import BaseParser, BlockedError, CaptchaError
 from app.utils.config import PARSER_USER_AGENTS
 
-_PW_NAV_TIMEOUT = 40_000   # domcontentloaded
-_XHR_WAIT       = 10       # секунд ждём XHR после загрузки DOM
+_PW_NAV_TIMEOUT = 25_000   # ms: "commit" резолвится быстро, это safety-net
+_XHR_WAIT       = 20       # секунд ждём XHR после commit (JS грузит данные async)
 
 
 class OstrovokParser(BaseParser):
-    """Парсер Ostrovok.ru."""
 
     # ── Entry point ──────────────────────────────────────────────
 
@@ -41,23 +38,30 @@ class OstrovokParser(BaseParser):
         fetch_url         = self._normalize_url(url, checkin, checkout)
         logger.info(f"OstrovokParser: hotel_id={hotel_id} url={fetch_url[:90]}")
 
-        # Playwright — основная стратегия (XHR + DOM)
-        result = await self._playwright_strategy(fetch_url, hotel_id)
+        # Playwright — XHR перехват (основная стратегия)
+        result = None
+        try:
+            result = await self._playwright_strategy(fetch_url, hotel_id)
+        except (BlockedError, CaptchaError):
+            raise
+        except Exception as e:
+            logger.warning(f"OstrovokParser: playwright failed ({e.__class__.__name__}): {e}")
+
         if result and result.get("price"):
             return result
 
-        # httpx — резерв (работает без прокси / если Playwright облажался)
+        # httpx — резерв (без браузера, пробует с прокси и без)
         result2 = await self._httpx_strategy(fetch_url, hotel_id)
         if result2 and result2.get("price"):
             return result2
 
-        # Нет цены — возвращаем not_found (не error)
+        best = result or result2 or {}
         return {
             "price":       None,
-            "title":       (result or result2 or {}).get("title"),
+            "title":       best.get("title"),
             "external_id": hotel_id,
             "status":      "not_found",
-            "error":       "Цена не найдена. Добавьте даты в URL (?dates=DD.MM.YYYY-DD.MM.YYYY).",
+            "error":       "Цена не найдена. Добавьте даты (?dates=DD.MM.YYYY-DD.MM.YYYY).",
         }
 
     # ── Playwright strategy ──────────────────────────────────────
@@ -74,7 +78,6 @@ class OstrovokParser(BaseParser):
                 if response.status != 200:
                     return
                 rurl = response.url
-                # Только эндпоинты Ostrovok с ценами
                 if not any(ep in rurl for ep in [
                     "/hotel/search/v1/site/hp/search",
                     "/hotel/search/v2/site/hp/rates",
@@ -94,50 +97,88 @@ class OstrovokParser(BaseParser):
 
         page.on("response", on_response)
 
+        nav_ok = False
+        html   = ""
+
         try:
-            resp = await page.goto(url, timeout=_PW_NAV_TIMEOUT,
-                                   wait_until="domcontentloaded")
-            if resp and resp.status in (403, 429, 503):
-                raise BlockedError(f"HTTP {resp.status}")
-
-            # Ждём XHR с ценами — не более _XHR_WAIT сек
+            # "commit" = резолвится как только сервер начал слать ответ (~1-2 сек).
+            # Страница продолжает грузиться в фоне, JS файрит XHR — on_response работает.
             try:
-                await asyncio.wait_for(xhr_event.wait(), timeout=_XHR_WAIT)
-            except asyncio.TimeoutError:
-                logger.debug("OstrovokParser: XHR wait timeout")
+                resp = await page.goto(url, timeout=_PW_NAV_TIMEOUT, wait_until="commit")
+                if resp and resp.status in (403, 429, 503):
+                    raise BlockedError(f"HTTP {resp.status}")
+                nav_ok = True
+            except BlockedError:
+                raise
+            except Exception as nav_err:
+                # Даже если goto таймаутит/падает — XHR мог уже прийти.
+                # Ждём ещё немного на случай если XHR в пути.
+                if not xhr_event.is_set():
+                    try:
+                        await asyncio.wait_for(xhr_event.wait(), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        pass
+                if xhr_prices:
+                    logger.info(
+                        f"OstrovokParser: nav error [{nav_err.__class__.__name__}] "
+                        f"but {len(xhr_prices)} XHR prices already captured — returning OK"
+                    )
+                    # Возвращаем XHR цены, навигация не нужна
+                    return {
+                        "price":       min(xhr_prices),
+                        "title":       None,
+                        "external_id": hotel_id,
+                        "status":      "ok",
+                        "error":       None,
+                    }
+                raise  # XHR тоже нет — пробрасываем ошибку
 
-            # Скролл — триггерит lazy-load блока цен
+            # Навигация прошла — ждём XHR (JS грузит данные после mount)
+            if not xhr_event.is_set():
+                try:
+                    await asyncio.wait_for(xhr_event.wait(), timeout=_XHR_WAIT)
+                except asyncio.TimeoutError:
+                    logger.debug("OstrovokParser: XHR wait timeout — trying DOM/HTML fallback")
+
+            # Лёгкий скролл для lazy-load
             try:
-                await page.evaluate("window.scrollBy(0, 500)")
-                await asyncio.sleep(2)
+                await page.evaluate("window.scrollBy(0, 600)")
+                await asyncio.sleep(1)
             except Exception:
                 pass
 
-            html = await page.content()
+            try:
+                html = await page.content()
+            except Exception:
+                html = ""
 
-            if len(html) < 3000:
+            if len(html) < 3000 and not xhr_prices:
                 raise BlockedError("HTML слишком короткий")
 
-            # ── Приоритет 1: XHR ──
+            # ── Экстракция цены ──────────────────────────────────
             price = min(xhr_prices) if xhr_prices else None
             logger.debug(f"OstrovokParser XHR collected: {xhr_prices}")
 
-            # ── Приоритет 2: DOM ₽-спаны ──
-            if not price:
+            if not price and html:
                 price = await self._dom_rub_price(page)
                 logger.debug(f"OstrovokParser DOM price: {price}")
 
-            # ── Приоритет 3: __NEXT_DATA__ ──
-            if not price:
+            if not price and html:
                 price = self._next_data_price(html)
                 logger.debug(f"OstrovokParser __NEXT_DATA__ price: {price}")
 
-            # ── Приоритет 4: строгий regex только по JSON-полям ──
-            if not price:
+            if not price and html:
                 price = self._strict_json_price(html)
                 logger.debug(f"OstrovokParser strict-json price: {price}")
 
-            title = await self._dom_title(page) or self._html_title(html)
+            title = None
+            try:
+                title = await self._dom_title(page)
+                if not title and html:
+                    title = self._html_title(html)
+            except Exception:
+                if html:
+                    title = self._html_title(html)
 
             return {
                 "price":       price,
@@ -148,57 +189,72 @@ class OstrovokParser(BaseParser):
             }
 
         finally:
-            await page.close()
-            await context.close()
+            try:
+                await page.close()
+            except Exception:
+                pass
+            try:
+                await context.close()
+            except Exception:
+                pass
+            # Закрываем браузер после каждой попытки — нет утечек процессов
+            try:
+                await self.close()
+            except Exception:
+                pass
 
     # ── httpx strategy ───────────────────────────────────────────
 
     async def _httpx_strategy(self, url: str, hotel_id: Optional[str]) -> Optional[Dict]:
-        try:
-            proxy_conf = {}
-            if self._proxy:
-                proxy_conf = {"proxy": self._proxy}
+        """Пробует запрос с прокси, потом без — работает при любом типе соединения."""
+        proxies_to_try = [self._proxy, None] if self._proxy else [None]
 
-            async with httpx.AsyncClient(
-                timeout=18,
-                follow_redirects=True,
-                trust_env=False,
-                **proxy_conf,
-            ) as client:
-                await asyncio.sleep(random.uniform(1.0, 2.5))
-                resp = await client.get(url, headers=self._headers())
+        for proxy in proxies_to_try:
+            try:
+                kwargs: dict = {"timeout": 18, "follow_redirects": True, "trust_env": False}
+                if proxy:
+                    kwargs["proxy"] = proxy
 
-            if resp.status_code not in (200, 201):
-                logger.debug(f"OstrovokParser httpx: HTTP {resp.status_code}")
-                return None
+                async with httpx.AsyncClient(**kwargs) as client:
+                    await asyncio.sleep(random.uniform(0.5, 1.5))
+                    resp = await client.get(url, headers=self._headers())
 
-            html = resp.text
-            if len(html) < 3000 or self._detect_block(html):
-                return None
+                if resp.status_code not in (200, 201):
+                    logger.debug(f"OstrovokParser httpx (proxy={bool(proxy)}): HTTP {resp.status_code}")
+                    continue
 
-            price = (self._next_data_price(html)
-                     or self._strict_json_price(html))
-            title = self._html_title(html)
-            logger.debug(f"OstrovokParser httpx: price={price}")
+                html = resp.text
+                if len(html) < 3000 or self._detect_block(html):
+                    continue
 
-            return {
-                "price":       price,
-                "title":       title,
-                "external_id": hotel_id,
-                "status":      "ok" if price else "not_found",
-                "error":       None if price else "Цена не найдена (httpx)",
-            }
-        except Exception as e:
-            logger.debug(f"OstrovokParser httpx error: {e}")
-            return None
+                price = self._next_data_price(html) or self._strict_json_price(html)
+                title = self._html_title(html)
+                label = f"proxy={proxy}" if proxy else "direct"
+                logger.debug(f"OstrovokParser httpx ({label}): price={price}")
+
+                if price:
+                    return {
+                        "price":       price,
+                        "title":       title,
+                        "external_id": hotel_id,
+                        "status":      "ok",
+                        "error":       None,
+                    }
+                # Нет цены — пробуем без прокси
+                continue
+
+            except Exception as e:
+                logger.debug(f"OstrovokParser httpx (proxy={bool(proxy)}) error: {e}")
+                continue
+
+        return None
 
     # ── XHR price extraction ─────────────────────────────────────
 
     def _prices_from_xhr(self, data: dict) -> List[float]:
         """
         Парсим JSON-ответ /hotel/search/v1/site/hp/search.
-        Структура от Ostrovok:
-          { rates: [ { payment_options: { payment_types: [ {show_amount: 9589} ] } } ] }
+        Структура: { rates: [ { payment_options: { payment_types: [ {show_amount: 9589} ] } } ] }
         """
         found = []
         try:
@@ -209,7 +265,6 @@ class OstrovokParser(BaseParser):
             for rate in rates:
                 if not isinstance(rate, dict):
                     continue
-                # payment_options → payment_types → show_amount
                 po = rate.get("payment_options", {})
                 if isinstance(po, dict):
                     for pt in po.get("payment_types", []):
@@ -220,7 +275,6 @@ class OstrovokParser(BaseParser):
                             p = self._to_price(v)
                             if p:
                                 found.append(p)
-                # Прямые поля rate
                 for field in ("price", "amount", "show_amount",
                               "base_amount", "total_price", "night_price"):
                     p = self._to_price(rate.get(field))
@@ -229,13 +283,11 @@ class OstrovokParser(BaseParser):
         except Exception as e:
             logger.debug(f"_prices_from_xhr error: {e}")
 
-        # Фильтр: реалистичные цены посуточной аренды в России
         return [p for p in found if 500 <= p <= 300_000]
 
     # ── HTML price extraction ─────────────────────────────────────
 
     def _next_data_price(self, html: str) -> Optional[float]:
-        """Ищем цену в <script id="__NEXT_DATA__">."""
         m = re.search(
             r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>\s*(\{.*?\})\s*</script>',
             html, re.S
@@ -249,16 +301,6 @@ class OstrovokParser(BaseParser):
             return None
 
     def _strict_json_price(self, html: str) -> Optional[float]:
-        """
-        СТРОГИЙ regex — только точные JSON-ключи Ostrovok.
-        НЕ матчит случайные числа типа 2024, 1800, CSS-значения.
-
-        Требования к матчу:
-        - Ключ из белого списка
-        - Значение 4-6 цифр (500-299999)
-        - Перед значением только : и пробелы (JSON-структура)
-        """
-        # Белый список ключей с ценами именно Ostrovok
         KEYS = [
             "show_amount", "min_price", "minPrice",
             "base_amount", "night_price", "from_price",
@@ -266,14 +308,12 @@ class OstrovokParser(BaseParser):
         ]
         candidates = []
         for key in KEYS:
-            # Паттерн: "key": 12345 или "key":"12345"
             pat = rf'"{re.escape(key)}"\s*:\s*"?(\d{{4,6}})"?'
             for m in re.finditer(pat, html):
                 p = self._to_price(m.group(1))
                 if p:
                     candidates.append(p)
 
-        # Текстовые паттерны — только если есть ₽ И «/ночь» или «за ночь»
         text_patterns = [
             r'(\d[\d\xa0\u202f\s]{2,6})\s*[₽]\s*/\s*ноч',
             r'(\d[\d\xa0\u202f\s]{2,6})\s*[₽]\s*за\s*ноч',
@@ -286,29 +326,21 @@ class OstrovokParser(BaseParser):
                 if p:
                     candidates.append(p)
 
-        # Берём минимальную (начальная цена, а не с доп. услугами)
         valid = [p for p in candidates if 500 <= p <= 300_000]
         return min(valid) if valid else None
 
     # ── DOM extraction ────────────────────────────────────────────
 
     async def _dom_rub_price(self, page) -> Optional[float]:
-        """
-        Извлекаем цены из DOM через JS.
-        Диагностика показала: span:has-text('₽') → '9\xa0589\u202f₽' = 9589 ₽.
-        """
         try:
             texts = await page.evaluate("""
                 () => {
                     const results = [];
-                    // Все элементы с текстом содержащим ₽
                     const all = document.querySelectorAll('span, div, p, strong, b');
                     for (const el of all) {
-                        // Берём только leaf-узлы (нет дочерних элементов) или почти leaf
                         const childEls = el.querySelectorAll('*');
                         if (childEls.length > 2) continue;
                         const text = (el.innerText || el.textContent || '').trim();
-                        // Должен содержать ₽ и быть коротким (цена, не абзац)
                         if (text.includes('₽') && text.length >= 4 && text.length <= 25) {
                             results.push(text);
                         }
@@ -321,33 +353,19 @@ class OstrovokParser(BaseParser):
             return None
 
         logger.debug(f"OstrovokParser DOM ₽ texts (first 10): {texts[:10]}")
-
-        prices = []
-        for text in texts:
-            p = self._parse_rub_text(text)
-            if p:
-                prices.append(p)
-
+        prices = [p for t in texts for p in [self._parse_rub_text(t)] if p]
         valid = [p for p in prices if 500 <= p <= 300_000]
         return min(valid) if valid else None
 
     def _parse_rub_text(self, text: str) -> Optional[float]:
-        """
-        '9\xa0589\u202f₽' → 9589.0
-        '15\u202f000 ₽' → 15000.0
-        'Посмотреть цены' → None
-        '2024 ₽ скидка' → None (нет паттерна N₽/ночь или просто N₽ где N>=4 цифр)
-        """
         if not text or '₽' not in text:
             return None
-        # Убираем всё кроме цифр до ₽
         before_rub = text.split('₽')[0]
         digits_only = re.sub(r'[^\d]', '', before_rub)
         if not digits_only:
             return None
         try:
             val = float(digits_only)
-            # Реалистичная цена за ночь: от 500 до 300 000 ₽
             if 500 <= val <= 300_000:
                 return val
         except (ValueError, TypeError):
@@ -384,42 +402,33 @@ class OstrovokParser(BaseParser):
     # ── JSON price digger ─────────────────────────────────────────
 
     def _dig_price(self, obj, depth: int, max_depth: int = 12) -> Optional[float]:
-        """Рекурсивный поиск цены в JSON. Строгие ключи, нет ложных матчей."""
         if depth > max_depth:
             return None
-
-        # Строгий белый список — только реальные поля цен Ostrovok
         PRICE_KEYS = frozenset({
             "show_amount", "min_price", "minprice", "base_amount",
             "night_price", "from_price", "per_night", "min_rate",
             "lowest_price", "best_price", "total_price",
         })
-
         if isinstance(obj, dict):
-            # Сначала ищем по белому списку
             for key, val in obj.items():
                 if key.lower() in PRICE_KEYS:
                     p = self._to_price(val)
                     if p and 500 <= p <= 300_000:
                         return p
-            # Потом рекурсивно
             for val in obj.values():
                 r = self._dig_price(val, depth + 1, max_depth)
                 if r:
                     return r
-
         elif isinstance(obj, list):
             for item in obj[:30]:
                 r = self._dig_price(item, depth + 1, max_depth)
                 if r:
                     return r
-
         return None
 
     # ── Helpers ──────────────────────────────────────────────────
 
     def _to_price(self, v) -> Optional[float]:
-        """Конвертируем любое значение в цену или None."""
         if v is None:
             return None
         if isinstance(v, (int, float)):
@@ -432,49 +441,22 @@ class OstrovokParser(BaseParser):
                 pass
         return None
 
-
-    async def _is_occupied(self, page, html: str) -> bool:
-        """Определяем занят ли объект на выбранные даты."""
-        occupied_phrases = [
-            "нет свободных номеров", "нет доступных номеров",
-            "недоступно", "no rooms available", "not available",
-            "sold out", "нет мест", "занято", "закрыто на эти даты",
-        ]
-        html_lower = html.lower()
-        if any(p in html_lower for p in occupied_phrases):
-            return True
-        # Проверяем DOM
-        try:
-            texts = await page.evaluate("""
-                () => document.body.innerText.toLowerCase()
-            """)
-            if any(p in texts for p in ["нет свободных", "no rooms", "sold out"]):
-                return True
-        except Exception:
-            pass
-        return False
-
     def _extract_hotel_id(self, url: str) -> Optional[str]:
         m = re.search(r'/mid(\d+)/', url)
         return m.group(1) if m else None
 
     def _extract_dates(self, url: str):
         qs = parse_qs(urlparse(url).query)
-
-        # checkin/checkout
         ci = qs.get("checkin", [None])[0]
         co = qs.get("checkout", [None])[0]
         if ci and co:
             return ci, co
-
-        # dates=DD.MM.YYYY-DD.MM.YYYY
         ds = qs.get("dates", [None])[0]
         if ds:
             m = re.match(r'(\d{2})\.(\d{2})\.(\d{4})-(\d{2})\.(\d{2})\.(\d{4})', ds)
             if m:
-                d1,m1,y1,d2,m2,y2 = m.groups()
+                d1, m1, y1, d2, m2, y2 = m.groups()
                 return f"{y1}-{m1}-{d1}", f"{y2}-{m2}-{d2}"
-
         return None, None
 
     def _normalize_url(self, url: str, ci: Optional[str], co: Optional[str]) -> str:
