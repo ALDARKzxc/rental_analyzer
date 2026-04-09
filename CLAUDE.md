@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Context7
+
+Use Context7 MCP to fetch up-to-date documentation for any library used in this project whenever you need to check API details, method signatures, or behaviour. Do this automatically — without waiting for a reminder — whenever working with: PySide6, FastAPI, SQLAlchemy, Playwright, Pydantic, httpx, aiosqlite, matplotlib, pandas, loguru, tenacity, PyInstaller, or any other dependency from `requirements.txt`.
+
+To use Context7, call the `resolve-library-id` tool first to find the library, then `get-library-docs` to fetch the relevant section.
+
 ## Commands
 
 **Run the application:**
