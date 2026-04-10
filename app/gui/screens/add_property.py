@@ -108,6 +108,8 @@ class AddPropertyScreen(QWidget):
         self._setup_ui()
 
     # ── стили кнопок (inline, не зависят от каскада) ──────────────
+    _MAX_NOTES = 200
+
     _BTN_PRIMARY = """
         QPushButton { background:#ffa987; color:#1e1e24; border:none;
                       border-radius:9px; font-weight:700; font-size:13px; padding:0 20px; }
@@ -211,6 +213,11 @@ class AddPropertyScreen(QWidget):
         self.inp_notes = QTextEdit()
         self.inp_notes.setPlaceholderText("Необязательные заметки...")
         self.inp_notes.setFixedHeight(80); cl.addWidget(self.inp_notes)
+        self._notes_counter = QLabel(f"0/{self._MAX_NOTES}")
+        self._notes_counter.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._notes_counter.setStyleSheet("color:#6a5a54;background:transparent;font-size:11px;")
+        cl.addWidget(self._notes_counter)
+        self.inp_notes.textChanged.connect(self._on_notes_changed)
 
         lay.addWidget(card)
         lay.addStretch()
@@ -246,6 +253,23 @@ class AddPropertyScreen(QWidget):
         f = QFrame(); f.setFrameShape(QFrame.Shape.HLine)
         f.setStyleSheet("background:#5a5554;max-height:1px;"); return f
 
+    # ── notes counter ─────────────────────────────────────────────
+    def _on_notes_changed(self):
+        text = self.inp_notes.toPlainText()
+        if len(text) > self._MAX_NOTES:
+            cur = self.inp_notes.textCursor()
+            self.inp_notes.blockSignals(True)
+            self.inp_notes.setPlainText(text[:self._MAX_NOTES])
+            self.inp_notes.moveCursor(cur.MoveOperation.End)
+            self.inp_notes.blockSignals(False)
+            text = self.inp_notes.toPlainText()
+        count = len(text)
+        color = "#e54b4b" if count >= self._MAX_NOTES else "#6a5a54"
+        self._notes_counter.setText(f"{count}/{self._MAX_NOTES}")
+        self._notes_counter.setStyleSheet(
+            f"color:{color};background:transparent;font-size:11px;"
+        )
+
     # ── toggle ────────────────────────────────────────────────────
     def _on_title_toggle(self, checked: bool):
         self.inp_title.setEnabled(checked)
@@ -267,6 +291,8 @@ class AddPropertyScreen(QWidget):
         self.btn_save.setStyleSheet(self._BTN_PRIMARY)
         self.btn_save.setText("◈  Сохранить")
         self.page_title.setText("НОВЫЙ ОБЪЕКТ")
+        self._notes_counter.setText(f"0/{self._MAX_NOTES}")
+        self._notes_counter.setStyleSheet("color:#6a5a54;background:transparent;font-size:11px;")
 
         # Сбрасываем тумблер без сигнала
         self.toggle_title.toggled.disconnect(self._on_title_toggle)

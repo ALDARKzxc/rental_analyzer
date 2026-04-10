@@ -174,7 +174,8 @@ class PropertyCard(QFrame):
 
     def __init__(self, prop: Dict):
         super().__init__()
-        self.prop_id  = prop["id"]
+        self.prop_id      = prop["id"]
+        self._parse_dates = prop.get("parse_dates") or ""
         self._parsing = False
         self._dot_cnt = 0
         self._timer   = QTimer(self)
@@ -214,6 +215,13 @@ class PropertyCard(QFrame):
 
         url_lbl = QLabel(prop.get("url","")[:70]); url_lbl.setObjectName("hintLabel")
         info.addWidget(url_lbl)
+
+        notes = (prop.get("notes") or "").strip()
+        if notes:
+            preview = notes[:90] + ("…" if len(notes) > 90 else "")
+            nl = QLabel(f"📝 {preview}"); nl.setObjectName("hintLabel")
+            nl.setWordWrap(True)
+            info.addWidget(nl)
         lay.addLayout(info, stretch=1)
 
         # Цена
@@ -475,7 +483,15 @@ class PropertyListScreen(QWidget):
 
     def _parse_one(self, prop_id: int):
         if prop_id in self._parse_threads: return
-        if card := self._cards.get(prop_id): card.set_parsing(True)
+        card = self._cards.get(prop_id)
+        if card and not card._parse_dates:
+            QMessageBox.warning(
+                self, "Дата не выбрана",
+                "Для этого объекта не указан период дат.\n\n"
+                "Выберите даты с помощью кнопки «📅 Выбрать дату» и повторите."
+            )
+            return
+        if card: card.set_parsing(True)
 
         t = QThread(); w = ParseWorker(self.api, prop_id)
         w.moveToThread(t); t.started.connect(w.run)
@@ -522,12 +538,31 @@ class PropertyListScreen(QWidget):
     def _parse_all(self):
         ids = list(self._cards.keys())
         if not ids: return
+
+        ids_ready   = [pid for pid in ids if self._cards[pid]._parse_dates]
+        ids_skipped = len(ids) - len(ids_ready)
+
+        if not ids_ready:
+            QMessageBox.warning(
+                self, "Дата не выбрана",
+                "Ни у одного объекта не указан период дат.\n\n"
+                "Выберите даты с помощью кнопки «📅 Выбрать дату»."
+            )
+            return
+
         self.btn_all.setEnabled(False); self.btn_all.setText("  ↻  Запуск...  ")
-        for i, pid in enumerate(ids):
+        for i, pid in enumerate(ids_ready):
             QTimer.singleShot(i * 800, partial(self._parse_one, pid))
-        QTimer.singleShot(max(len(ids)*800+500, 3000),
+        QTimer.singleShot(max(len(ids_ready)*800+500, 3000),
                           lambda: [self.btn_all.setEnabled(True),
                                    self.btn_all.setText("  ↻  Обновить все  ")])
+
+        if ids_skipped:
+            QMessageBox.information(
+                self, "Часть объектов пропущена",
+                f"{ids_skipped} объект(ов) пропущено — для них не указана дата.\n\n"
+                "Выберите даты и нажмите «Обновить все» ещё раз."
+            )
 
     # ── Delete ───────────────────────────────────────────────────
 

@@ -2,6 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project intent — commercial distribution
+
+This is a **commercial product** built for end users, not a personal tool. The goal is to distribute a compiled `.exe` to customers who will install and run it on their own Windows machines without any developer involvement.
+
+### Implications for all development decisions
+- **Any feature must work on a clean Windows machine** — no Python, no dev tools, no manually installed dependencies. Everything required must be bundled into the executable via PyInstaller.
+- **Playwright/Chromium must be self-contained** — Chromium is bundled at build time from `%LOCALAPPDATA%\ms-playwright\chromium-*`. Do not assume the user has a browser installed.
+- **No hardcoded paths to the developer's machine** — all paths must be derived at runtime relative to the executable (`sys.executable`, `sys._MEIPASS`, or `DATA_DIR` from `config.py`).
+- **Network conditions vary** — parsers must handle slow connections, proxies, captchas, and site-specific blocks gracefully. Timeouts and retry logic must be robust.
+- **Database and data files are user-local** — stored in user's `%APPDATA%` or beside the executable; must survive app restarts and upgrades without data loss.
+- **No assumptions about screen resolution or DPI** — UI layouts must be responsive enough to work across different monitor sizes.
+- **Errors must be user-friendly** — technical tracebacks must never reach the user interface; show clear, actionable Russian-language messages instead.
+- **Startup must be silent and fast** — no console windows, no permission dialogs on first launch if avoidable.
+
+Before implementing any new feature, consider: *will this work correctly on a machine that only has the compiled `.exe` installed?*
+
 ## Context7
 
 Use Context7 MCP to fetch up-to-date documentation for any library used in this project whenever you need to check API details, method signatures, or behaviour. Do this automatically — without waiting for a reminder — whenever working with: PySide6, FastAPI, SQLAlchemy, Playwright, Pydantic, httpx, aiosqlite, matplotlib, pandas, loguru, tenacity, PyInstaller, or any other dependency from `requirements.txt`.
