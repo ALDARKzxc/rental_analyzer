@@ -13,15 +13,29 @@ from typing import Dict, List, Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QMessageBox,
-    QMenu, QGraphicsOpacityEffect
+    QMenu, QGraphicsOpacityEffect, QLineEdit, QTextEdit
 )
 from PySide6.QtCore import (
     Qt, Signal, QThread, QObject, QTimer,
     QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
 )
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QTextCursor
 from loguru import logger
 from app.backend.database import CATEGORIES
+
+
+class _PencilLabel(QLabel):
+    """Кликабельный эмодзи без кнопки."""
+    clicked = Signal()
+    def __init__(self, parent=None):
+        super().__init__("✏️", parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Редактировать название и заметки")
+        self.setStyleSheet("background:transparent; border:none; padding:0; margin:0;")
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(e)
 
 
 # ── Workers ──────────────────────────────────────────────────────
@@ -68,6 +82,28 @@ class CardRefreshWorker(QObject):
             if prop: self.finished.emit(self.prop_id, prop)
         except Exception as e:
             logger.error(f"CardRefreshWorker: {e}")
+
+
+class EditSaveWorker(QObject):
+    finished = Signal(int)
+    error    = Signal(int, str)
+    def __init__(self, api, prop_id, title, notes):
+        super().__init__()
+        self.api = api; self.prop_id = prop_id
+        self.title = title; self.notes = notes or None
+    def run(self):
+        try:
+            # title_locked=True — пользователь вручную задал название,
+            # парсер не должен его перезаписывать
+            self.api.update_property(
+                self.prop_id,
+                title=self.title,
+                notes=self.notes,
+                title_locked=True,
+            )
+            self.finished.emit(self.prop_id)
+        except Exception as e:
+            self.error.emit(self.prop_id, str(e))
 
 
 # ── Date picker popup ─────────────────────────────────────────────
@@ -171,20 +207,29 @@ class DatePickerPopup(QWidget):
 class PropertyCard(QFrame):
     parse_requested  = Signal(int)
     delete_requested = Signal(int)
+    edit_requested   = Signal(int, str, str)   # prop_id, title, notes
+
+    _MAX_NOTES = 200
+
 
     def __init__(self, prop: Dict):
         super().__init__()
         self.prop_id      = prop["id"]
         self._parse_dates = prop.get("parse_dates") or ""
-        self._parsing = False
-        self._dot_cnt = 0
-        self._timer   = QTimer(self)
+        self._parsing     = False
+        self._dot_cnt     = 0
+        self._timer       = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self.setObjectName("card"); self.setMinimumHeight(116)
         self._build(prop)
 
     def _build(self, prop: Dict):
-        lay = QHBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0); root.setSpacing(0)
+
+        # ── Основная строка ───────────────────────────────────
+        cw = QWidget(); cw.setStyleSheet("background:transparent;")
+        lay = QHBoxLayout(cw)
         lay.setContentsMargins(18, 14, 18, 14); lay.setSpacing(14)
 
         # Левая полоса
@@ -194,23 +239,32 @@ class PropertyCard(QFrame):
 
         # Информация
         info = QVBoxLayout(); info.setSpacing(4)
+
+        # Заголовок + карандаш
+        title_row = QHBoxLayout(); title_row.setSpacing(4); title_row.setContentsMargins(0,0,0,0)
         t = QLabel(prop.get("title","Без названия")[:60]); t.setObjectName("cardTitle")
-        info.addWidget(t)
+        title_row.addWidget(t)
 
-        # Категория + сайт
-        cat   = prop.get("category","")
-        site  = (prop.get("site") or "").capitalize()
+        self._pencil = _PencilLabel()
+        self._pencil.clicked.connect(self._toggle_edit)
+        title_row.addWidget(self._pencil)
+        title_row.addStretch()
+
+        title_w = QWidget(); title_w.setLayout(title_row)
+        title_w.setStyleSheet("background:transparent;")
+        info.addWidget(title_w)
+
+        # Категория + сайт + даты
+        cat    = prop.get("category", "")
+        site   = (prop.get("site") or "").capitalize()
         pdates = prop.get("parse_dates") or ""
-
-        row2 = QHBoxLayout(); row2.setSpacing(8)
-        if cat:
-            cat_lbl = QLabel(cat); cat_lbl.setObjectName("categoryBadge"); row2.addWidget(cat_lbl)
-        if site:
-            s = QLabel(f"🌐 {site}"); s.setObjectName("cardSub"); row2.addWidget(s)
-        if pdates:
-            dl = QLabel(f"📅 {pdates}"); dl.setObjectName("hintLabel"); row2.addWidget(dl)
+        row2   = QHBoxLayout(); row2.setSpacing(8)
+        if cat:    row2.addWidget(self._qlbl(cat, "categoryBadge"))
+        if site:   row2.addWidget(self._qlbl(f"🌐 {site}", "cardSub"))
+        if pdates: row2.addWidget(self._qlbl(f"📅 {pdates}", "hintLabel"))
         row2.addStretch()
-        row2_w = QWidget(); row2_w.setLayout(row2); row2_w.setStyleSheet("background:transparent;")
+        row2_w = QWidget(); row2_w.setLayout(row2)
+        row2_w.setStyleSheet("background:transparent;")
         info.addWidget(row2_w)
 
         url_lbl = QLabel(prop.get("url","")[:70]); url_lbl.setObjectName("hintLabel")
@@ -219,16 +273,15 @@ class PropertyCard(QFrame):
         notes = (prop.get("notes") or "").strip()
         if notes:
             preview = notes[:90] + ("…" if len(notes) > 90 else "")
-            nl = QLabel(f"📝 {preview}"); nl.setObjectName("hintLabel")
-            nl.setWordWrap(True)
+            nl = QLabel(f"📝 {preview}"); nl.setObjectName("hintLabel"); nl.setWordWrap(True)
             info.addWidget(nl)
+
         lay.addLayout(info, stretch=1)
 
         # Цена
         pc = QVBoxLayout(); pc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pc.setSpacing(4); pc.setContentsMargins(10,0,10,0)
         p = prop.get("latest_price"); st = prop.get("latest_status") or ""
-
         if st == "occupied":
             pl = QLabel("Занято"); pl.setObjectName("priceOccupied")
         elif p is not None:
@@ -236,7 +289,6 @@ class PropertyCard(QFrame):
         else:
             pl = QLabel("нет данных"); pl.setObjectName("priceUnavailable")
         pl.setAlignment(Qt.AlignmentFlag.AlignCenter); pc.addWidget(pl)
-
         bt, bo = self._badge(st)
         if bt:
             b = QLabel(bt); b.setObjectName(bo)
@@ -266,9 +318,152 @@ class PropertyCard(QFrame):
                           border-radius:8px; font-weight:600; font-size:13px; padding:0 12px; }
             QPushButton:hover { background:#3a1515; }
         """)
-        bd.clicked.connect(partial(self.delete_requested.emit, self.prop_id)); ac.addWidget(bd)
+        bd.clicked.connect(partial(self.delete_requested.emit, self.prop_id))
+        ac.addWidget(bd)
         lay.addLayout(ac)
 
+        root.addWidget(cw)
+
+        # ── Панель редактирования (скрыта по умолчанию) ───────
+        self._edit_panel = self._build_edit_panel(prop)
+        self._edit_panel.setVisible(False)
+        root.addWidget(self._edit_panel)
+
+    def _build_edit_panel(self, prop: Dict) -> QFrame:
+        panel = QFrame()
+        panel.setStyleSheet("""
+            QFrame {
+                background:#1a1a22;
+                border-top:1px solid #3a3938;
+                border-bottom-left-radius:12px;
+                border-bottom-right-radius:12px;
+            }
+        """)
+        pl = QVBoxLayout(panel)
+        pl.setContentsMargins(22, 14, 22, 16); pl.setSpacing(8)
+
+        hdr = QLabel("✎  РЕДАКТИРОВАНИЕ")
+        hdr.setStyleSheet(
+            "color:#ffa987;font-size:10px;font-weight:700;"
+            "background:transparent;letter-spacing:1.5px;"
+        )
+        pl.addWidget(hdr)
+
+        pl.addWidget(self._field_lbl("НАЗВАНИЕ"))
+        self._inp_edit_title = QLineEdit(prop.get("title") or "")
+        self._inp_edit_title.setFixedHeight(38)
+        self._inp_edit_title.setStyleSheet("""
+            QLineEdit { background:#2a2a32; border:1.5px solid #5a5554; border-radius:8px;
+                        padding:6px 12px; font-size:13px; color:#f7ebe8; }
+            QLineEdit:focus { border-color:#ffa987; }
+        """)
+        pl.addWidget(self._inp_edit_title)
+
+        pl.addWidget(self._field_lbl("ЗАМЕТКИ"))
+        self._inp_edit_notes = QTextEdit()
+        self._inp_edit_notes.setPlaceholderText("Необязательные заметки…")
+        self._inp_edit_notes.setPlainText(prop.get("notes") or "")
+        self._inp_edit_notes.setFixedHeight(72)
+        self._inp_edit_notes.setStyleSheet("""
+            QTextEdit { background:#2a2a32; border:1.5px solid #5a5554; border-radius:8px;
+                        padding:4px 12px; font-size:13px; color:#f7ebe8; }
+            QTextEdit:focus { border-color:#ffa987; }
+        """)
+        pl.addWidget(self._inp_edit_notes)
+
+        cur_len = len(prop.get("notes") or "")
+        color = "#e54b4b" if cur_len >= self._MAX_NOTES else "#6a5a54"
+        self._edit_counter = QLabel(f"{cur_len}/{self._MAX_NOTES}")
+        self._edit_counter.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._edit_counter.setStyleSheet(f"color:{color};background:transparent;font-size:11px;")
+        pl.addWidget(self._edit_counter)
+        self._inp_edit_notes.textChanged.connect(self._on_edit_notes_changed)
+
+        self._edit_error = QLabel("")
+        self._edit_error.setStyleSheet("color:#e54b4b;background:transparent;font-size:11px;")
+        pl.addWidget(self._edit_error)
+
+        btn_row = QHBoxLayout(); btn_row.addStretch()
+
+        btn_cancel = QPushButton("Отмена")
+        btn_cancel.setFixedHeight(32); btn_cancel.setMinimumWidth(90)
+        btn_cancel.setStyleSheet("""
+            QPushButton { background:#2a2a32; color:#ffa987; border:1.5px solid #ffa987;
+                          border-radius:8px; font-weight:600; font-size:12px; padding:0 10px; }
+            QPushButton:hover { background:#3a3938; }
+        """)
+        btn_cancel.clicked.connect(self._cancel_edit)
+        btn_row.addWidget(btn_cancel)
+
+        self._btn_edit_save = QPushButton("✓  Сохранить")
+        self._btn_edit_save.setFixedHeight(32); self._btn_edit_save.setMinimumWidth(120)
+        self._btn_edit_save.setStyleSheet("""
+            QPushButton { background:#ffa987; color:#1e1e24; border:none; border-radius:8px;
+                          font-weight:700; font-size:12px; padding:0 12px; }
+            QPushButton:hover   { background:#ffb99a; }
+            QPushButton:pressed { background:#e08060; }
+            QPushButton:disabled{ background:#5a5554; color:#888; }
+        """)
+        self._btn_edit_save.clicked.connect(self._save_edit)
+        btn_row.addWidget(self._btn_edit_save)
+        pl.addLayout(btn_row)
+
+        return panel
+
+    # ── helpers ───────────────────────────────────────────────
+    @staticmethod
+    def _qlbl(text: str, obj: str) -> QLabel:
+        l = QLabel(text); l.setObjectName(obj); return l
+
+    @staticmethod
+    def _field_lbl(text: str) -> QLabel:
+        l = QLabel(text)
+        l.setStyleSheet(
+            "color:#9a8a84;font-size:10px;font-weight:600;"
+            "background:transparent;letter-spacing:1px;"
+        )
+        return l
+
+    # ── toggle / cancel ───────────────────────────────────────
+    def _toggle_edit(self):
+        visible = not self._edit_panel.isVisible()
+        self._edit_panel.setVisible(visible)
+
+    def _cancel_edit(self):
+        self._edit_panel.setVisible(False)
+
+    # ── notes counter ─────────────────────────────────────────
+    def _on_edit_notes_changed(self):
+        text = self._inp_edit_notes.toPlainText()
+        if len(text) > self._MAX_NOTES:
+            self._inp_edit_notes.blockSignals(True)
+            self._inp_edit_notes.setPlainText(text[:self._MAX_NOTES])
+            self._inp_edit_notes.moveCursor(QTextCursor.MoveOperation.End)
+            self._inp_edit_notes.blockSignals(False)
+            text = self._inp_edit_notes.toPlainText()
+        count = len(text)
+        color = "#e54b4b" if count >= self._MAX_NOTES else "#6a5a54"
+        self._edit_counter.setText(f"{count}/{self._MAX_NOTES}")
+        self._edit_counter.setStyleSheet(f"color:{color};background:transparent;font-size:11px;")
+
+    # ── save ──────────────────────────────────────────────────
+    def _save_edit(self):
+        title = self._inp_edit_title.text().strip()
+        if not title:
+            self._edit_error.setText("Название не может быть пустым")
+            return
+        self._edit_error.setText("")
+        self._btn_edit_save.setEnabled(False)
+        self._btn_edit_save.setText("Сохранение…")
+        notes = self._inp_edit_notes.toPlainText().strip()
+        self.edit_requested.emit(self.prop_id, title, notes)
+
+    def reset_edit_btn(self):
+        """Вызывается экраном при ошибке сохранения."""
+        self._btn_edit_save.setEnabled(True)
+        self._btn_edit_save.setText("✓  Сохранить")
+
+    # ── parsing animation ─────────────────────────────────────
     def set_parsing(self, on: bool):
         if on == self._parsing: return
         self._parsing = on
@@ -475,6 +670,7 @@ class PropertyListScreen(QWidget):
             card = PropertyCard(prop)
             card.parse_requested.connect(self._parse_one)
             card.delete_requested.connect(self._delete)
+            card.edit_requested.connect(self._run_edit_save)
             self._cl.insertWidget(self._cl.count()-1, card)
             self._cards[prop["id"]] = card
             if prop["id"] in parsing_now: card.set_parsing(True)
@@ -532,6 +728,7 @@ class PropertyListScreen(QWidget):
         new_card = PropertyCard(prop)
         new_card.parse_requested.connect(self._parse_one)
         new_card.delete_requested.connect(self._delete)
+        new_card.edit_requested.connect(self._run_edit_save)
         self._cl.insertWidget(min(idx, self._cl.count()), new_card)
         self._cards[prop_id] = new_card
 
@@ -563,6 +760,25 @@ class PropertyListScreen(QWidget):
                 f"{ids_skipped} объект(ов) пропущено — для них не указана дата.\n\n"
                 "Выберите даты и нажмите «Обновить все» ещё раз."
             )
+
+    # ── Edit save ────────────────────────────────────────────────
+
+    def _run_edit_save(self, prop_id: int, title: str, notes: str):
+        t = QThread()
+        w = EditSaveWorker(self.api, prop_id, title, notes)
+        w.moveToThread(t); t.started.connect(w.run)
+        w.finished.connect(partial(self._on_edit_done, prop_id))
+        w.error.connect(partial(self._on_edit_error, prop_id))
+        w.finished.connect(t.quit)
+        self._dead_threads.append((t, w)); t.start()
+
+    def _on_edit_done(self, prop_id: int, *_):
+        self._async_reload_card(prop_id)
+
+    def _on_edit_error(self, prop_id: int, error: str, *_):
+        if card := self._cards.get(prop_id):
+            card.reset_edit_btn()
+        QMessageBox.critical(self, "Ошибка сохранения", error)
 
     # ── Delete ───────────────────────────────────────────────────
 

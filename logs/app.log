@@ -802,3 +802,267 @@ Call log:
 2026-04-10 17:44:42 | INFO | __main__:136 | API ready, launching GUI
 2026-04-10 17:44:42 | INFO | __main__:140 | Application started successfully
 2026-04-10 17:45:12 | INFO | app.backend.database:140 | Created property id=6 cat=Коттеджи
+2026-04-10 17:45:30 | INFO | __main__:108 | API thread started
+2026-04-10 17:45:31 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 17:45:31 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 17:45:31 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 17:45:31 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 17:45:31 | INFO | __main__:140 | Application started successfully
+2026-04-10 17:56:37 | INFO | __main__:108 | API thread started
+2026-04-10 17:56:38 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 17:56:38 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 17:56:38 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 17:56:38 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 17:56:38 | INFO | __main__:140 | Application started successfully
+2026-04-10 17:57:25 | INFO | __main__:108 | API thread started
+2026-04-10 17:57:26 | INFO | app.backend.database:82 | Database ready: C:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 17:57:26 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 17:57:26 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 17:57:26 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 17:57:26 | INFO | __main__:140 | Application started successfully
+2026-04-10 17:57:36 | INFO | __main__:108 | API thread started
+2026-04-10 17:57:36 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 17:57:36 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 17:57:36 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 17:57:36 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 17:57:37 | INFO | __main__:140 | Application started successfully
+2026-04-10 17:57:43 | INFO | __main__:108 | API thread started
+2026-04-10 17:57:44 | INFO | app.backend.database:82 | Database ready: C:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 17:57:44 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 17:57:44 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 17:57:44 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 17:57:44 | INFO | __main__:140 | Application started successfully
+2026-04-10 17:58:23 | INFO | __main__:108 | API thread started
+2026-04-10 17:58:23 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 17:58:23 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 17:58:23 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 17:58:23 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 17:58:24 | INFO | __main__:140 | Application started successfully
+2026-04-10 17:59:02 | INFO | app.backend.api:52 | Parsing property 5: https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=2
+2026-04-10 17:59:02 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=2
+2026-04-10 17:59:02 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 17:59:02 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 17:59:02 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13462899 url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=27.04.2026-
+2026-04-10 17:59:02 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 17:59:06 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[83119.0, 83119.0, 89057.0, 89057.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 17:59:08 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [83119.0, 83119.0, 89057.0, 89057.0]
+2026-04-10 17:59:08 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=83119.0 status=ok
+2026-04-10 17:59:08 | INFO | app.backend.api:68 | Parsed 5: price=83119.0 status=ok dates=27.04.2026-30.04.2026
+2026-04-10 18:03:11 | INFO | __main__:108 | API thread started
+2026-04-10 18:03:11 | INFO | app.backend.database:82 | Database ready: C:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:03:11 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:03:11 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:03:11 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:03:11 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:03:53 | INFO | __main__:108 | API thread started
+2026-04-10 18:03:54 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:03:54 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:03:54 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:03:54 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:03:54 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:04:20 | INFO | app.backend.api:52 | Parsing property 5: https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=2
+2026-04-10 18:04:20 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=2
+2026-04-10 18:04:20 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:04:20 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:04:20 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13462899 url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=27.04.2026-
+2026-04-10 18:04:21 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:04:25 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[83119.0, 83119.0, 89057.0, 89057.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:04:26 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [83119.0, 83119.0, 89057.0, 89057.0]
+2026-04-10 18:04:26 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=83119.0 status=ok
+2026-04-10 18:04:26 | INFO | app.backend.api:68 | Parsed 5: price=83119.0 status=ok dates=27.04.2026-30.04.2026
+2026-04-10 18:05:45 | ERROR | app.gui.screens.add_property:96 | SaveWorker: Property with this URL already exists
+2026-04-10 18:06:38 | INFO | __main__:108 | API thread started
+2026-04-10 18:06:39 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:06:39 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:06:39 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:06:39 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:06:39 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:06:52 | ERROR | app.gui.screens.add_property:96 | SaveWorker: Property with this URL already exists
+2026-04-10 18:12:23 | INFO | __main__:108 | API thread started
+2026-04-10 18:12:24 | INFO | app.backend.database:82 | Database ready: C:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:12:24 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:12:24 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:12:24 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:12:24 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:13:24 | INFO | __main__:108 | API thread started
+2026-04-10 18:13:24 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:13:24 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:13:24 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:13:24 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:13:24 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:13:44 | INFO | app.backend.database:140 | Created property id=6 cat=Коттеджи
+2026-04-10 18:14:31 | INFO | app.backend.api:52 | Parsing property 6: https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?da
+2026-04-10 18:14:31 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?da
+2026-04-10 18:14:31 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:14:31 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:14:31 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=11306623 url=https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?dates=27.04.
+2026-04-10 18:14:31 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:15:02 | WARNING | app.parser.ostrovok_parser:48 | OstrovokParser: playwright failed (TimeoutError): Page.goto: Timeout 25000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?dates=27.04.2026-30.04.2026&guests=2", waiting until "commit"
+
+2026-04-10 18:15:09 | DEBUG | app.parser.ostrovok_parser:233 | OstrovokParser httpx (proxy=http://127.0.0.1:3067): price=None
+2026-04-10 18:15:29 | DEBUG | app.parser.ostrovok_parser:247 | OstrovokParser httpx (proxy=False) error: 
+2026-04-10 18:15:29 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=None status=not_found
+2026-04-10 18:15:29 | INFO | app.backend.api:68 | Parsed 6: price=None status=not_found dates=27.04.2026-30.04.2026
+2026-04-10 18:16:05 | INFO | app.backend.api:52 | Parsing property 6: https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?da
+2026-04-10 18:16:05 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?da
+2026-04-10 18:16:05 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:16:05 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:16:05 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=11306623 url=https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?dates=17.04.
+2026-04-10 18:16:06 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:16:36 | WARNING | app.parser.ostrovok_parser:48 | OstrovokParser: playwright failed (TimeoutError): Page.goto: Timeout 25000ms exceeded.
+Call log:
+  - navigating to "https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?dates=17.04.2026-19.04.2026&guests=2", waiting until "commit"
+
+2026-04-10 18:16:38 | DEBUG | app.parser.ostrovok_parser:223 | OstrovokParser httpx (proxy=True): HTTP 502
+2026-04-10 18:16:57 | DEBUG | app.parser.ostrovok_parser:247 | OstrovokParser httpx (proxy=False) error: 
+2026-04-10 18:16:57 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=None status=not_found
+2026-04-10 18:16:57 | INFO | app.backend.api:68 | Parsed 6: price=None status=not_found dates=17.04.2026-19.04.2026
+2026-04-10 18:20:48 | INFO | __main__:108 | API thread started
+2026-04-10 18:20:49 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:20:49 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:20:49 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:20:49 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:20:49 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:23:20 | INFO | __main__:108 | API thread started
+2026-04-10 18:23:20 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:23:20 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:23:20 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:23:20 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:23:20 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:23:28 | INFO | __main__:108 | API thread started
+2026-04-10 18:23:28 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:23:28 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:23:28 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:23:28 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:23:28 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:26:56 | INFO | __main__:108 | API thread started
+2026-04-10 18:26:56 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-10 18:26:56 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-10 18:26:56 | INFO | __main__:54 | Backend loop started and registered
+2026-04-10 18:26:56 | INFO | __main__:136 | API ready, launching GUI
+2026-04-10 18:26:57 | INFO | __main__:140 | Application started successfully
+2026-04-10 18:27:12 | INFO | app.backend.api:52 | Parsing property 5: https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=1
+2026-04-10 18:27:12 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=1
+2026-04-10 18:27:12 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:27:12 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:27:12 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13462899 url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=17.04.2026-
+2026-04-10 18:27:13 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:27:34 | DEBUG | app.parser.ostrovok_parser:141 | OstrovokParser: XHR wait timeout — trying DOM/HTML fallback
+2026-04-10 18:27:35 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: []
+2026-04-10 18:27:35 | DEBUG | app.parser.ostrovok_parser:355 | OstrovokParser DOM ₽ texts (first 10): []
+2026-04-10 18:27:35 | DEBUG | app.parser.ostrovok_parser:164 | OstrovokParser DOM price: None
+2026-04-10 18:27:35 | DEBUG | app.parser.ostrovok_parser:168 | OstrovokParser __NEXT_DATA__ price: None
+2026-04-10 18:27:35 | DEBUG | app.parser.ostrovok_parser:172 | OstrovokParser strict-json price: None
+2026-04-10 18:27:40 | DEBUG | app.parser.ostrovok_parser:233 | OstrovokParser httpx (proxy=http://127.0.0.1:3067): price=None
+2026-04-10 18:27:59 | DEBUG | app.parser.ostrovok_parser:247 | OstrovokParser httpx (proxy=False) error: 
+2026-04-10 18:27:59 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=None status=not_found
+2026-04-10 18:27:59 | INFO | app.backend.api:68 | Parsed 5: price=None status=not_found dates=17.04.2026-19.04.2026
+2026-04-10 18:28:29 | INFO | app.backend.database:140 | Created property id=7 cat=Коттеджи
+2026-04-10 18:28:48 | INFO | app.backend.api:52 | Parsing property 7: https://ostrovok.ru/hotel/russia/terskol/mid13678554/s_mangalom_chalet/?dates=11
+2026-04-10 18:28:48 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13678554/s_mangalom_chalet/?dates=11
+2026-04-10 18:28:48 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:28:48 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:28:48 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13678554 url=https://ostrovok.ru/hotel/russia/terskol/mid13678554/s_mangalom_chalet/?dates=11.04.2026-1
+2026-04-10 18:28:49 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:28:51 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[19663.0, 19663.0, 19872.0, 19872.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:28:52 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [19663.0, 19663.0, 19872.0, 19872.0]
+2026-04-10 18:28:52 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=19663.0 status=ok
+2026-04-10 18:28:52 | INFO | app.backend.api:68 | Parsed 7: price=19663.0 status=ok dates=11.04.2026-13.04.2026
+2026-04-10 18:29:07 | INFO | app.backend.api:52 | Parsing property 7: https://ostrovok.ru/hotel/russia/terskol/mid13678554/s_mangalom_chalet/?dates=01
+2026-04-10 18:29:07 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13678554/s_mangalom_chalet/?dates=01
+2026-04-10 18:29:07 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:07 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:07 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13678554 url=https://ostrovok.ru/hotel/russia/terskol/mid13678554/s_mangalom_chalet/?dates=01.05.2026-0
+2026-04-10 18:29:08 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:08 | INFO | app.backend.api:52 | Parsing property 6: https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?da
+2026-04-10 18:29:08 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?da
+2026-04-10 18:29:08 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:08 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:08 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=11306623 url=https://ostrovok.ru/hotel/russia/terskol/mid11306623/modulnye_domiki_dzhappu/?dates=01.05.
+2026-04-10 18:29:08 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:09 | INFO | app.backend.api:52 | Parsing property 5: https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=0
+2026-04-10 18:29:09 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=0
+2026-04-10 18:29:09 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:09 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:09 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13462899 url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=01.05.2026-
+2026-04-10 18:29:09 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:09 | INFO | app.backend.api:52 | Parsing property 4: https://ostrovok.ru/hotel/russia/terskol/mid13458950/residence_4_apartments/?dat
+2026-04-10 18:29:09 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13458950/residence_4_apartments/?dat
+2026-04-10 18:29:09 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:09 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:09 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13458950 url=https://ostrovok.ru/hotel/russia/terskol/mid13458950/residence_4_apartments/?dates=01.05.2
+2026-04-10 18:29:10 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:10 | INFO | app.backend.api:52 | Parsing property 3: https://ostrovok.ru/hotel/russia/terskol/mid13312290/s_balkonom_v_terskole_apart
+2026-04-10 18:29:10 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13312290/s_balkonom_v_terskole_apart
+2026-04-10 18:29:10 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:10 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:10 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13312290 url=https://ostrovok.ru/hotel/russia/terskol/mid13312290/s_balkonom_v_terskole_apartments/?dat
+2026-04-10 18:29:11 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:13 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[14160.0, 14160.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:29:14 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [14160.0, 14160.0]
+2026-04-10 18:29:14 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=14160.0 status=ok
+2026-04-10 18:29:14 | INFO | app.backend.api:68 | Parsed 6: price=14160.0 status=ok dates=01.05.2026-03.05.2026
+2026-04-10 18:29:14 | INFO | app.backend.api:52 | Parsing property 2: https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-10 18:29:14 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_fl
+2026-04-10 18:29:14 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:14 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:14 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13673013 url=https://ostrovok.ru/hotel/russia/terskol/mid13673013/uyutnaya_ot_kvartiruking_flat/?dates=
+2026-04-10 18:29:15 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:18 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[39580.0, 39580.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:29:19 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [39580.0, 39580.0]
+2026-04-10 18:29:19 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=39580.0 status=ok
+2026-04-10 18:29:19 | INFO | app.backend.api:68 | Parsed 4: price=39580.0 status=ok dates=01.05.2026-03.05.2026
+2026-04-10 18:29:19 | INFO | app.backend.api:52 | Parsing property 1: https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=01.05.2026-03
+2026-04-10 18:29:19 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=01.05.2026-03
+2026-04-10 18:29:19 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:29:19 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:29:19 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=8734653 url=https://ostrovok.ru/hotel/russia/terskol/mid8734653/terskol/?dates=01.05.2026-03.05.2026&g
+2026-04-10 18:29:20 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:29:21 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[69266.0, 69266.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:29:22 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [69266.0, 69266.0]
+2026-04-10 18:29:22 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=69266.0 status=ok
+2026-04-10 18:29:22 | INFO | app.backend.api:68 | Parsed 5: price=69266.0 status=ok dates=01.05.2026-03.05.2026
+2026-04-10 18:29:29 | DEBUG | app.parser.ostrovok_parser:141 | OstrovokParser: XHR wait timeout — trying DOM/HTML fallback
+2026-04-10 18:29:30 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: []
+2026-04-10 18:29:30 | DEBUG | app.parser.ostrovok_parser:355 | OstrovokParser DOM ₽ texts (first 10): []
+2026-04-10 18:29:30 | DEBUG | app.parser.ostrovok_parser:164 | OstrovokParser DOM price: None
+2026-04-10 18:29:30 | DEBUG | app.parser.ostrovok_parser:168 | OstrovokParser __NEXT_DATA__ price: None
+2026-04-10 18:29:30 | DEBUG | app.parser.ostrovok_parser:172 | OstrovokParser strict-json price: None
+2026-04-10 18:29:32 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[15929.0, 15929.0, 16098.0, 16098.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:29:33 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [15929.0, 15929.0, 16098.0, 16098.0]
+2026-04-10 18:29:33 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=15929.0 status=ok
+2026-04-10 18:29:33 | INFO | app.backend.api:68 | Parsed 2: price=15929.0 status=ok dates=01.05.2026-03.05.2026
+2026-04-10 18:29:34 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[9703.0, 9703.0, 9703.0, 9703.0, 10000.0, 10000.0, 10000.0, 10000.0, 13584.0, 13584.0, 14000.0, 14000.0, 15525.0, 15525.0, 16000.0, 16000.0, 27168.0, 27168.0, 27168.0, 27168.0, 28000.0, 28000.0, 28000.0, 28000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:29:35 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [9703.0, 9703.0, 9703.0, 9703.0, 10000.0, 10000.0, 10000.0, 10000.0, 13584.0, 13584.0, 14000.0, 14000.0, 15525.0, 15525.0, 16000.0, 16000.0, 27168.0, 27168.0, 27168.0, 27168.0, 28000.0, 28000.0, 28000.0, 28000.0]
+2026-04-10 18:29:35 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=9703.0 status=ok
+2026-04-10 18:29:35 | INFO | app.backend.api:68 | Parsed 1: price=9703.0 status=ok dates=01.05.2026-03.05.2026
+2026-04-10 18:29:39 | DEBUG | app.parser.ostrovok_parser:233 | OstrovokParser httpx (proxy=http://127.0.0.1:3067): price=None
+2026-04-10 18:29:40 | DEBUG | app.parser.ostrovok_parser:141 | OstrovokParser: XHR wait timeout — trying DOM/HTML fallback
+2026-04-10 18:29:41 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: []
+2026-04-10 18:29:41 | DEBUG | app.parser.ostrovok_parser:355 | OstrovokParser DOM ₽ texts (first 10): []
+2026-04-10 18:29:41 | DEBUG | app.parser.ostrovok_parser:164 | OstrovokParser DOM price: None
+2026-04-10 18:29:41 | DEBUG | app.parser.ostrovok_parser:168 | OstrovokParser __NEXT_DATA__ price: None
+2026-04-10 18:29:41 | DEBUG | app.parser.ostrovok_parser:172 | OstrovokParser strict-json price: None
+2026-04-10 18:29:44 | DEBUG | app.parser.ostrovok_parser:233 | OstrovokParser httpx (proxy=http://127.0.0.1:3067): price=None
+2026-04-10 18:29:58 | DEBUG | app.parser.ostrovok_parser:247 | OstrovokParser httpx (proxy=False) error: 
+2026-04-10 18:29:58 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=None status=not_found
+2026-04-10 18:29:58 | INFO | app.backend.api:68 | Parsed 7: price=None status=not_found dates=01.05.2026-03.05.2026
+2026-04-10 18:30:04 | DEBUG | app.parser.ostrovok_parser:247 | OstrovokParser httpx (proxy=False) error: 
+2026-04-10 18:30:04 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=None status=not_found
+2026-04-10 18:30:04 | INFO | app.backend.api:68 | Parsed 3: price=None status=not_found dates=01.05.2026-03.05.2026
+2026-04-10 18:31:07 | INFO | app.backend.api:52 | Parsing property 5: https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=0
+2026-04-10 18:31:07 | INFO | app.parser.dispatcher:27 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=0
+2026-04-10 18:31:07 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-10 18:31:07 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-10 18:31:07 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=13462899 url=https://ostrovok.ru/hotel/russia/terskol/mid13462899/residence_chalet_1/?dates=01.05.2026-
+2026-04-10 18:31:08 | DEBUG | app.parser.base_parser:112 | BaseParser: browser launched proxy=yes
+2026-04-10 18:31:10 | DEBUG | app.parser.ostrovok_parser:94 | OstrovokParser XHR prices=[69266.0, 69266.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-10 18:31:11 | DEBUG | app.parser.ostrovok_parser:160 | OstrovokParser XHR collected: [69266.0, 69266.0]
+2026-04-10 18:31:11 | DEBUG | app.parser.base_parser:212 | [OstrovokParser] attempt=1 price=69266.0 status=ok
+2026-04-10 18:31:11 | INFO | app.backend.api:68 | Parsed 5: price=69266.0 status=ok dates=01.05.2026-03.05.2026
+2026-04-10 18:31:57 | ERROR | app.gui.screens.add_property:96 | SaveWorker: Property with this URL already exists
+2026-04-10 18:31:59 | ERROR | app.gui.screens.add_property:96 | SaveWorker: Property with this URL already exists
+2026-04-10 18:32:00 | ERROR | app.gui.screens.add_property:96 | SaveWorker: Property with this URL already exists
+2026-04-10 18:32:14 | INFO | app.backend.database:140 | Created property id=8 cat=Коттеджи

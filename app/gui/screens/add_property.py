@@ -342,6 +342,11 @@ class AddPropertyScreen(QWidget):
             "notes": self.inp_notes.toPlainText().strip() or None,
             "title_locked": title_locked,
         }
+        # Сохраняем старый поток, чтобы GC не убил его раньше времени
+        self._dead_threads = getattr(self, "_dead_threads", [])
+        if hasattr(self, "_thread") and self._thread is not None:
+            self._dead_threads.append((self._thread, getattr(self, "_worker", None)))
+
         self._thread = QThread()
         self._worker = SaveWorker(self.api, data, self.prop_id)
         self._worker.moveToThread(self._thread)
@@ -349,6 +354,8 @@ class AddPropertyScreen(QWidget):
         self._worker.finished.connect(self._on_saved)
         self._worker.error.connect(self._on_error)
         self._worker.finished.connect(self._thread.quit)
+        self._worker.error.connect(self._thread.quit)   # поток завершается и при ошибке
+        self._thread.finished.connect(lambda: self._gc_threads())
         self._thread.start()
 
     def _on_saved(self, _):
@@ -366,7 +373,20 @@ class AddPropertyScreen(QWidget):
         self.saved.emit()
 
     def _on_error(self, e):
-        self.btn_save.setEnabled(True)
-        self.btn_save.setText("◈  Сохранить")
-        msg = "Объект с таким URL уже добавлен" if "already exists" in e else e
-        QMessageBox.critical(self, "Ошибка сохранения", msg)
+        try:
+            self.btn_save.setEnabled(True)
+            self.btn_save.setText("◈  Сохранить")
+            if "already exists" in e:
+                msg = "Объект с таким URL уже есть в списке."
+            else:
+                msg = str(e)
+            QMessageBox.critical(self, "Ошибка сохранения", msg)
+        except Exception:
+            pass
+
+    def _gc_threads(self):
+        """Удаляем уже завершённые треды из списка."""
+        self._dead_threads = [
+            (t, w) for t, w in getattr(self, "_dead_threads", [])
+            if t.isRunning()
+        ]

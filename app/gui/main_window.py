@@ -100,6 +100,8 @@ class MainWindow(QMainWindow):
         return btn
 
     def _nav_go(self, idx, btn):
+        if idx == 1:
+            self.screen_add.reset()
         self.stack.setCurrentIndex(idx)
         for b in [self.btn_list, self.btn_add]: b.setChecked(b is btn)
 
