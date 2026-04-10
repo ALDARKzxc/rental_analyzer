@@ -12,8 +12,24 @@ from loguru import logger
 
 from app.backend.database import PropertyRepository, PriceRepository, CATEGORIES
 from app.analytics.engine import AnalyticsEngine
+from app.parser.dispatcher import ParserDispatcher as _ParserDispatcher, close_all_parsers
 
-app = FastAPI(title="Rental Price Analyzer API", version="2.0.0")
+# Singleton — один экземпляр на весь процесс, браузер переиспользуется
+_dispatcher = _ParserDispatcher()
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def _lifespan(application: FastAPI):
+    yield
+    # On shutdown: close all browser instances
+    try:
+        await close_all_parsers()
+        logger.info("All parser browsers closed")
+    except Exception as e:
+        logger.warning(f"Parser shutdown error: {e}")
+
+app = FastAPI(title="Rental Price Analyzer API", version="2.0.0", lifespan=_lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
 
@@ -46,11 +62,10 @@ async def _run_parse(property_id: int):
             _parse_tasks[property_id] = "error:not_found"
             return
         try:
-            from app.parser.dispatcher import ParserDispatcher
             # Строим URL с датами парсинга
             url = _build_parse_url(prop.url, prop.parse_dates)
             logger.info(f"Parsing property {property_id}: {url[:80]}")
-            result = await ParserDispatcher().parse(url)
+            result = await _dispatcher.parse(url)
 
             price  = result.get("price")
             status = result.get("status", "ok")

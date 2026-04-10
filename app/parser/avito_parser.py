@@ -58,8 +58,8 @@ class AvitoParser(BaseParser):
         }
         api_url = _ITEM_API.format(item_id=item_id)
         try:
-            async with httpx.AsyncClient(timeout=15, follow_redirects=True, trust_env=False) as client:
-                await asyncio.sleep(random.uniform(1.0, 2.5))
+            async with httpx.AsyncClient(timeout=12, follow_redirects=True, trust_env=False) as client:
+                await asyncio.sleep(random.uniform(0.2, 0.6))
                 resp = await client.get(api_url, headers=headers)
 
             if resp.status_code not in (200, 201):
@@ -117,8 +117,8 @@ class AvitoParser(BaseParser):
             "Upgrade-Insecure-Requests": "1",
         }
         try:
-            async with httpx.AsyncClient(timeout=20, follow_redirects=True, trust_env=False) as client:
-                await asyncio.sleep(random.uniform(1.5, 3.0))
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True, trust_env=False) as client:
+                await asyncio.sleep(random.uniform(0.3, 0.8))
                 resp = await client.get(url, headers=headers)
 
             if resp.status_code in (403, 429, 503):
@@ -127,6 +127,17 @@ class AvitoParser(BaseParser):
             html = resp.text
             if self._detect_block(html):
                 return None
+
+            # Быстрый выход: объявление снято с публикации
+            html_lower = html.lower()
+            REMOVED = ["снято с публикации", "объявление удалено",
+                       "объявление не найдено", "объявление недоступно",
+                       "item is not available", "listing removed"]
+            if any(p in html_lower for p in REMOVED):
+                ext_id = self._extract_avito_id(url)
+                return {"price": None, "title": None, "external_id": ext_id,
+                        "status": "not_found",
+                        "error": "Объявление снято с публикации"}
 
             ext_id = self._extract_avito_id(url)
             price = (
@@ -181,9 +192,9 @@ class AvitoParser(BaseParser):
         try:
             # Warm up: visit main page first
             try:
-                await page.goto("https://www.avito.ru/", timeout=15_000,
+                await page.goto("https://www.avito.ru/", timeout=12_000,
                                 wait_until="domcontentloaded")
-                await self._human_delay(2, 4)
+                await self._human_delay(0.8, 1.5)
             except Exception:
                 pass
 
@@ -192,7 +203,7 @@ class AvitoParser(BaseParser):
             if response and response.status in (403, 429, 503):
                 raise BlockedError(f"HTTP {response.status}")
 
-            await self._human_delay(3, 6)
+            await self._human_delay(1.0, 2.0)
             await self._mouse_wander(page)
 
             html = await page.content()

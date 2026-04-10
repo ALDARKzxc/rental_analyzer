@@ -85,7 +85,22 @@ class BaseParser(ABC):
         return config
 
     async def _get_browser(self):
-        """Lazy browser initialization с поддержкой прокси."""
+        """Lazy browser initialization с поддержкой прокси. Перезапускает браузер если упал."""
+        if self._browser is not None:
+            try:
+                if not self._browser.is_connected():
+                    logger.warning(f"[{self.__class__.__name__}] Browser disconnected, relaunching")
+                    self._browser = None
+                    if self._playwright:
+                        try:
+                            await self._playwright.stop()
+                        except Exception:
+                            pass
+                        self._playwright = None
+            except Exception:
+                self._browser = None
+                self._playwright = None
+
         if self._browser is None:
             from playwright.async_api import async_playwright
             self._playwright = await async_playwright().start()
@@ -161,7 +176,7 @@ class BaseParser(ABC):
         """)
         return context
 
-    async def _human_delay(self, min_s: float = 1.0, max_s: float = 3.0):
+    async def _human_delay(self, min_s: float = 0.4, max_s: float = 1.0):
         await asyncio.sleep(random.uniform(min_s, max_s))
 
     def _detect_block(self, html: str) -> bool:

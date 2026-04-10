@@ -4,8 +4,16 @@ import re
 import json
 from typing import Dict, Any, Optional
 from loguru import logger
-from app.parser.base_parser import BaseParser, BlockedError, CaptchaError
+from app.parser.base_parser import BaseParser, BlockedError, CaptchaError, DataNotFoundError
 from app.utils.config import PARSER_TIMEOUT
+
+# Признаки недоступности объекта на выбранные даты
+_NO_AVAIL_PATTERNS = [
+    "нет свободных", "нет доступных", "недоступно",
+    "объект недоступен", "занято на эти даты",
+    "нет предложений", "не доступен для бронирования",
+    "no availability", "not available", "sold out",
+]
 
 
 class SutochnoParser(BaseParser):
@@ -14,14 +22,13 @@ class SutochnoParser(BaseParser):
         context = await self._new_context()
         page = await context.new_page()
         try:
-            # "commit" резолвится быстро; затем ждём DOMContentLoaded отдельно
             try:
                 response = await page.goto(url, timeout=PARSER_TIMEOUT, wait_until="commit")
                 if response and response.status in (403, 429, 503):
                     raise BlockedError(f"HTTP {response.status}")
-                # Ждём DOM до 15 сек, но не зависаем если не дождались
+                # Ждём DOM максимум 8 сек (было 15)
                 try:
-                    await page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                    await page.wait_for_load_state("domcontentloaded", timeout=8_000)
                 except Exception:
                     pass
             except BlockedError:
@@ -29,7 +36,7 @@ class SutochnoParser(BaseParser):
             except Exception as e:
                 logger.warning(f"SutochnoParser: nav error ({e.__class__.__name__}) — trying extraction anyway")
 
-            await self._human_delay(1, 2)
+            await self._human_delay(0.3, 0.7)
 
             try:
                 html = await page.content()
@@ -38,6 +45,21 @@ class SutochnoParser(BaseParser):
 
             if html and self._detect_block(html):
                 raise BlockedError("Blocked")
+
+            # Быстрая проверка: нет доступных дат → сразу not_found
+            if html:
+                html_lower = html.lower()
+                for pat in _NO_AVAIL_PATTERNS:
+                    if pat in html_lower:
+                        logger.debug(f"SutochnoParser: no availability pattern '{pat}'")
+                        ext = re.search(r"/(\d+)", url)
+                        return {
+                            "price": None,
+                            "title": None,
+                            "external_id": ext.group(1) if ext else None,
+                            "status": "not_found",
+                            "error": "Нет доступных предложений на выбранные даты",
+                        }
 
             title = None
             try:
@@ -88,7 +110,4 @@ class SutochnoParser(BaseParser):
                 await context.close()
             except Exception:
                 pass
-            try:
-                await self.close()
-            except Exception:
-                pass
+            # Браузер НЕ закрываем — singleton dispatcher переиспользует его

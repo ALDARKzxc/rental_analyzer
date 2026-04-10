@@ -6,6 +6,13 @@ from loguru import logger
 from app.parser.base_parser import BaseParser, BlockedError
 from app.utils.config import PARSER_TIMEOUT
 
+_NO_AVAIL_PATTERNS = [
+    "нет свободных", "нет доступных", "недоступно",
+    "объект недоступен", "нет предложений",
+    "no availability", "not available", "sold out",
+    "нет номеров", "комнат нет",
+]
+
 
 class GenericParser(BaseParser):
 
@@ -18,7 +25,7 @@ class GenericParser(BaseParser):
                 if response and response.status in (403, 429, 503):
                     raise BlockedError(f"HTTP {response.status}")
                 try:
-                    await page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                    await page.wait_for_load_state("domcontentloaded", timeout=8_000)
                 except Exception:
                     pass
             except BlockedError:
@@ -26,7 +33,7 @@ class GenericParser(BaseParser):
             except Exception as e:
                 logger.warning(f"GenericParser: nav error ({e.__class__.__name__}) — trying extraction anyway")
 
-            await self._human_delay(1, 2)
+            await self._human_delay(0.3, 0.7)
 
             try:
                 html = await page.content()
@@ -35,6 +42,21 @@ class GenericParser(BaseParser):
 
             if html and self._detect_block(html):
                 raise BlockedError("Blocked")
+
+            # Быстрая проверка недоступности
+            if html:
+                html_lower = html.lower()
+                for pat in _NO_AVAIL_PATTERNS:
+                    if pat in html_lower:
+                        logger.debug(f"GenericParser: no availability pattern '{pat}'")
+                        ext = re.search(r"/(\d{4,})", url)
+                        return {
+                            "price": None,
+                            "title": None,
+                            "external_id": ext.group(1) if ext else None,
+                            "status": "not_found",
+                            "error": "Нет доступных предложений на выбранные даты",
+                        }
 
             title = None
             try:
@@ -82,10 +104,7 @@ class GenericParser(BaseParser):
                 await context.close()
             except Exception:
                 pass
-            try:
-                await self.close()
-            except Exception:
-                pass
+            # Браузер НЕ закрываем — singleton dispatcher переиспользует его
 
 
 class BookingParser(GenericParser):

@@ -13,9 +13,9 @@ API_PORT = 8765
 API_BASE_URL = f"http://{API_HOST}:{API_PORT}"
 
 # Parser settings
-PARSER_TIMEOUT = 20_000          # ms (wait_until="commit" резолвится быстро)
-PARSER_RETRY_COUNT = 3
-PARSER_RETRY_DELAY = 2           # seconds (сокращено с 5)
+PARSER_TIMEOUT = 15_000          # ms (wait_until="commit" резолвится быстро)
+PARSER_RETRY_COUNT = 2           # 1 повтор достаточно; 3 — только лишние ~20 сек
+PARSER_RETRY_DELAY = 1           # seconds
 PARSER_USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

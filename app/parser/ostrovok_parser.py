@@ -24,8 +24,8 @@ from loguru import logger
 from app.parser.base_parser import BaseParser, BlockedError, CaptchaError
 from app.utils.config import PARSER_USER_AGENTS
 
-_PW_NAV_TIMEOUT = 25_000   # ms: "commit" резолвится быстро, это safety-net
-_XHR_WAIT       = 20       # секунд ждём XHR после commit (JS грузит данные async)
+_PW_NAV_TIMEOUT = 20_000   # ms: "commit" резолвится быстро, это safety-net
+_XHR_WAIT       = 12       # секунд ждём XHR (если нет — fallback на DOM/HTML)
 
 
 class OstrovokParser(BaseParser):
@@ -70,10 +70,12 @@ class OstrovokParser(BaseParser):
         context = await self._new_context()
         page    = await context.new_page()
 
-        xhr_prices: List[float] = []
-        xhr_event               = asyncio.Event()
+        xhr_prices: List[float]  = []
+        xhr_event                = asyncio.Event()  # fires on any definitive XHR answer
+        xhr_no_avail             = False            # True = XHR came, rates empty = занято
 
         async def on_response(response):
+            nonlocal xhr_no_avail
             try:
                 if response.status != 200:
                     return
@@ -92,6 +94,11 @@ class OstrovokParser(BaseParser):
                     xhr_prices.extend(prices)
                     xhr_event.set()
                     logger.debug(f"OstrovokParser XHR prices={prices} from {rurl[:70]}")
+                elif "rates" in data:
+                    # XHR пришёл, поле rates есть, но предложений нет → объект занят/недоступен
+                    xhr_no_avail = True
+                    xhr_event.set()
+                    logger.debug(f"OstrovokParser XHR: rates=[] → no availability")
             except Exception as e:
                 logger.debug(f"OstrovokParser XHR handler error: {e}")
 
@@ -140,12 +147,23 @@ class OstrovokParser(BaseParser):
                 except asyncio.TimeoutError:
                     logger.debug("OstrovokParser: XHR wait timeout — trying DOM/HTML fallback")
 
-            # Лёгкий скролл для lazy-load
-            try:
-                await page.evaluate("window.scrollBy(0, 600)")
-                await asyncio.sleep(1)
-            except Exception:
-                pass
+            # Быстрый выход: XHR пришёл, но rates пустые → объект занят/нет предложений
+            if xhr_no_avail and not xhr_prices:
+                return {
+                    "price":       None,
+                    "title":       None,
+                    "external_id": hotel_id,
+                    "status":      "not_found",
+                    "error":       "Нет доступных предложений на выбранные даты",
+                }
+
+            # Лёгкий скролл для lazy-load (только если XHR не ответил)
+            if not xhr_prices:
+                try:
+                    await page.evaluate("window.scrollBy(0, 600)")
+                    await asyncio.sleep(0.8)
+                except Exception:
+                    pass
 
             try:
                 html = await page.content()
@@ -197,11 +215,7 @@ class OstrovokParser(BaseParser):
                 await context.close()
             except Exception:
                 pass
-            # Закрываем браузер после каждой попытки — нет утечек процессов
-            try:
-                await self.close()
-            except Exception:
-                pass
+            # Браузер НЕ закрываем — singleton dispatcher переиспользует его
 
     # ── httpx strategy ───────────────────────────────────────────
 
@@ -216,7 +230,7 @@ class OstrovokParser(BaseParser):
                     kwargs["proxy"] = proxy
 
                 async with httpx.AsyncClient(**kwargs) as client:
-                    await asyncio.sleep(random.uniform(0.5, 1.5))
+                    await asyncio.sleep(random.uniform(0.2, 0.6))
                     resp = await client.get(url, headers=self._headers())
 
                 if resp.status_code not in (200, 201):
