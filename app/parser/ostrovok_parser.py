@@ -14,7 +14,7 @@ import re
 import json
 import asyncio
 import random
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse, parse_qs
 
@@ -67,6 +67,17 @@ class OstrovokParser(BaseParser):
     # ── Playwright strategy ──────────────────────────────────────
 
     async def _playwright_strategy(self, url: str, hotel_id: Optional[str]) -> Optional[Dict]:
+        # Определяем кол-во запрошенных ночей для фильтрации rates в XHR
+        _ci, _co = self._extract_dates(url)
+        _nights = 0
+        if _ci and _co:
+            try:
+                _nights = (date.fromisoformat(_co) - date.fromisoformat(_ci)).days
+                if _nights < 0:
+                    _nights = 0
+            except Exception:
+                pass
+
         context = await self._new_context()
         page    = await context.new_page()
 
@@ -89,7 +100,7 @@ class OstrovokParser(BaseParser):
                 if "json" not in response.headers.get("content-type", ""):
                     return
                 data   = await response.json()
-                prices = self._prices_from_xhr(data)
+                prices = self._prices_from_xhr(data, _nights)
                 if prices:
                     xhr_prices.extend(prices)
                     xhr_event.set()
@@ -265,35 +276,77 @@ class OstrovokParser(BaseParser):
 
     # ── XHR price extraction ─────────────────────────────────────
 
-    def _prices_from_xhr(self, data: dict) -> List[float]:
+    def _prices_from_xhr(self, data: dict, nights: int = 0) -> List[float]:
         """
         Парсим JSON-ответ /hotel/search/v1/site/hp/search.
         Структура: { rates: [ { payment_options: { payment_types: [ {show_amount: 9589} ] } } ] }
+
+        nights > 0: фильтруем по точному совпадению с кол-вом запрошенных ночей,
+        чтобы min() не выбирал 1-ночную ставку для многодневных запросов.
+        Если точного совпадения нет (field отсутствует или нет matching rate) —
+        fallback: берём все rates (старое поведение, без регрессий).
         """
-        found = []
+
+        def _rate_night_count(r: dict) -> int:
+            """Кол-во ночей у rate (0 = неизвестно)."""
+            for f in ("nights", "min_nights", "nights_count",
+                      "min_stay", "length_of_stay", "stay_nights"):
+                v = r.get(f)
+                if isinstance(v, (int, float)) and v > 0:
+                    return int(v)
+            return 0
+
+        def _collect_rate_prices(rate: dict) -> List[float]:
+            prices: List[float] = []
+            po = rate.get("payment_options", {})
+            if isinstance(po, dict):
+                for pt in po.get("payment_types", []):
+                    if not isinstance(pt, dict):
+                        continue
+                    for field in ("show_amount", "amount", "price"):
+                        p = self._to_price(pt.get(field))
+                        if p:
+                            prices.append(p)
+            for field in ("price", "amount", "show_amount",
+                          "base_amount", "total_price", "night_price"):
+                p = self._to_price(rate.get(field))
+                if p:
+                    prices.append(p)
+            return prices
+
+        found: List[float] = []
         try:
             rates = data.get("rates", [])
             if not isinstance(rates, list):
                 rates = []
+            valid_rates = [r for r in rates if isinstance(r, dict)]
 
-            for rate in rates:
-                if not isinstance(rate, dict):
-                    continue
-                po = rate.get("payment_options", {})
-                if isinstance(po, dict):
-                    for pt in po.get("payment_types", []):
-                        if not isinstance(pt, dict):
-                            continue
-                        for field in ("show_amount", "amount", "price"):
-                            v = pt.get(field)
-                            p = self._to_price(v)
-                            if p:
-                                found.append(p)
-                for field in ("price", "amount", "show_amount",
-                              "base_amount", "total_price", "night_price"):
-                    p = self._to_price(rate.get(field))
-                    if p:
-                        found.append(p)
+            if nights > 0 and valid_rates:
+                annotated = [(r, _rate_night_count(r)) for r in valid_rates]
+                has_info  = any(n > 0 for _, n in annotated)
+
+                if has_info:
+                    exact = [r for r, n in annotated if n == nights]
+                    if exact:
+                        logger.debug(
+                            f"_prices_from_xhr: nights={nights}, "
+                            f"exact-match rates={len(exact)}/{len(valid_rates)}"
+                        )
+                        for rate in exact:
+                            found.extend(_collect_rate_prices(rate))
+                        return [p for p in found if 500 <= p <= 300_000]
+                    else:
+                        available = sorted({n for _, n in annotated if n > 0})
+                        logger.debug(
+                            f"_prices_from_xhr: nights={nights}, no exact match, "
+                            f"available={available} — fallback to all rates"
+                        )
+                        # Нет точного совпадения → fallback ниже
+
+            # Fallback: берём все rates (текущее поведение)
+            for rate in valid_rates:
+                found.extend(_collect_rate_prices(rate))
+
         except Exception as e:
             logger.debug(f"_prices_from_xhr error: {e}")
 

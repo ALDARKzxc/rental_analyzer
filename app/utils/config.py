@@ -1,11 +1,19 @@
 """Application configuration and constants."""
+import sys
 from pathlib import Path
 
 # Base directories
 BASE_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = BASE_DIR / "data"
 LOGS_DIR = BASE_DIR / "logs"
-DB_PATH = DATA_DIR / "rental_analyzer.db"
+DB_PATH  = DATA_DIR / "rental_analyzer.db"
+
+# Папка для результатов глубокого анализа
+# В compiled-режиме — рядом с exe; в dev — рядом с main.py
+if getattr(sys, "frozen", False):
+    RESULTS_DIR = Path(sys.executable).parent / "результаты анализа"
+else:
+    RESULTS_DIR = BASE_DIR / "результаты анализа"
 
 # API settings
 API_HOST = "127.0.0.1"

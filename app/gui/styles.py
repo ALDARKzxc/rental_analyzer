@@ -128,6 +128,15 @@ QPushButton#ghostBtn {
 }
 QPushButton#ghostBtn:hover { background: #3a3938; color: #f7ebe8; }
 
+QPushButton#deepAnalysisBtn {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #e54b4b, stop:1 #c03030);
+    color: #f7ebe8; border: none; border-radius: 9px;
+    font-size: 13px; font-weight: 700;
+    min-width: 170px; padding: 0 16px; min-height: 34px;
+}
+QPushButton#deepAnalysisBtn:hover   { background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #f05050, stop:1 #d04040); }
+QPushButton#deepAnalysisBtn:pressed { background: #b02020; }
+
 QPushButton#dateBtn {
     background: #444140; color: #f7ebe8;
     border: 1.5px solid #ffa987;

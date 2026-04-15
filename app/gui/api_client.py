@@ -204,6 +204,35 @@ class ApiClient:
             return AnalyticsEngine.compute(prop_id, records)
         return _w(_())
 
+    # ── Deep Analysis ────────────────────────────────────────────
+
+    def start_deep_analysis(self, prop_ids: List[int]) -> None:
+        """
+        Запускает глубокий анализ как фоновую asyncio-задачу.
+        Возвращается немедленно — анализ работает в фоне.
+        """
+        async def _schedule():
+            from app.backend.deep_analysis import start_task
+            await start_task(prop_ids)
+
+        _run(_schedule())  # _run возвращается быстро — start_task создаёт task и выходит
+
+    def get_deep_analysis_state(self) -> Dict:
+        """
+        Читает текущее состояние анализа.
+        Потокобезопасно (только чтение Python dict под GIL).
+        """
+        from app.backend import deep_analysis as da
+        return da.get_state()
+
+    def cancel_deep_analysis(self) -> None:
+        """Запрашивает отмену анализа через asyncio-поток (thread-safe)."""
+        with _backend_loop_lock:
+            loop = _backend_loop
+        if loop and loop.is_running():
+            from app.backend.deep_analysis import request_cancel
+            loop.call_soon_threadsafe(request_cancel)
+
     # ── Health ───────────────────────────────────────────────────
 
     def health(self) -> bool:

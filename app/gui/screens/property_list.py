@@ -1,6 +1,7 @@
 """
 Screen 1 — Property list v2.
 Фильтр по категории + кнопка выбора даты с анимированным календарём.
+Кнопка «Глубокий анализ» — запуск полного анализа 435 датовых пар.
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ from typing import Dict, List, Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QMessageBox,
-    QMenu, QGraphicsOpacityEffect, QLineEdit, QTextEdit
+    QMenu, QGraphicsOpacityEffect, QLineEdit, QTextEdit, QDialog
 )
 from PySide6.QtCore import (
     Qt, Signal, QThread, QObject, QTimer,
@@ -487,6 +488,273 @@ class PropertyCard(QFrame):
         return "", ""
 
 
+# ── Deep Analysis: Worker ─────────────────────────────────────────
+
+class DeepAnalysisWorker(QObject):
+    """Запускает глубокий анализ и каждые 0.5с опрашивает его состояние."""
+    progress = Signal(int, int)       # (current, total)
+    finished = Signal(str, int, int)  # (file_path, progress_count, elapsed_secs)
+    error    = Signal(str)
+
+    def __init__(self, api, prop_ids: list):
+        super().__init__()
+        self.api      = api
+        self.prop_ids = prop_ids
+        self._stop    = False
+
+    def stop(self):
+        self._stop = True
+
+    def run(self):
+        # Запускаем анализ в asyncio-потоке (возвращается мгновенно)
+        try:
+            self.api.start_deep_analysis(self.prop_ids)
+        except Exception as e:
+            self.error.emit(f"Не удалось запустить анализ: {e}")
+            return
+
+        # Опрашиваем состояние каждые 0.5 секунды
+        while not self._stop:
+            time.sleep(0.5)
+            try:
+                state = self.api.get_deep_analysis_state()
+                if state.get("running", False):
+                    self.progress.emit(state.get("progress", 0), state.get("total", 0))
+                else:
+                    self.finished.emit(
+                        state.get("file_path", ""),
+                        state.get("progress", 0),
+                        state.get("elapsed", 0),
+                    )
+                    return
+            except Exception as e:
+                logger.error(f"DeepAnalysisWorker poll: {e}")
+
+
+# ── Deep Analysis: Button ─────────────────────────────────────────
+
+class DeepAnalysisButton(QPushButton):
+    """
+    Кнопка с тремя визуальными состояниями:
+      • idle    — «Глубокий анализ» (обычная)
+      • running — анимированные «Анализ...»
+      • running + hover — «Информация»
+    """
+    status_requested = Signal()  # пользователь навёл и кликнул во время анализа
+
+    def __init__(self, parent=None):
+        super().__init__("  ◉  Глубокий анализ  ", parent)
+        self.setObjectName("deepAnalysisBtn")
+        self.setFixedHeight(38)
+
+        self._running  = False
+        self._hovered  = False
+        self._dot_cnt  = 0
+
+        self._anim = QTimer(self)
+        self._anim.timeout.connect(self._tick)
+
+    # ── Public ──────────────────────────────────────────────────
+    def set_running(self, on: bool):
+        self._running = on
+        self._hovered = False
+        if on:
+            self._dot_cnt = 0
+            self.setText("  ◉  Анализ.   ")
+            self._anim.start(400)
+        else:
+            self._anim.stop()
+            self.setText("  ◉  Глубокий анализ  ")
+
+    @property
+    def is_running(self) -> bool:
+        return self._running
+
+    # ── Animation ────────────────────────────────────────────────
+    def _tick(self):
+        if not self._hovered:
+            self._dot_cnt = (self._dot_cnt + 1) % 4
+            dots = "." * self._dot_cnt
+            self.setText(f"  ◉  Анализ{dots:<3}")
+
+    # ── Events ───────────────────────────────────────────────────
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        if self._running:
+            self._hovered = True
+            self.setText("  ●  Информация  ")
+
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        if self._running:
+            self._hovered = False
+            self._tick()  # восстанавливаем текущий кадр анимации
+
+    def mousePressEvent(self, event):
+        if self._running and self._hovered and event.button() == Qt.MouseButton.LeftButton:
+            self.status_requested.emit()
+        elif not self._running:
+            super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if not self._running:
+            super().mouseReleaseEvent(event)
+
+
+# ── Deep Analysis: Status Widget ──────────────────────────────────
+
+class DeepAnalysisStatusWidget(QWidget):
+    """
+    Всплывающий не-модальный виджет со статусом глубокого анализа.
+    Содержит: прогресс, таймер, кнопку «Отмена».
+    """
+    cancel_requested = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+        self._elapsed = 0
+        self._ticker  = QTimer(self)
+        self._ticker.timeout.connect(self._tick_timer)
+
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.setFixedWidth(360)
+        self.setStyleSheet("""
+            DeepAnalysisStatusWidget {
+                background: #22222a;
+                border: 1.5px solid #ffa987;
+                border-radius: 14px;
+            }
+        """)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        card = QWidget()
+        card.setStyleSheet("""
+            QWidget {
+                background: #22222a;
+                border-radius: 14px;
+            }
+        """)
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(22, 18, 22, 18)
+        cl.setSpacing(12)
+
+        # Заголовок + крестик
+        hdr_row = QHBoxLayout()
+        title = QLabel("◉  ГЛУБОКИЙ АНАЛИЗ")
+        title.setStyleSheet(
+            "color:#ffa987;font-size:11px;font-weight:700;"
+            "background:transparent;letter-spacing:1.5px;"
+        )
+        hdr_row.addWidget(title)
+        hdr_row.addStretch()
+
+        btn_close = QPushButton("✕")
+        btn_close.setFixedSize(22, 22)
+        btn_close.setStyleSheet("""
+            QPushButton {
+                background:transparent; color:#b0a09a; border:none;
+                font-size:14px; font-weight:700;
+                min-width:22px; min-height:22px; padding:0;
+            }
+            QPushButton:hover { color:#e54b4b; }
+        """)
+        btn_close.clicked.connect(self.hide)
+        hdr_row.addWidget(btn_close)
+        cl.addLayout(hdr_row)
+
+        # Разделитель
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("background:#3a3938;max-height:1px;")
+        cl.addWidget(sep)
+
+        # Прогресс
+        self._lbl_progress = QLabel("Проанализировано: 0 / —")
+        self._lbl_progress.setStyleSheet(
+            "color:#f7ebe8;font-size:14px;font-weight:600;background:transparent;"
+        )
+        cl.addWidget(self._lbl_progress)
+
+        # Таймер
+        self._lbl_timer = QLabel("Время: 00:00")
+        self._lbl_timer.setStyleSheet(
+            "color:#b0a09a;font-size:13px;background:transparent;"
+        )
+        cl.addWidget(self._lbl_timer)
+
+        # Кнопка «Отмена»
+        sep2 = QFrame()
+        sep2.setFrameShape(QFrame.Shape.HLine)
+        sep2.setStyleSheet("background:#3a3938;max-height:1px;")
+        cl.addWidget(sep2)
+
+        self._btn_cancel = QPushButton("Остановить анализ")
+        self._btn_cancel.setStyleSheet("""
+            QPushButton {
+                background: #2a1010; color: #e54b4b;
+                border: 1.5px solid #e54b4b; border-radius: 8px;
+                font-weight: 600; font-size: 13px;
+                min-height: 34px; padding: 0 14px;
+            }
+            QPushButton:hover { background: #3a1515; }
+            QPushButton:pressed { background: #4a1a1a; }
+            QPushButton:disabled { background: #1a1010; color: #7a3030; border-color: #5a2020; }
+        """)
+        self._btn_cancel.clicked.connect(self.cancel_requested.emit)
+        cl.addWidget(self._btn_cancel)
+
+        outer.addWidget(card)
+
+    # ── Public ──────────────────────────────────────────────────
+    def start_timer(self):
+        self._elapsed = 0
+        self._ticker.start(1000)
+
+    def stop_timer(self):
+        self._ticker.stop()
+
+    def update_progress(self, current: int, total: int):
+        total_str = str(total) if total > 0 else "—"
+        self._lbl_progress.setText(f"Проанализировано: {current} / {total_str}")
+
+    def show_near_button(self, btn: QPushButton):
+        """Показывает виджет рядом с кнопкой."""
+        pos   = btn.mapToGlobal(QPoint(0, btn.height() + 6))
+        screen = btn.screen()
+        if screen:
+            sr    = screen.availableGeometry()
+            x     = min(pos.x(), sr.right()  - self.width()  - 10)
+            y     = min(pos.y(), sr.bottom() - self.height() - 10)
+            self.move(x, y)
+        else:
+            self.move(pos)
+        self.show()
+        self.raise_()
+
+    def set_cancelling(self):
+        """Блокирует кнопку отмены и меняет текст — сигнал что запрос принят."""
+        self._btn_cancel.setEnabled(False)
+        self._btn_cancel.setText("Останавливается…")
+
+    # ── Timer tick ───────────────────────────────────────────────
+    def _tick_timer(self):
+        self._elapsed += 1
+        h = self._elapsed // 3600
+        m = (self._elapsed % 3600) // 60
+        s = self._elapsed % 60
+        if h:
+            self._lbl_timer.setText(f"Время: {h}:{m:02d}:{s:02d}")
+        else:
+            self._lbl_timer.setText(f"Время: {m:02d}:{s:02d}")
+
+
 # ── Screen ────────────────────────────────────────────────────────
 
 class PropertyListScreen(QWidget):
@@ -501,7 +769,10 @@ class PropertyListScreen(QWidget):
         self._dead_threads:  List[tuple]             = []
         self._load_seq   = 0
         self._loading    = False
-        self._date_popup: Optional[DatePickerPopup] = None
+        self._date_popup:    Optional[DatePickerPopup]          = None
+        self._status_widget: Optional[DeepAnalysisStatusWidget] = None
+        self._deep_worker:   Optional[DeepAnalysisWorker]       = None
+        self._deep_thread:   Optional[QThread]                  = None
         self._setup_ui()
 
     # ── UI ──────────────────────────────────────────────────────
@@ -533,6 +804,12 @@ class PropertyListScreen(QWidget):
         self.btn_all = QPushButton("  ↻  Обновить все  ")
         self.btn_all.setObjectName("primaryBtn"); self.btn_all.setFixedHeight(38)
         self.btn_all.clicked.connect(self._parse_all); hdr.addWidget(self.btn_all)
+
+        # Глубокий анализ
+        self._deep_btn = DeepAnalysisButton()
+        self._deep_btn.clicked.connect(self._start_deep_analysis)
+        self._deep_btn.status_requested.connect(self._show_analysis_status)
+        hdr.addWidget(self._deep_btn)
 
         # Добавить
         btn_add = QPushButton("  ＋  Добавить  ")
@@ -793,3 +1070,116 @@ class PropertyListScreen(QWidget):
                 self.api.delete_property(prop_id); self.refresh()
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", str(e))
+
+    # ── Deep Analysis ─────────────────────────────────────────────
+
+    def _start_deep_analysis(self):
+        """Запускает глубокий анализ всех объектов."""
+        if self._deep_btn.is_running:
+            return
+
+        try:
+            props = self.api.get_properties()
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось получить список объектов: {e}")
+            return
+
+        if not props:
+            QMessageBox.information(
+                self, "Нет объектов",
+                "Добавьте хотя бы один объект перед запуском глубокого анализа."
+            )
+            return
+
+        prop_ids = [p["id"] for p in props]
+        n_props  = len(prop_ids)
+
+        # Создаём статус-виджет заранее, чтобы сразу показать при нажатии
+        self._status_widget = DeepAnalysisStatusWidget(self.window())
+        self._status_widget.cancel_requested.connect(self._cancel_deep_analysis)
+        self._status_widget.update_progress(0, n_props * 435)
+        self._status_widget.show_near_button(self._deep_btn)
+        self._status_widget.start_timer()
+
+        self._deep_btn.set_running(True)
+
+        t = QThread()
+        w = DeepAnalysisWorker(self.api, prop_ids)
+        w.moveToThread(t)
+        t.started.connect(w.run)
+        w.progress.connect(self._on_analysis_progress)
+        w.finished.connect(self._on_analysis_finished)
+        w.error.connect(self._on_analysis_error)
+        w.finished.connect(t.quit)
+        t.finished.connect(lambda: self._dead_threads.append((t, w)))
+
+        self._deep_worker = w
+        self._deep_thread = t
+        t.start()
+
+    def _show_analysis_status(self):
+        """Показывает/поднимает статус-виджет при клике на кнопку во время анализа."""
+        if self._status_widget is None:
+            self._status_widget = DeepAnalysisStatusWidget(self.window())
+            self._status_widget.cancel_requested.connect(self._cancel_deep_analysis)
+        self._status_widget.show_near_button(self._deep_btn)
+
+    def _on_analysis_progress(self, current: int, total: int):
+        if self._status_widget:
+            self._status_widget.update_progress(current, total)
+
+    def _cancel_deep_analysis(self):
+        """Запрашивает отмену — уже собранные данные будут записаны в файл.
+        Воркер продолжает опрашивать состояние и штатно завершится когда asyncio-анализ остановится."""
+        try:
+            self.api.cancel_deep_analysis()
+        except Exception as e:
+            logger.error(f"cancel_deep_analysis: {e}")
+        # НЕ останавливаем воркер: он должен дождаться running=False и эмитить finished,
+        # иначе кнопка навсегда застрянет в состоянии «анализ».
+        if self._status_widget:
+            self._status_widget.set_cancelling()
+
+    def _on_analysis_error(self, msg: str):
+        self._deep_btn.set_running(False)
+        if self._status_widget:
+            self._status_widget.stop_timer()
+            self._status_widget.hide()
+        QMessageBox.critical(self, "Ошибка анализа", msg)
+
+    def _on_analysis_finished(self, file_path: str, count: int, elapsed: int):
+        """Вызывается когда анализ завершён (штатно или по отмене)."""
+        self._deep_btn.set_running(False)
+
+        if self._status_widget:
+            self._status_widget.stop_timer()
+            self._status_widget.hide()
+
+        # Форматируем время
+        h = elapsed // 3600
+        m = (elapsed % 3600) // 60
+        s = elapsed % 60
+        if h:
+            time_str = f"{h}:{m:02d}:{s:02d}"
+        else:
+            time_str = f"{m:02d}:{s:02d}"
+
+        if file_path:
+            msg = (
+                f"Проанализировано: {count} запросов\n"
+                f"Общее время анализа: {time_str}\n\n"
+                f"Созданный файл находится по адресу:\n{file_path}"
+            )
+            title = "Анализ завершён"
+        else:
+            msg = (
+                f"Анализ остановлен.\n"
+                f"Проанализировано: {count} запросов\n"
+                f"Время: {time_str}"
+            )
+            title = "Анализ остановлен"
+
+        QMessageBox.information(self, title, msg)
+
+        self._deep_worker = None
+        self._deep_thread = None
