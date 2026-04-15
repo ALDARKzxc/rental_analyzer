@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QMenu, QGraphicsOpacityEffect, QLineEdit, QTextEdit, QDialog
 )
 from PySide6.QtCore import (
-    Qt, Signal, QThread, QObject, QTimer,
+    Qt, Signal, QThread, QObject, QTimer, QEvent,
     QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
 )
 from PySide6.QtGui import QAction, QTextCursor
@@ -492,8 +492,8 @@ class PropertyCard(QFrame):
 
 class DeepAnalysisWorker(QObject):
     """Запускает глубокий анализ и каждые 0.5с опрашивает его состояние."""
-    progress = Signal(int, int)       # (current, total)
-    finished = Signal(str, int, int)  # (file_path, progress_count, elapsed_secs)
+    progress = Signal(int, int)            # (current, total)
+    finished = Signal(str, int, int, bool) # (file_path, progress_count, elapsed_secs, cancelled)
     error    = Signal(str)
 
     def __init__(self, api, prop_ids: list):
@@ -525,6 +525,7 @@ class DeepAnalysisWorker(QObject):
                         state.get("file_path", ""),
                         state.get("progress", 0),
                         state.get("elapsed", 0),
+                        state.get("cancelled", False),
                     )
                     return
             except Exception as e:
@@ -543,7 +544,7 @@ class DeepAnalysisButton(QPushButton):
     status_requested = Signal()  # пользователь навёл и кликнул во время анализа
 
     def __init__(self, parent=None):
-        super().__init__("  ◉  Глубокий анализ  ", parent)
+        super().__init__("  🔬  Глубокий анализ  ", parent)
         self.setObjectName("deepAnalysisBtn")
         self.setFixedHeight(38)
 
@@ -564,7 +565,7 @@ class DeepAnalysisButton(QPushButton):
             self._anim.start(400)
         else:
             self._anim.stop()
-            self.setText("  ◉  Глубокий анализ  ")
+            self.setText("  🔬  Глубокий анализ  ")
 
     @property
     def is_running(self) -> bool:
@@ -724,19 +725,27 @@ class DeepAnalysisStatusWidget(QWidget):
         total_str = str(total) if total > 0 else "—"
         self._lbl_progress.setText(f"Проанализировано: {current} / {total_str}")
 
-    def show_near_button(self, btn: QPushButton):
-        """Показывает виджет рядом с кнопкой."""
-        pos   = btn.mapToGlobal(QPoint(0, btn.height() + 6))
+    def _calc_pos(self, btn: QPushButton) -> QPoint:
+        """Вычисляет позицию виджета рядом с кнопкой."""
+        pos = btn.mapToGlobal(QPoint(0, btn.height() + 6))
         screen = btn.screen()
         if screen:
-            sr    = screen.availableGeometry()
-            x     = min(pos.x(), sr.right()  - self.width()  - 10)
-            y     = min(pos.y(), sr.bottom() - self.height() - 10)
-            self.move(x, y)
-        else:
-            self.move(pos)
+            sr = screen.availableGeometry()
+            x  = min(pos.x(), sr.right()  - self.width()  - 10)
+            y  = min(pos.y(), sr.bottom() - self.height() - 10)
+            return QPoint(x, y)
+        return pos
+
+    def show_near_button(self, btn: QPushButton):
+        """Показывает виджет рядом с кнопкой."""
+        self.move(self._calc_pos(btn))
         self.show()
         self.raise_()
+
+    def reposition_near_button(self, btn: QPushButton):
+        """Перемещает виджет следом за кнопкой без show/raise (для отслеживания движения окна)."""
+        if self.isVisible():
+            self.move(self._calc_pos(btn))
 
     def set_cancelling(self):
         """Блокирует кнопку отмены и меняет текст — сигнал что запрос принят."""
@@ -773,7 +782,24 @@ class PropertyListScreen(QWidget):
         self._status_widget: Optional[DeepAnalysisStatusWidget] = None
         self._deep_worker:   Optional[DeepAnalysisWorker]       = None
         self._deep_thread:   Optional[QThread]                  = None
+        self._deep_total:    int                                 = 0
         self._setup_ui()
+
+    # ── Window-move tracking ────────────────────────────────────
+
+    def showEvent(self, event):
+        """Устанавливаем фильтр на главное окно, чтобы отслеживать его перемещение."""
+        super().showEvent(event)
+        win = self.window()
+        if win and win is not self:
+            win.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        """Перемещаем статус-виджет вместе с главным окном."""
+        if (event.type() == QEvent.Type.Move
+                and self._status_widget is not None):
+            self._status_widget.reposition_near_button(self._deep_btn)
+        return False  # не перехватываем событие
 
     # ── UI ──────────────────────────────────────────────────────
 
@@ -1093,6 +1119,7 @@ class PropertyListScreen(QWidget):
 
         prop_ids = [p["id"] for p in props]
         n_props  = len(prop_ids)
+        self._deep_total = n_props * 435
 
         # Создаём статус-виджет заранее, чтобы сразу показать при нажатии
         self._status_widget = DeepAnalysisStatusWidget(self.window())
@@ -1147,7 +1174,7 @@ class PropertyListScreen(QWidget):
             self._status_widget.hide()
         QMessageBox.critical(self, "Ошибка анализа", msg)
 
-    def _on_analysis_finished(self, file_path: str, count: int, elapsed: int):
+    def _on_analysis_finished(self, file_path: str, count: int, elapsed: int, cancelled: bool):
         """Вызывается когда анализ завершён (штатно или по отмене)."""
         self._deep_btn.set_running(False)
 
@@ -1159,25 +1186,29 @@ class PropertyListScreen(QWidget):
         h = elapsed // 3600
         m = (elapsed % 3600) // 60
         s = elapsed % 60
-        if h:
-            time_str = f"{h}:{m:02d}:{s:02d}"
-        else:
-            time_str = f"{m:02d}:{s:02d}"
+        time_str = f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
 
-        if file_path:
+        if cancelled:
+            total_str = f" из {self._deep_total}" if self._deep_total else ""
+            if file_path:
+                msg = (
+                    f"Анализ прерван на запросе {count}{total_str}\n"
+                    f"Время работы: {time_str}\n\n"
+                    f"Частичные результаты сохранены:\n{file_path}"
+                )
+            else:
+                msg = (
+                    f"Анализ прерван на запросе {count}{total_str}\n"
+                    f"Время работы: {time_str}"
+                )
+            title = "Анализ остановлен"
+        else:
             msg = (
                 f"Проанализировано: {count} запросов\n"
                 f"Общее время анализа: {time_str}\n\n"
                 f"Созданный файл находится по адресу:\n{file_path}"
             )
             title = "Анализ завершён"
-        else:
-            msg = (
-                f"Анализ остановлен.\n"
-                f"Проанализировано: {count} запросов\n"
-                f"Время: {time_str}"
-            )
-            title = "Анализ остановлен"
 
         QMessageBox.information(self, title, msg)
 

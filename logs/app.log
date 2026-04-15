@@ -5238,3 +5238,232 @@ Call log:
 2026-04-15 23:48:51 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [7913.0, 7913.0, 8000.0, 8000.0, 9891.0, 9891.0, 10000.0, 10000.0, 11869.0, 11869.0, 12000.0, 12000.0]
 2026-04-15 23:48:51 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=7913.0 status=ok
 2026-04-15 23:48:51 | INFO | app.backend.deep_analysis:147 | DeepAnalysis: finished. progress=435/435 elapsed=782s cancelled=False
+2026-04-16 00:28:48 | INFO | __main__:108 | API thread started
+2026-04-16 00:28:49 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-16 00:28:49 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-16 00:28:49 | INFO | __main__:54 | Backend loop started and registered
+2026-04-16 00:28:49 | INFO | __main__:136 | API ready, launching GUI
+2026-04-16 00:28:49 | INFO | __main__:140 | Application started successfully
+2026-04-16 00:32:58 | INFO | __main__:108 | API thread started
+2026-04-16 00:32:58 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-16 00:32:58 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-16 00:32:58 | INFO | __main__:54 | Backend loop started and registered
+2026-04-16 00:32:59 | INFO | __main__:136 | API ready, launching GUI
+2026-04-16 00:32:59 | INFO | __main__:140 | Application started successfully
+2026-04-16 00:33:03 | INFO | app.backend.deep_analysis:117 | DeepAnalysis: task created for 1 properties
+2026-04-16 00:33:03 | INFO | app.backend.deep_analysis:135 | DeepAnalysis: started
+2026-04-16 00:33:03 | INFO | app.backend.deep_analysis:176 | DeepAnalysis: 1 properties × 435 pairs = 435 requests
+2026-04-16 00:33:03 | INFO | app.backend.deep_analysis:183 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 16.04.2026.txt
+2026-04-16 00:33:03 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:03 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-16 00:33:03 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-16 00:33:03 | DEBUG | app.parser.dispatcher:70 | Dispatcher: created new parser for site=ostrovok
+2026-04-16 00:33:03 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-17
+2026-04-16 00:33:03 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:03 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-18
+2026-04-16 00:33:03 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:03 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-19
+2026-04-16 00:33:03 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:03 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-20
+2026-04-16 00:33:03 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:03 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-21
+2026-04-16 00:33:04 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:33:04 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:33:04 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:33:04 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:33:04 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:33:08 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[31652.0, 31652.0, 32000.0, 32000.0, 39565.0, 39565.0, 40000.0, 40000.0, 47478.0, 47478.0, 48000.0, 48000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:08 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [31652.0, 31652.0, 32000.0, 32000.0, 39565.0, 39565.0, 40000.0, 40000.0, 47478.0, 47478.0, 48000.0, 48000.0]
+2026-04-16 00:33:08 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=31652.0 status=ok
+2026-04-16 00:33:08 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:08 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-22
+2026-04-16 00:33:09 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[23739.0, 23739.0, 24000.0, 24000.0, 29674.0, 29674.0, 30000.0, 30000.0, 35609.0, 35609.0, 36000.0, 36000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:09 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [23739.0, 23739.0, 24000.0, 24000.0, 29674.0, 29674.0, 30000.0, 30000.0, 35609.0, 35609.0, 36000.0, 36000.0]
+2026-04-16 00:33:09 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=23739.0 status=ok
+2026-04-16 00:33:09 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:09 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-23
+2026-04-16 00:33:12 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[39565.0, 39565.0, 40000.0, 40000.0, 49457.0, 49457.0, 50000.0, 50000.0, 59348.0, 59348.0, 60000.0, 60000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:12 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [39565.0, 39565.0, 40000.0, 40000.0, 49457.0, 49457.0, 50000.0, 50000.0, 59348.0, 59348.0, 60000.0, 60000.0]
+2026-04-16 00:33:12 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=39565.0 status=ok
+2026-04-16 00:33:12 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:12 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-24
+2026-04-16 00:33:13 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[15826.0, 15826.0, 16000.0, 16000.0, 19782.0, 19782.0, 20000.0, 20000.0, 23739.0, 23739.0, 24000.0, 24000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:13 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [15826.0, 15826.0, 16000.0, 16000.0, 19782.0, 19782.0, 20000.0, 20000.0, 23739.0, 23739.0, 24000.0, 24000.0]
+2026-04-16 00:33:13 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=15826.0 status=ok
+2026-04-16 00:33:13 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:13 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-25
+2026-04-16 00:33:13 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[7913.0, 7913.0, 8000.0, 8000.0, 9891.0, 9891.0, 10000.0, 10000.0, 11869.0, 11869.0, 12000.0, 12000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:13 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [7913.0, 7913.0, 8000.0, 8000.0, 9891.0, 9891.0, 10000.0, 10000.0, 11869.0, 11869.0, 12000.0, 12000.0]
+2026-04-16 00:33:13 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=7913.0 status=ok
+2026-04-16 00:33:13 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:13 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-26
+2026-04-16 00:33:18 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[79131.0, 79131.0, 80000.0, 80000.0, 98914.0, 98914.0, 100000.0, 100000.0, 118697.0, 118697.0, 120000.0, 120000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:18 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [79131.0, 79131.0, 80000.0, 80000.0, 98914.0, 98914.0, 100000.0, 100000.0, 118697.0, 118697.0, 120000.0, 120000.0]
+2026-04-16 00:33:18 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=79131.0 status=ok
+2026-04-16 00:33:18 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:18 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-27
+2026-04-16 00:33:20 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[47478.0, 47478.0, 48000.0, 48000.0, 59348.0, 59348.0, 60000.0, 60000.0, 71218.0, 71218.0, 72000.0, 72000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:20 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [47478.0, 47478.0, 48000.0, 48000.0, 59348.0, 59348.0, 60000.0, 60000.0, 71218.0, 71218.0, 72000.0, 72000.0]
+2026-04-16 00:33:20 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=47478.0 status=ok
+2026-04-16 00:33:20 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:20 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-28
+2026-04-16 00:33:20 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[71218.0, 71218.0, 72000.0, 72000.0, 89022.0, 89022.0, 90000.0, 90000.0, 106827.0, 106827.0, 108000.0, 108000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:20 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [71218.0, 71218.0, 72000.0, 72000.0, 89022.0, 89022.0, 90000.0, 90000.0, 106827.0, 106827.0, 108000.0, 108000.0]
+2026-04-16 00:33:20 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=71218.0 status=ok
+2026-04-16 00:33:20 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:20 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-29
+2026-04-16 00:33:23 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[63305.0, 63305.0, 64000.0, 64000.0, 79131.0, 79131.0, 80000.0, 80000.0, 94957.0, 94957.0, 96000.0, 96000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:23 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [63305.0, 63305.0, 64000.0, 64000.0, 79131.0, 79131.0, 80000.0, 80000.0, 94957.0, 94957.0, 96000.0, 96000.0]
+2026-04-16 00:33:23 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=63305.0 status=ok
+2026-04-16 00:33:23 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:23 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-30
+2026-04-16 00:33:25 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[87044.0, 87044.0, 88000.0, 88000.0, 108805.0, 108805.0, 110000.0, 110000.0, 130566.0, 130566.0, 132000.0, 132000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:25 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [87044.0, 87044.0, 88000.0, 88000.0, 108805.0, 108805.0, 110000.0, 110000.0, 130566.0, 130566.0, 132000.0, 132000.0]
+2026-04-16 00:33:25 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=87044.0 status=ok
+2026-04-16 00:33:25 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:25 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-01
+2026-04-16 00:33:27 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[102870.0, 102870.0, 104000.0, 104000.0, 128588.0, 128588.0, 130000.0, 130000.0, 154306.0, 154306.0, 156000.0, 156000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:27 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [102870.0, 102870.0, 104000.0, 104000.0, 128588.0, 128588.0, 130000.0, 130000.0, 154306.0, 154306.0, 156000.0, 156000.0]
+2026-04-16 00:33:27 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=102870.0 status=ok
+2026-04-16 00:33:27 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:27 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-02
+2026-04-16 00:33:27 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[55392.0, 55392.0, 56000.0, 56000.0, 69240.0, 69240.0, 70000.0, 70000.0, 83088.0, 83088.0, 84000.0, 84000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:27 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [55392.0, 55392.0, 56000.0, 56000.0, 69240.0, 69240.0, 70000.0, 70000.0, 83088.0, 83088.0, 84000.0, 84000.0]
+2026-04-16 00:33:28 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=55392.0 status=ok
+2026-04-16 00:33:28 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:28 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-03
+2026-04-16 00:33:29 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[94957.0, 94957.0, 96000.0, 96000.0, 118697.0, 118697.0, 120000.0, 120000.0, 142436.0, 142436.0, 144000.0, 144000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:29 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [94957.0, 94957.0, 96000.0, 96000.0, 118697.0, 118697.0, 120000.0, 120000.0, 142436.0, 142436.0, 144000.0, 144000.0]
+2026-04-16 00:33:29 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=94957.0 status=ok
+2026-04-16 00:33:29 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:33:29 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-04
+2026-04-16 00:33:31 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[134523.0, 134523.0, 136000.0, 136000.0, 168154.0, 168154.0, 170000.0, 170000.0, 201785.0, 201785.0, 204000.0, 204000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:31 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [134523.0, 134523.0, 136000.0, 136000.0, 168154.0, 168154.0, 170000.0, 170000.0, 201785.0, 201785.0, 204000.0, 204000.0]
+2026-04-16 00:33:31 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=134523.0 status=ok
+2026-04-16 00:33:33 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[126610.0, 126610.0, 128000.0, 128000.0, 158262.0, 158262.0, 160000.0, 160000.0, 189915.0, 189915.0, 192000.0, 192000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:33 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [126610.0, 126610.0, 128000.0, 128000.0, 158262.0, 158262.0, 160000.0, 160000.0, 189915.0, 189915.0, 192000.0, 192000.0]
+2026-04-16 00:33:33 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=126610.0 status=ok
+2026-04-16 00:33:34 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[142436.0, 142436.0, 144000.0, 144000.0, 178045.0, 178045.0, 180000.0, 180000.0, 213655.0, 213655.0, 216000.0, 216000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:34 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [142436.0, 142436.0, 144000.0, 144000.0, 178045.0, 178045.0, 180000.0, 180000.0, 213655.0, 213655.0, 216000.0, 216000.0]
+2026-04-16 00:33:34 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=142436.0 status=ok
+2026-04-16 00:33:43 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[110784.0, 110784.0, 112000.0, 112000.0, 138480.0, 138480.0, 140000.0, 140000.0, 166176.0, 166176.0, 168000.0, 168000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:43 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [110784.0, 110784.0, 112000.0, 112000.0, 138480.0, 138480.0, 140000.0, 140000.0, 166176.0, 166176.0, 168000.0, 168000.0]
+2026-04-16 00:33:43 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=110784.0 status=ok
+2026-04-16 00:33:44 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[118697.0, 118697.0, 120000.0, 120000.0, 148371.0, 148371.0, 150000.0, 150000.0, 178045.0, 178045.0, 180000.0, 180000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:33:44 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [118697.0, 118697.0, 120000.0, 120000.0, 148371.0, 148371.0, 150000.0, 150000.0, 178045.0, 178045.0, 180000.0, 180000.0]
+2026-04-16 00:33:44 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=118697.0 status=ok
+2026-04-16 00:33:44 | INFO | app.backend.deep_analysis:147 | DeepAnalysis: finished. progress=435/435 elapsed=41s cancelled=True
+2026-04-16 00:47:53 | INFO | __main__:108 | API thread started
+2026-04-16 00:47:53 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-16 00:47:53 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-16 00:47:53 | INFO | __main__:54 | Backend loop started and registered
+2026-04-16 00:47:54 | INFO | __main__:136 | API ready, launching GUI
+2026-04-16 00:47:54 | INFO | __main__:140 | Application started successfully
+2026-04-16 00:48:01 | INFO | app.backend.deep_analysis:117 | DeepAnalysis: task created for 1 properties
+2026-04-16 00:48:01 | INFO | app.backend.deep_analysis:135 | DeepAnalysis: started
+2026-04-16 00:48:01 | INFO | app.backend.deep_analysis:176 | DeepAnalysis: 1 properties × 435 pairs = 435 requests
+2026-04-16 00:48:01 | INFO | app.backend.deep_analysis:183 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 16.04.2026 (2).txt
+2026-04-16 00:48:01 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:01 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-16 00:48:01 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-16 00:48:01 | DEBUG | app.parser.dispatcher:70 | Dispatcher: created new parser for site=ostrovok
+2026-04-16 00:48:01 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-17
+2026-04-16 00:48:01 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:01 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-18
+2026-04-16 00:48:01 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:01 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-19
+2026-04-16 00:48:01 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:01 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-20
+2026-04-16 00:48:01 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:01 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-21
+2026-04-16 00:48:02 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:48:02 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:48:02 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:48:02 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:48:02 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-16 00:48:06 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[31652.0, 31652.0, 32000.0, 32000.0, 39565.0, 39565.0, 40000.0, 40000.0, 47478.0, 47478.0, 48000.0, 48000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:06 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [31652.0, 31652.0, 32000.0, 32000.0, 39565.0, 39565.0, 40000.0, 40000.0, 47478.0, 47478.0, 48000.0, 48000.0]
+2026-04-16 00:48:06 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=31652.0 status=ok
+2026-04-16 00:48:06 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:06 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-22
+2026-04-16 00:48:10 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[39565.0, 39565.0, 40000.0, 40000.0, 49457.0, 49457.0, 50000.0, 50000.0, 59348.0, 59348.0, 60000.0, 60000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:10 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [39565.0, 39565.0, 40000.0, 40000.0, 49457.0, 49457.0, 50000.0, 50000.0, 59348.0, 59348.0, 60000.0, 60000.0]
+2026-04-16 00:48:10 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=39565.0 status=ok
+2026-04-16 00:48:10 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:10 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-23
+2026-04-16 00:48:11 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[23739.0, 23739.0, 24000.0, 24000.0, 29674.0, 29674.0, 30000.0, 30000.0, 35609.0, 35609.0, 36000.0, 36000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:11 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [23739.0, 23739.0, 24000.0, 24000.0, 29674.0, 29674.0, 30000.0, 30000.0, 35609.0, 35609.0, 36000.0, 36000.0]
+2026-04-16 00:48:11 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=23739.0 status=ok
+2026-04-16 00:48:11 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:11 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-24
+2026-04-16 00:48:12 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[7913.0, 7913.0, 8000.0, 8000.0, 9891.0, 9891.0, 10000.0, 10000.0, 11869.0, 11869.0, 12000.0, 12000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:12 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [7913.0, 7913.0, 8000.0, 8000.0, 9891.0, 9891.0, 10000.0, 10000.0, 11869.0, 11869.0, 12000.0, 12000.0]
+2026-04-16 00:48:12 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=7913.0 status=ok
+2026-04-16 00:48:12 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:12 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-25
+2026-04-16 00:48:14 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[47478.0, 47478.0, 48000.0, 48000.0, 59348.0, 59348.0, 60000.0, 60000.0, 71218.0, 71218.0, 72000.0, 72000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:14 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [47478.0, 47478.0, 48000.0, 48000.0, 59348.0, 59348.0, 60000.0, 60000.0, 71218.0, 71218.0, 72000.0, 72000.0]
+2026-04-16 00:48:14 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=47478.0 status=ok
+2026-04-16 00:48:14 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:14 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-26
+2026-04-16 00:48:16 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[55392.0, 55392.0, 56000.0, 56000.0, 69240.0, 69240.0, 70000.0, 70000.0, 83088.0, 83088.0, 84000.0, 84000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:16 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [55392.0, 55392.0, 56000.0, 56000.0, 69240.0, 69240.0, 70000.0, 70000.0, 83088.0, 83088.0, 84000.0, 84000.0]
+2026-04-16 00:48:16 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=55392.0 status=ok
+2026-04-16 00:48:16 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:16 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-27
+2026-04-16 00:48:21 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[63305.0, 63305.0, 64000.0, 64000.0, 79131.0, 79131.0, 80000.0, 80000.0, 94957.0, 94957.0, 96000.0, 96000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:21 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [63305.0, 63305.0, 64000.0, 64000.0, 79131.0, 79131.0, 80000.0, 80000.0, 94957.0, 94957.0, 96000.0, 96000.0]
+2026-04-16 00:48:21 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=63305.0 status=ok
+2026-04-16 00:48:21 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:21 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-28
+2026-04-16 00:48:21 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[79131.0, 79131.0, 80000.0, 80000.0, 98914.0, 98914.0, 100000.0, 100000.0, 118697.0, 118697.0, 120000.0, 120000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:21 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [79131.0, 79131.0, 80000.0, 80000.0, 98914.0, 98914.0, 100000.0, 100000.0, 118697.0, 118697.0, 120000.0, 120000.0]
+2026-04-16 00:48:21 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=79131.0 status=ok
+2026-04-16 00:48:21 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:21 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-29
+2026-04-16 00:48:21 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[71218.0, 71218.0, 72000.0, 72000.0, 89022.0, 89022.0, 90000.0, 90000.0, 106827.0, 106827.0, 108000.0, 108000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:21 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [71218.0, 71218.0, 72000.0, 72000.0, 89022.0, 89022.0, 90000.0, 90000.0, 106827.0, 106827.0, 108000.0, 108000.0]
+2026-04-16 00:48:21 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=71218.0 status=ok
+2026-04-16 00:48:21 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:21 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-30
+2026-04-16 00:48:22 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[15826.0, 15826.0, 16000.0, 16000.0, 19782.0, 19782.0, 20000.0, 20000.0, 23739.0, 23739.0, 24000.0, 24000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:22 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [15826.0, 15826.0, 16000.0, 16000.0, 19782.0, 19782.0, 20000.0, 20000.0, 23739.0, 23739.0, 24000.0, 24000.0]
+2026-04-16 00:48:22 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=15826.0 status=ok
+2026-04-16 00:48:22 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:22 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-01
+2026-04-16 00:48:24 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[87044.0, 87044.0, 88000.0, 88000.0, 108805.0, 108805.0, 110000.0, 110000.0, 130566.0, 130566.0, 132000.0, 132000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:24 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [87044.0, 87044.0, 88000.0, 88000.0, 108805.0, 108805.0, 110000.0, 110000.0, 130566.0, 130566.0, 132000.0, 132000.0]
+2026-04-16 00:48:24 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=87044.0 status=ok
+2026-04-16 00:48:24 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:24 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-02
+2026-04-16 00:48:27 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[110784.0, 110784.0, 112000.0, 112000.0, 138480.0, 138480.0, 140000.0, 140000.0, 166176.0, 166176.0, 168000.0, 168000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:27 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [110784.0, 110784.0, 112000.0, 112000.0, 138480.0, 138480.0, 140000.0, 140000.0, 166176.0, 166176.0, 168000.0, 168000.0]
+2026-04-16 00:48:27 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=110784.0 status=ok
+2026-04-16 00:48:27 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:27 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-03
+2026-04-16 00:48:28 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[102870.0, 102870.0, 104000.0, 104000.0, 128588.0, 128588.0, 130000.0, 130000.0, 154306.0, 154306.0, 156000.0, 156000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:28 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [102870.0, 102870.0, 104000.0, 104000.0, 128588.0, 128588.0, 130000.0, 130000.0, 154306.0, 154306.0, 156000.0, 156000.0]
+2026-04-16 00:48:28 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=102870.0 status=ok
+2026-04-16 00:48:28 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:28 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-04
+2026-04-16 00:48:28 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[94957.0, 94957.0, 96000.0, 96000.0, 118697.0, 118697.0, 120000.0, 120000.0, 142436.0, 142436.0, 144000.0, 144000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:28 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [94957.0, 94957.0, 96000.0, 96000.0, 118697.0, 118697.0, 120000.0, 120000.0, 142436.0, 142436.0, 144000.0, 144000.0]
+2026-04-16 00:48:28 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=94957.0 status=ok
+2026-04-16 00:48:28 | INFO | app.parser.dispatcher:65 | Dispatching parse: site=ostrovok url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.
+2026-04-16 00:48:28 | INFO | app.parser.ostrovok_parser:39 | OstrovokParser: hotel_id=10019616 url=https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=16.04.2026-05
+2026-04-16 00:48:31 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[134523.0, 134523.0, 136000.0, 136000.0, 168154.0, 168154.0, 170000.0, 170000.0, 201785.0, 201785.0, 204000.0, 204000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:31 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [134523.0, 134523.0, 136000.0, 136000.0, 168154.0, 168154.0, 170000.0, 170000.0, 201785.0, 201785.0, 204000.0, 204000.0]
+2026-04-16 00:48:31 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=134523.0 status=ok
+2026-04-16 00:48:32 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[126610.0, 126610.0, 128000.0, 128000.0, 158262.0, 158262.0, 160000.0, 160000.0, 189915.0, 189915.0, 192000.0, 192000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:32 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [126610.0, 126610.0, 128000.0, 128000.0, 158262.0, 158262.0, 160000.0, 160000.0, 189915.0, 189915.0, 192000.0, 192000.0]
+2026-04-16 00:48:32 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=126610.0 status=ok
+2026-04-16 00:48:34 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[150349.0, 150349.0, 152000.0, 152000.0, 187937.0, 187937.0, 190000.0, 190000.0, 225524.0, 225524.0, 228000.0, 228000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:34 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [150349.0, 150349.0, 152000.0, 152000.0, 187937.0, 187937.0, 190000.0, 190000.0, 225524.0, 225524.0, 228000.0, 228000.0]
+2026-04-16 00:48:34 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=150349.0 status=ok
+2026-04-16 00:48:40 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[118697.0, 118697.0, 120000.0, 120000.0, 148371.0, 148371.0, 150000.0, 150000.0, 178045.0, 178045.0, 180000.0, 180000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:40 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [118697.0, 118697.0, 120000.0, 120000.0, 148371.0, 148371.0, 150000.0, 150000.0, 178045.0, 178045.0, 180000.0, 180000.0]
+2026-04-16 00:48:40 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=118697.0 status=ok
+2026-04-16 00:48:46 | DEBUG | app.parser.ostrovok_parser:107 | OstrovokParser XHR prices=[142436.0, 142436.0, 144000.0, 144000.0, 178045.0, 178045.0, 180000.0, 180000.0, 213655.0, 213655.0, 216000.0, 216000.0] from https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_
+2026-04-16 00:48:46 | DEBUG | app.parser.ostrovok_parser:189 | OstrovokParser XHR collected: [142436.0, 142436.0, 144000.0, 144000.0, 178045.0, 178045.0, 180000.0, 180000.0, 213655.0, 213655.0, 216000.0, 216000.0]
+2026-04-16 00:48:46 | DEBUG | app.parser.base_parser:227 | [OstrovokParser] attempt=1 price=142436.0 status=ok
+2026-04-16 00:48:46 | INFO | app.backend.deep_analysis:147 | DeepAnalysis: finished. progress=19/435 elapsed=45s cancelled=True

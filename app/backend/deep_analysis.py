@@ -209,13 +209,11 @@ async def _do_analysis(prop_ids: List[int]) -> None:
 
             if _cancel_event.is_set():
                 _res[idx] = f"{_title}; {label}; —"
-                _state["progress"] += 1
                 return
 
             async with sem:
                 if _cancel_event.is_set():
                     _res[idx] = f"{_title}; {label}; —"
-                    _state["progress"] += 1
                     return
 
                 # Используем dates=DD.MM.YYYY-DD.MM.YYYY&guests=2 —
