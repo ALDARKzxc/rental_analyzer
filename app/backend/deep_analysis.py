@@ -89,14 +89,15 @@ def _fmt_short(d: date) -> str:
 
 # ── Tuning ───────────────────────────────────────────────────────────────────
 
-_NAV_TIMEOUT_MS      = 12_000
-_REPLAY_TIMEOUT_MS   = 9_000
-_XHR_TIMEOUT_S       = 10.0       # Фаза A — ждём прайсы после goto
-_XHR_GRACE_S         = 0.4        # grace после первого прайса — ловим параллельные XHR
-_REPLAY_CONCURRENCY  = 30         # одновременных HTTP replay на объект
-_GOTO_POOL_SIZE      = 4          # страниц в пуле для Фазы C (fallback)
-_GOTO_FALLBACK_XHR_S = 12.0       # Фаза C — больше терпения к медленным ответам
-_BOOTSTRAP_RETRIES   = 2          # сколько раз пробуем захватить шаблон
+_NAV_TIMEOUT_MS       = 12_000
+_REPLAY_TIMEOUT_MS    = 9_000
+_XHR_TIMEOUT_S        = 10.0       # Фаза A — ждём прайсы после goto
+_XHR_GRACE_S          = 0.4        # grace после первого прайса — ловим параллельные XHR
+_REPLAY_CONCURRENCY   = 30         # одновременных HTTP replay на объект
+_GOTO_POOL_SIZE       = 6          # страниц в пуле для Фазы C (было 4 → 6: быстрее fallback)
+_GOTO_FALLBACK_XHR_S  = 12.0       # Фаза C — больше терпения к медленным ответам
+_BOOTSTRAP_RETRIES    = 2          # сколько раз пробуем захватить шаблон
+_PROPERTY_CONCURRENCY = 2          # одновременно обрабатываемых объектов (паралл. contexts)
 
 # ресурсы, которые можно безопасно блокировать (не влияют на XHR с ценами)
 _BLOCK_RESOURCE_TYPES = {"image", "font", "media", "stylesheet"}
@@ -230,12 +231,27 @@ async def _do_analysis(prop_ids: List[int]) -> None:
     browser      = await parser._get_browser()
     proxy_config = parser._playwright_proxy_config()
 
-    all_lines: List[str] = []
+    # Параллельная обработка объектов.
+    # Каждый объект получает свой _OstrovokContextPool → browser.new_context().
+    # Порядок строк в файле всегда сохраняется по индексу объекта (результаты
+    # кладутся в results_per_prop[i], запись ведётся в порядке input).
+    results_per_prop: Dict[int, List[str]] = {}
+    write_lock = asyncio.Lock()
+    prop_sem   = asyncio.Semaphore(_PROPERTY_CONCURRENCY)
 
-    for prop in props:
+    async def _flush() -> None:
+        """Пишет файл: все готовые объекты в порядке input; незаконченные пропускаются."""
+        lines: List[str] = []
+        for i in range(len(props)):
+            res = results_per_prop.get(i)
+            if res is not None:
+                lines.extend(res)
+                lines.append("")
+        _write_file(file_path, lines)
+
+    async def process_property(idx: int, prop) -> None:
         if _cancel_event.is_set():
-            break
-
+            return
         title    = prop.title
         base_url = prop.url.split("?")[0]
 
@@ -246,29 +262,42 @@ async def _do_analysis(prop_ids: List[int]) -> None:
         ]
 
         t0 = time.time()
-        await _analyze_property(
-            browser      = browser,
-            proxy_config = proxy_config,
-            user_agent   = PARSER_USER_AGENTS[0],
-            title        = title,
-            base_url     = base_url,
-            date_pairs   = date_pairs,
-            out          = pair_results,
-            price_parser = parser._prices_from_xhr,
-        )
-        dt = time.time() - t0
-        rps = (n_pairs / dt) if dt > 0 else 0.0
-        logger.info(
-            f"DeepAnalysis: «{title[:40]}» done in {dt:.1f}s ({rps:.2f} pairs/s)"
-        )
+        try:
+            async with prop_sem:
+                if _cancel_event.is_set():
+                    return
+                await _analyze_property(
+                    browser      = browser,
+                    proxy_config = proxy_config,
+                    user_agent   = PARSER_USER_AGENTS[0],
+                    title        = title,
+                    base_url     = base_url,
+                    date_pairs   = date_pairs,
+                    out          = pair_results,
+                    price_parser = parser._prices_from_xhr,
+                )
+        except Exception as e:
+            logger.error(
+                f"DeepAnalysis property «{title[:40]}» failed: {e}", exc_info=True
+            )
+        finally:
+            dt = time.time() - t0
+            rps = (n_pairs / dt) if dt > 0 else 0.0
+            logger.info(
+                f"DeepAnalysis: «{title[:40]}» done in {dt:.1f}s ({rps:.2f} pairs/s)"
+            )
+            async with write_lock:
+                results_per_prop[idx] = pair_results
+                await _flush()
 
-        for line in pair_results:
-            all_lines.append(line)
-        all_lines.append("")
+    await asyncio.gather(
+        *(process_property(i, p) for i, p in enumerate(props)),
+        return_exceptions=True,
+    )
 
-        _write_file(file_path, all_lines)
-
-    _write_file(file_path, all_lines)
+    # Финальная перезапись — на всякий случай гарантируем, что все секции на диске
+    async with write_lock:
+        await _flush()
 
 
 # ── Per-property pipeline ────────────────────────────────────────────────────

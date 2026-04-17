@@ -8618,3 +8618,1013 @@ Call log:
 2026-04-17 10:10:17 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
 2026-04-17 10:15:29 | INFO | app.backend.deep_analysis:250 | DeepAnalysis: property «Гостевой дом ZZZ» done in 312.1s (1.39 pairs/s)
 2026-04-17 10:15:29 | INFO | app.backend.deep_analysis:175 | DeepAnalysis: finished. progress=435/435 elapsed=320s cancelled=False
+2026-04-17 10:43:06 | INFO | __main__:108 | API thread started
+2026-04-17 10:43:07 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-17 10:43:07 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-17 10:43:07 | INFO | __main__:54 | Backend loop started and registered
+2026-04-17 10:43:07 | INFO | __main__:136 | API ready, launching GUI
+2026-04-17 10:43:07 | INFO | __main__:140 | Application started successfully
+2026-04-17 10:43:21 | INFO | app.backend.deep_analysis:161 | DeepAnalysis: task created for 1 properties
+2026-04-17 10:43:21 | INFO | app.backend.deep_analysis:178 | DeepAnalysis: started
+2026-04-17 10:43:21 | INFO | app.backend.deep_analysis:217 | DeepAnalysis: 1 props × 435 pairs = 435 requests
+2026-04-17 10:43:21 | INFO | app.backend.deep_analysis:223 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 17.04.2026 (2).txt
+2026-04-17 10:43:21 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-17 10:43:21 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-17 10:43:21 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-17 10:43:32 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-04-26%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-04-22%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-04-23%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-04-27%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-04-28%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-05-04%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-05-05%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-05-11%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:33 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-17%22%2C%22departure_date%22%3A%222026-05-16%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:38 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-18%22%2C%22departure_date%22%3A%222026-05-15%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:39 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-19%22%2C%22departure_date%22%3A%222026-04-21%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:39 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-19%22%2C%22departure_date%22%3A%222026-04-22%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:41 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-19%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:42 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-20%22%2C%22departure_date%22%3A%222026-04-21%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:42 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-20%22%2C%22departure_date%22%3A%222026-04-22%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:42 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-20%22%2C%22departure_date%22%3A%222026-04-28%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:42 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-20%22%2C%22departure_date%22%3A%222026-04-30%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:44 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-20%22%2C%22departure_date%22%3A%222026-05-05%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:44 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-20%22%2C%22departure_date%22%3A%222026-05-12%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:45 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-21%22%2C%22departure_date%22%3A%222026-04-25%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:45 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-21%22%2C%22departure_date%22%3A%222026-04-23%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:46 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-21%22%2C%22departure_date%22%3A%222026-04-30%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:48 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-21%22%2C%22departure_date%22%3A%222026-05-10%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:49 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-22%22%2C%22departure_date%22%3A%222026-04-29%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:49 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-22%22%2C%22departure_date%22%3A%222026-04-30%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:51 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-22%22%2C%22departure_date%22%3A%222026-05-13%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:52 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-02%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:52 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-03%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:52 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-05%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:52 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-08%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:52 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:53 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-11%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:55 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-23%22%2C%22departure_date%22%3A%222026-05-14%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:58 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-25%22%2C%22departure_date%22%3A%222026-05-04%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:43:58 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-25%22%2C%22departure_date%22%3A%222026-05-05%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:00 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-27%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:00 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: socket hang up
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-26%22%2C%22departure_date%22%3A%222026-05-10%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:00 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-26%22%2C%22departure_date%22%3A%222026-04-28%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:06 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-28%22%2C%22departure_date%22%3A%222026-05-07%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:06 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-28%22%2C%22departure_date%22%3A%222026-05-11%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:08 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-29%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:09 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-30%22%2C%22departure_date%22%3A%222026-05-02%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:11 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-30%22%2C%22departure_date%22%3A%222026-05-16%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:11 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: Timeout 9000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-01%22%2C%22departure_date%22%3A%222026-05-03%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:13 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-04%22%2C%22departure_date%22%3A%222026-05-15%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:13 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-05%22%2C%22departure_date%22%3A%222026-05-08%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:13 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-05%22%2C%22departure_date%22%3A%222026-05-10%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:14 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-05%22%2C%22departure_date%22%3A%222026-05-15%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:14 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-05%22%2C%22departure_date%22%3A%222026-05-16%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:14 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-06%22%2C%22departure_date%22%3A%222026-05-08%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:14 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-06%22%2C%22departure_date%22%3A%222026-05-10%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:14 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-06%22%2C%22departure_date%22%3A%222026-05-11%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:15 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-06%22%2C%22departure_date%22%3A%222026-05-12%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:15 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-06%22%2C%22departure_date%22%3A%222026-05-14%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:15 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-06%22%2C%22departure_date%22%3A%222026-05-15%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:15 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-07%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:15 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-07%22%2C%22departure_date%22%3A%222026-05-11%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:15 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-07%22%2C%22departure_date%22%3A%222026-05-13%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-07%22%2C%22departure_date%22%3A%222026-05-14%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-07%22%2C%22departure_date%22%3A%222026-05-16%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-08%22%2C%22departure_date%22%3A%222026-05-09%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-08%22%2C%22departure_date%22%3A%222026-05-12%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-08%22%2C%22departure_date%22%3A%222026-05-13%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-08%22%2C%22departure_date%22%3A%222026-05-14%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:16 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-08%22%2C%22departure_date%22%3A%222026-05-16%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:17 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-09%22%2C%22departure_date%22%3A%222026-05-12%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:17 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-09%22%2C%22departure_date%22%3A%222026-05-13%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:17 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-09%22%2C%22departure_date%22%3A%222026-05-14%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:18 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-10%22%2C%22departure_date%22%3A%222026-05-11%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:18 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-10%22%2C%22departure_date%22%3A%222026-05-13%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:18 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-10%22%2C%22departure_date%22%3A%222026-05-16%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:18 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-11%22%2C%22departure_date%22%3A%222026-05-12%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:18 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-11%22%2C%22departure_date%22%3A%222026-05-13%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:19 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-11%22%2C%22departure_date%22%3A%222026-05-15%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:19 | DEBUG | app.backend.deep_analysis:629 | DeepAnalysis replay network error: APIRequestContext.fetch: read ECONNRESET
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-05-12%22%2C%22departure_date%22%3A%222026-05-14%22%2C%22hotel%22%3A%22gostevoy_dom_zzz%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%22cd7eda71-280c-4dba-83e8-442e6fd56183%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2GwD_xk0neU4ssfmZR3zpII:1wDdrG:Ou343TvMOu3opojXL172S21DOaaKvLlUz4gbRodtJmg; messages=; user_language=ru; csrftoken=jgbaktyDSXGnXPFYF2oNnBlH8Ojs4V6k; uid=TfTb5Gnh5JqpbXBVCbrRAg==
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/?dates=17.04.2026-18.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-17 10:44:19 | INFO | app.backend.deep_analysis:349 | DeepAnalysis: «Гостевой дом ZZZ» Phase B done, 76/435 unresolved → Phase C
+2026-04-17 10:47:01 | INFO | app.backend.deep_analysis:261 | DeepAnalysis: «Гостевой дом ZZZ» done in 219.9s (1.98 pairs/s)
+2026-04-17 10:47:01 | INFO | app.backend.deep_analysis:190 | DeepAnalysis: finished. progress=435/435 elapsed=220s cancelled=False
+2026-04-17 10:57:24 | INFO | __main__:108 | API thread started
+2026-04-17 10:57:25 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-17 10:57:25 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-17 10:57:25 | INFO | __main__:54 | Backend loop started and registered
+2026-04-17 10:57:25 | INFO | __main__:136 | API ready, launching GUI
+2026-04-17 10:57:25 | INFO | __main__:140 | Application started successfully
