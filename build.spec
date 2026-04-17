@@ -83,8 +83,11 @@ a = Analysis(
         'sqlalchemy.dialects.sqlite.aiosqlite',
         'sqlalchemy.ext.asyncio', 'sqlalchemy.pool',
         'sqlalchemy.orm', 'sqlalchemy.sql',
-        # httpx
+        # httpx + HTTP/2
         'httpx', 'httpcore', 'httpcore._async', 'httpcore._sync',
+        'h2', 'h2.connection', 'h2.config', 'h2.events', 'h2.exceptions',
+        'h2.settings', 'h2.stream', 'h2.utilities', 'h2.errors',
+        'hpack', 'hpack.hpack', 'hpack.table', 'hyperframe', 'hyperframe.frame',
         # Matplotlib
         'matplotlib', 'matplotlib.backends.backend_qtagg',
         'matplotlib.backends.backend_agg',

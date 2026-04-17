@@ -5,6 +5,7 @@ playwright>=1.41.0
 SQLAlchemy>=2.0.25
 aiosqlite>=0.20.0
 httpx>=0.26.0
+h2>=4.1.0
 matplotlib>=3.8.2
 pandas>=2.2.0
 pydantic>=2.5.3
