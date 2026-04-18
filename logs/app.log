@@ -12246,3 +12246,161 @@ Call log:
 2026-04-17 21:17:14 | WARNING | app.backend.deep_analysis:383 | DeepAnalysis bootstrap attempt 2 captured no template
 2026-04-17 21:17:14 | WARNING | app.backend.deep_analysis:388 | DeepAnalysis: «ostrovok.ru» — XHR template not captured, falling back to full goto for all pairs
 2026-04-17 21:17:14 | INFO | app.backend.deep_analysis:446 | DeepAnalysis: «ostrovok.ru» Phase B done: ok=0, sold_out=0, unresolved=434/435 → Phase B2, fail_stats={'net': 0, 'status': 0, 'parse': 0, 'empty_auth': 0, 'empty_soft': 0}
+2026-04-17 21:20:29 | INFO | __main__:108 | API thread started
+2026-04-17 21:20:29 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-17 21:20:29 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-17 21:20:29 | INFO | __main__:54 | Backend loop started and registered
+2026-04-17 21:20:29 | INFO | __main__:136 | API ready, launching GUI
+2026-04-17 21:20:30 | INFO | __main__:140 | Application started successfully
+2026-04-17 21:20:30 | INFO | app.backend.deep_analysis:191 | DeepAnalysis: task created for 1 properties
+2026-04-17 21:20:30 | INFO | app.backend.deep_analysis:208 | DeepAnalysis: started
+2026-04-17 21:20:30 | INFO | app.backend.deep_analysis:247 | DeepAnalysis: 1 props × 435 pairs = 435 requests
+2026-04-17 21:20:30 | INFO | app.backend.deep_analysis:253 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 17.04.2026 (10).txt
+2026-04-17 21:20:30 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-17 21:20:30 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-17 21:20:31 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-17 21:20:56 | INFO | app.backend.deep_analysis:864 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-17 21:20:56 | INFO | app.backend.deep_analysis:373 | DeepAnalysis: «ostrovok.ru» bootstrap attempt 1 captured non-authoritative template (/search), retrying for /rates
+2026-04-17 21:21:20 | INFO | app.backend.deep_analysis:864 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-17 21:21:20 | INFO | app.backend.deep_analysis:410 | DeepAnalysis: «ostrovok.ru» template=soft /search, Phase B concurrency=20
+2026-04-17 21:21:21 | INFO | app.backend.deep_analysis:1030 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'de3af633-2a3d-49e3-8c79-7be2acdc1f01'}"
+2026-04-17 21:21:21 | INFO | app.backend.deep_analysis:1030 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '768a3a24-dffa-4675-a0ab-75c816575401'}"
+2026-04-17 21:21:21 | INFO | app.backend.deep_analysis:1030 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '24f37e96-1d56-493f-a4e3-7fbf451ac001'}"
+2026-04-17 21:21:43 | INFO | app.backend.deep_analysis:446 | DeepAnalysis: «ostrovok.ru» Phase B done: ok=53, sold_out=0, unresolved=381/435 → Phase B2, fail_stats={'net': 0, 'status': 0, 'parse': 0, 'empty_auth': 0, 'empty_soft': 381}
+2026-04-17 21:22:06 | INFO | app.backend.deep_analysis:496 | DeepAnalysis: «ostrovok.ru» Phase B2 done: recovered_ok=0, recovered_sold_out=0, still_unresolved=381/381 → Phase C
+2026-04-17 21:26:30 | INFO | app.backend.deep_analysis:315 | DeepAnalysis: «ostrovok.ru» done in 358.7s (1.21 pairs/s)
+2026-04-17 21:26:30 | INFO | app.backend.deep_analysis:220 | DeepAnalysis: finished. progress=77/435 elapsed=359s cancelled=True
+2026-04-18 08:58:14 | INFO | __main__:108 | API thread started
+2026-04-18 08:58:16 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-18 08:58:16 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-18 08:58:16 | INFO | __main__:54 | Backend loop started and registered
+2026-04-18 08:58:16 | INFO | __main__:136 | API ready, launching GUI
+2026-04-18 08:58:17 | INFO | __main__:140 | Application started successfully
+2026-04-18 08:58:19 | INFO | app.backend.deep_analysis:195 | DeepAnalysis: task created for 1 properties
+2026-04-18 08:58:19 | INFO | app.backend.deep_analysis:212 | DeepAnalysis: started
+2026-04-18 08:58:20 | INFO | app.backend.deep_analysis:251 | DeepAnalysis: 1 props × 435 pairs = 435 requests
+2026-04-18 08:58:20 | INFO | app.backend.deep_analysis:257 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 18.04.2026.txt
+2026-04-18 08:58:20 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-18 08:58:20 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-18 08:58:30 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-18 08:58:41 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=4, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:58:41 | INFO | app.backend.deep_analysis:432 | DeepAnalysis shard 1 «ostrovok.ru» bootstrap attempt 1: /search only, retry for /rates
+2026-04-18 08:58:41 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=4, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:58:41 | INFO | app.backend.deep_analysis:432 | DeepAnalysis shard 0 «ostrovok.ru» bootstrap attempt 1: /search only, retry for /rates
+2026-04-18 08:58:49 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=4, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:58:49 | INFO | app.backend.deep_analysis:432 | DeepAnalysis shard 2 «ostrovok.ru» bootstrap attempt 1: /search only, retry for /rates
+2026-04-18 08:58:51 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=4, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:58:51 | INFO | app.backend.deep_analysis:468 | DeepAnalysis shard 0 «ostrovok.ru» template=soft /search, Phase B conc=12, pairs=145
+2026-04-18 08:58:51 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'fac0eef8-5206-40a2-a894-7bc07ff8dd01'}"
+2026-04-18 08:58:51 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '15c5a8f6-a400-4d6a-8bc0-ec047e878301'}"
+2026-04-18 08:58:52 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'b036b25e-d8a6-42cf-a81a-2db880333001'}"
+2026-04-18 08:58:56 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=4, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:58:56 | INFO | app.backend.deep_analysis:468 | DeepAnalysis shard 1 «ostrovok.ru» template=soft /search, Phase B conc=12, pairs=145
+2026-04-18 08:58:57 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '9299c250-b1cd-4863-be0f-459f00375801'}"
+2026-04-18 08:58:58 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '768a3a24-dffa-4675-853f-9da172c9ee01'}"
+2026-04-18 08:58:58 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'fac0eef8-5206-40a2-aac0-31fe19bad901'}"
+2026-04-18 08:58:59 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=4, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:58:59 | INFO | app.backend.deep_analysis:468 | DeepAnalysis shard 2 «ostrovok.ru» template=soft /search, Phase B conc=12, pairs=145
+2026-04-18 08:59:00 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'a82d895d-6186-4bd1-b025-7743f0901401'}"
+2026-04-18 08:59:00 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '2725e61e-defc-4718-b401-5cea4b2a9b01'}"
+2026-04-18 08:59:00 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'a82d895d-6186-4bd1-ac07-ef6ce4ba1e01'}"
+2026-04-18 08:59:01 | INFO | app.backend.deep_analysis:503 | DeepAnalysis shard 0 «ostrovok.ru» Phase B done: ok=18, sold_out=0, unresolved=126/145, fail_stats={'net': 0, 'status': 0, 'parse': 0, 'empty_auth': 0, 'empty_soft': 126}
+2026-04-18 08:59:06 | INFO | app.backend.deep_analysis:503 | DeepAnalysis shard 1 «ostrovok.ru» Phase B done: ok=20, sold_out=0, unresolved=124/145, fail_stats={'net': 0, 'status': 3, 'parse': 0, 'empty_auth': 0, 'empty_soft': 121}
+2026-04-18 08:59:09 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 08:59:10 | INFO | app.backend.deep_analysis:503 | DeepAnalysis shard 2 «ostrovok.ru» Phase B done: ok=15, sold_out=0, unresolved=129/145, fail_stats={'net': 1, 'status': 11, 'parse': 0, 'empty_auth': 0, 'empty_soft': 118}
+2026-04-18 08:59:14 | INFO | app.backend.deep_analysis:547 | DeepAnalysis shard 0 «ostrovok.ru» Phase B2: recovered_ok=0, recovered_sold_out=0, still_unresolved=126
+2026-04-18 08:59:14 | INFO | app.backend.deep_analysis:560 | DeepAnalysis shard 0 «ostrovok.ru» Phase B3: re-bootstrapping fresh session for 126 unresolved
+2026-04-18 08:59:18 | INFO | app.backend.deep_analysis:547 | DeepAnalysis shard 1 «ostrovok.ru» Phase B2: recovered_ok=0, recovered_sold_out=0, still_unresolved=124
+2026-04-18 08:59:18 | INFO | app.backend.deep_analysis:560 | DeepAnalysis shard 1 «ostrovok.ru» Phase B3: re-bootstrapping fresh session for 124 unresolved
+2026-04-18 08:59:22 | INFO | app.backend.deep_analysis:547 | DeepAnalysis shard 2 «ostrovok.ru» Phase B2: recovered_ok=1, recovered_sold_out=0, still_unresolved=128
+2026-04-18 08:59:22 | INFO | app.backend.deep_analysis:560 | DeepAnalysis shard 2 «ostrovok.ru» Phase B3: re-bootstrapping fresh session for 128 unresolved
+2026-04-18 08:59:33 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:59:36 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:59:41 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:59:54 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'eb785e58-4889-48a7-8828-b4014bc95201'}"
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '15c5a8f6-a400-4d6a-9e6d-e84c38d36b01'}"
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'fac0eef8-5206-40a2-8d93-472e43b0e601'}"
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '2725e61e-defc-4718-9f43-d60ae0985701'}"
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '2725e61e-defc-4718-b1c6-20e915831601'}"
+2026-04-18 08:59:55 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '24f37e96-1d56-493f-8bc7-ca7f0b8e3301'}"
+2026-04-18 08:59:59 | INFO | app.backend.deep_analysis:998 | DeepAnalysis bootstrap: template=/hotel/search/v1/site/hp/search, prices_seen=0, xhr_hits={'/hotel/search/v1/site/hp/search': 1}
+2026-04-18 09:00:02 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': '1bd9595f-fa4c-456a-a80c-7f68089fda01'}"
+2026-04-18 09:00:02 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'de3af633-2a3d-49e3-abcf-82c8099e5401'}"
+2026-04-18 09:00:02 | INFO | app.backend.deep_analysis:1164 | DeepAnalysis httpx empty: auth=False, data_keys=['ota_hotel_id', 'master_id', 'rates', 'related_hotels_session_id'], body[:200]="{'ota_hotel_id': 'uyutnaya_s_krasivym_vidom_flat_4', 'master_id': 13749352, 'rates': None, 'related_hotels_session_id': 'fac0eef8-5206-40a2-87f4-c7eba1358601'}"
+2026-04-18 09:00:07 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 09:00:09 | INFO | app.backend.deep_analysis:632 | DeepAnalysis shard 1 «ostrovok.ru» Phase B3: recovered_ok=0, recovered_sold_out=0, still_unresolved=124
+2026-04-18 09:00:09 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 09:00:10 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 09:00:10 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 09:00:10 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 09:00:10 | INFO | app.backend.deep_analysis:632 | DeepAnalysis shard 0 «ostrovok.ru» Phase B3: recovered_ok=0, recovered_sold_out=0, still_unresolved=126
+2026-04-18 09:00:11 | DEBUG | app.backend.deep_analysis:1106 | DeepAnalysis httpx timeout: 
+2026-04-18 09:00:15 | DEBUG | app.backend.deep_analysis:1202 | DeepAnalysis playwright fetch error: APIRequestContext.fetch: Timeout 5000ms exceeded.
+Call log:
+  - → GET https://ostrovok.ru/hotel/search/v1/site/hp/search?body=%7B%22arrival_date%22%3A%222026-04-24%22%2C%22departure_date%22%3A%222026-05-06%22%2C%22hotel%22%3A%22uyutnaya_s_krasivym_vidom_flat_4%22%2C%22currency%22%3A%22RUB%22%2C%22lang%22%3A%22ru%22%2C%22region_id%22%3A965821577%2C%22paxes%22%3A%5B%7B%22adults%22%3A2%7D%5D%2C%22search_uuid%22%3A%2204dd90c9-ddc7-4a4f-b5d6-d3adb788aa3f%22%7D
+    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+    - accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    - accept-encoding: gzip,deflate,br
+    - Accept-Language: ru-RU,ru;q=0.9,en;q=0.8
+    - cookie: sessionid=O9FGaE5zJz_VmnwqZrFS2L0ID8LzxsfnGwnsTz9x4zg:1wDyhS:VLmhxt4_Xu0VUUZGnWRWohWsbzfo9ZeWHK-Z4bJhSck; messages=; user_language=ru; csrftoken=Dbfc2uK3fZRtzjAUb6z3ByLlFGZHI35m; uid=TfTb5GnjHY0Yj14OAwQ2Ag==; _dlaid=e3084d61-0d36-455d-ac86-75b8005ffe73
+    - referer: https://ostrovok.ru/hotel/russia/terskol/mid13749352/uyutnaya_s_krasivym_vidom_flat_4/?dates=18.04.2026-24.04.2026&guests=2
+    - sec-ch-ua: "Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"
+    - sec-ch-ua-mobile: ?0
+    - sec-ch-ua-platform: "Windows"
+
+2026-04-18 09:00:15 | INFO | app.backend.deep_analysis:632 | DeepAnalysis shard 2 «ostrovok.ru» Phase B3: recovered_ok=0, recovered_sold_out=0, still_unresolved=128
+2026-04-18 09:07:55 | INFO | app.backend.deep_analysis:319 | DeepAnalysis: «ostrovok.ru» done in 565.6s (0.77 pairs/s)
+2026-04-18 09:07:55 | INFO | app.backend.deep_analysis:224 | DeepAnalysis: finished. progress=200/435 elapsed=575s cancelled=True
+2026-04-18 09:16:54 | INFO | __main__:108 | API thread started
+2026-04-18 09:16:54 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-18 09:16:54 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-18 09:16:54 | INFO | __main__:54 | Backend loop started and registered
+2026-04-18 09:16:54 | INFO | __main__:136 | API ready, launching GUI
+2026-04-18 09:16:55 | INFO | __main__:140 | Application started successfully
+2026-04-18 09:17:02 | INFO | app.backend.database:140 | Created property id=1 cat=Дома
+2026-04-18 09:17:04 | INFO | app.backend.deep_analysis:196 | DeepAnalysis: task created for 1 properties
+2026-04-18 09:17:04 | INFO | app.backend.deep_analysis:213 | DeepAnalysis: started
+2026-04-18 09:17:04 | INFO | app.backend.deep_analysis:251 | DeepAnalysis: 1 props × 435 pairs = 435 requests
+2026-04-18 09:17:04 | INFO | app.backend.deep_analysis:257 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 18.04.2026 (2).txt
+2026-04-18 09:17:04 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-18 09:17:04 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-18 09:17:05 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-18 09:17:07 | INFO | app.backend.deep_analysis:378 | DeepAnalysis «ostrovok.ru»: 12 workers, 435 pairs
+2026-04-18 09:22:48 | INFO | app.backend.deep_analysis:312 | DeepAnalysis: «ostrovok.ru» done in 342.6s (1.27 pairs/s)
+2026-04-18 09:22:48 | INFO | app.backend.deep_analysis:225 | DeepAnalysis: finished. progress=369/435 elapsed=343s cancelled=True
+2026-04-18 09:23:20 | INFO | __main__:108 | API thread started
+2026-04-18 09:23:21 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-18 09:23:21 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-18 09:23:21 | INFO | __main__:54 | Backend loop started and registered
+2026-04-18 09:23:21 | INFO | __main__:136 | API ready, launching GUI
+2026-04-18 09:23:21 | INFO | __main__:140 | Application started successfully
+2026-04-18 09:23:25 | INFO | app.backend.deep_analysis:196 | DeepAnalysis: task created for 1 properties
+2026-04-18 09:23:25 | INFO | app.backend.deep_analysis:213 | DeepAnalysis: started
+2026-04-18 09:23:25 | INFO | app.backend.deep_analysis:251 | DeepAnalysis: 1 props × 435 pairs = 435 requests
+2026-04-18 09:23:25 | INFO | app.backend.deep_analysis:257 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 18.04.2026 (3).txt
+2026-04-18 09:23:25 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-18 09:23:25 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-18 09:23:25 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-18 09:23:26 | INFO | app.backend.deep_analysis:378 | DeepAnalysis «ostrovok.ru»: 12 workers, 435 pairs
+2026-04-18 09:30:12 | INFO | app.backend.deep_analysis:312 | DeepAnalysis: «ostrovok.ru» done in 406.6s (1.07 pairs/s)
+2026-04-18 09:30:12 | INFO | app.backend.deep_analysis:225 | DeepAnalysis: finished. progress=435/435 elapsed=407s cancelled=False
+2026-04-18 09:51:12 | INFO | __main__:108 | API thread started
+2026-04-18 09:51:13 | INFO | app.backend.database:82 | Database ready: c:\Users\user\Documents\n8n\rental_analyzer\data\rental_analyzer.db
+2026-04-18 09:51:13 | INFO | app.gui.api_client:16 | Backend loop registered
+2026-04-18 09:51:13 | INFO | __main__:54 | Backend loop started and registered
+2026-04-18 09:51:13 | INFO | __main__:136 | API ready, launching GUI
+2026-04-18 09:51:13 | INFO | __main__:140 | Application started successfully
+2026-04-18 09:51:18 | INFO | app.backend.deep_analysis:216 | DeepAnalysis: task created for 1 properties
+2026-04-18 09:51:18 | INFO | app.backend.deep_analysis:233 | DeepAnalysis: started
+2026-04-18 09:51:18 | INFO | app.backend.deep_analysis:271 | DeepAnalysis: 1 props × 435 pairs = 435 requests
+2026-04-18 09:51:18 | INFO | app.backend.deep_analysis:277 | DeepAnalysis: output → c:\Users\user\Documents\n8n\rental_analyzer\результаты анализа\Глубокий Анализ 18.04.2026 (4).txt
+2026-04-18 09:51:18 | DEBUG | app.parser.base_parser:54 | BaseParser: detected Windows proxy: http://127.0.0.1:3067
+2026-04-18 09:51:18 | INFO | app.parser.base_parser:69 | BaseParser: using system proxy http://127.0.0.1:3067
+2026-04-18 09:51:19 | DEBUG | app.parser.base_parser:127 | BaseParser: browser launched proxy=yes
+2026-04-18 09:51:19 | INFO | app.backend.deep_analysis:398 | DeepAnalysis «ostrovok.ru»: 12 workers, 435 pairs
+2026-04-18 09:57:56 | INFO | app.backend.deep_analysis:436 | DeepAnalysis «ostrovok.ru»: retry pass for 4 missing pairs (concurrency=4, timeout=22.0s)
+2026-04-18 09:58:00 | INFO | app.backend.deep_analysis:470 | DeepAnalysis «ostrovok.ru»: retry recovered 4/4
+2026-04-18 09:58:00 | INFO | app.backend.deep_analysis:332 | DeepAnalysis: «ostrovok.ru» done in 401.0s (1.08 pairs/s)
+2026-04-18 09:58:00 | INFO | app.backend.deep_analysis:245 | DeepAnalysis: finished. progress=435/435 elapsed=401s cancelled=False
