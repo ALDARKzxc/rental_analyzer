@@ -42,6 +42,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import httpx
 from loguru import logger
 
 
@@ -112,6 +113,17 @@ _FORCE_SCROLL_AFTER_S = 0.8
 _RETRY_CONCURRENCY      = 4
 _RETRY_PAIR_TIMEOUT_S   = 22.0
 _RETRY_FORCE_SCROLL_S   = 1.5
+
+# ── Direct-API phase ─────────────────────────────────────────────
+# Ostrovok отдаёт /hotel/search/v1/site/hp/search без cookies/CSRF, и
+# ответ {rates: null, related_hotels_session_id: ...} — авторитетный
+# сигнал «max-stay превышен / непродаётся» (не нужно ждать 12-22 сек).
+# Поэтому основная фаза — httpx-пул по всем 435 парам; Playwright
+# включается только для пар, где API упал по сети/5xx/Cloudflare.
+_API_CONCURRENCY        = 10
+_API_PAIR_TIMEOUT_S     = 7.0
+_API_CONNECT_TIMEOUT_S  = 4.0
+_API_RETRY_DELAY_S      = 0.3
 
 # Ресурсы, безопасно блокируемые (не ломают XHR с ценами).
 _BLOCK_RESOURCE_TYPES = {"image", "font", "media", "stylesheet"}
@@ -321,6 +333,7 @@ async def _do_analysis(prop_ids: List[int]) -> None:
                     date_pairs   = date_pairs,
                     out          = pair_results,
                     price_parser = parser._prices_from_xhr,
+                    parser       = parser,
                 )
         except Exception as e:
             logger.error(
@@ -345,7 +358,21 @@ async def _do_analysis(prop_ids: List[int]) -> None:
         await _flush()
 
 
-# ── Per-property pipeline (unified goto pool) ────────────────────────────────
+# ── Per-property pipeline ────────────────────────────────────────────────────
+#
+# v6 pipeline:
+#   Phase A  — direct-API httpx pool по всем парам. Работает без браузера,
+#              даёт авторитетный sold_out на rates=null за ~300 мс.
+#   Phase B  — Playwright goto-пул только для пар, где API вернул сетевую
+#              ошибку (5xx/Cloudflare/HTML). Это те же воркеры что раньше,
+#              но на значительно меньшем множестве индексов.
+#
+# Почему два прохода, а не один:
+#   • API покрывает >95% пар за секунды — нет смысла гнать браузером;
+#   • редкие 4xx/5xx от API — реальный повод переключиться на браузер
+#     (там и Cloudflare-токены, и JS-rendered ответы);
+#   • rates=null от API — авторитет, Playwright тот же ответ дал бы только
+#     через 12-22 сек ожидания XHR (именно это ломало Moscow-apartment).
 
 async def _analyze_property(
     *,
@@ -356,11 +383,158 @@ async def _analyze_property(
     date_pairs: List[Tuple[date, date]],
     out: List[str],
     price_parser,
+    parser,
+) -> None:
+    slug = parser._extract_slug(base_url)
+
+    # ── Phase A: direct-API ─────────────────────────────────────
+    if slug:
+        missing_error = await _api_phase(
+            title      = title,
+            slug       = slug,
+            date_pairs = date_pairs,
+            out        = out,
+            parser     = parser,
+            user_agent = user_agent,
+        )
+    else:
+        logger.warning(
+            f"DeepAnalysis «{title[:40]}»: не удалось извлечь slug из "
+            f"URL {base_url[:100]} — будет использован только Playwright"
+        )
+        # Для не-ostrovok URL-ов (или нестандартного формата) предзаполняем
+        # прочерками без прогресса — его добьёт Playwright-фаза.
+        for idx, (ci, co) in enumerate(date_pairs):
+            out[idx] = _format_row(title, ci, co, None)
+        missing_error = list(range(len(date_pairs)))
+
+    if not missing_error or _cancel_event.is_set():
+        return
+
+    # ── Phase B: Playwright fallback только для error-пар ────────
+    logger.info(
+        f"DeepAnalysis «{title[:40]}»: Playwright fallback для "
+        f"{len(missing_error)} пар (API network error)"
+    )
+    await _playwright_phase(
+        browser      = browser,
+        user_agent   = user_agent,
+        title        = title,
+        base_url     = base_url,
+        date_pairs   = date_pairs,
+        indices      = missing_error,
+        out          = out,
+        price_parser = price_parser,
+    )
+
+
+async def _api_phase(
+    *,
+    title: str,
+    slug: str,
+    date_pairs: List[Tuple[date, date]],
+    out: List[str],
+    parser,
+    user_agent: str,
+) -> List[int]:
+    """
+    Параллельный httpx-пул по всем парам дат.
+    Возвращает список индексов с сетевыми/5xx/HTML ошибками — эти пары
+    пойдут в Playwright fallback. Успех и sold_out считаются финальными.
+    """
+    t0 = time.time()
+    ok_count = sold_out_count = error_count = 0
+    missing: List[int] = []
+
+    limits  = httpx.Limits(
+        max_connections           = _API_CONCURRENCY + 4,
+        max_keepalive_connections = _API_CONCURRENCY,
+    )
+    timeout = httpx.Timeout(_API_PAIR_TIMEOUT_S, connect=_API_CONNECT_TIMEOUT_S)
+    headers = {
+        "User-Agent":      user_agent,
+        "Accept":          "*/*",
+        "Accept-Language": "ru-RU,ru;q=0.9",
+        "Accept-Encoding": "gzip, deflate",
+    }
+    proxy = getattr(parser, "_proxy", None) or None
+    sem   = asyncio.Semaphore(_API_CONCURRENCY)
+
+    async with httpx.AsyncClient(
+        limits=limits, timeout=timeout, headers=headers,
+        trust_env=False, proxy=proxy,
+    ) as client:
+
+        async def run_pair(idx: int) -> None:
+            nonlocal ok_count, sold_out_count, error_count
+            if _cancel_event.is_set():
+                return
+            ci, co = date_pairs[idx]
+            nights = (co - ci).days
+            ci_s   = ci.isoformat()
+            co_s   = co.isoformat()
+
+            async with sem:
+                if _cancel_event.is_set():
+                    return
+                res = await parser._api_search_direct(
+                    client, slug, ci_s, co_s, nights,
+                )
+                # Один мягкий retry только для транзиентных ошибок
+                if res.get("status") == "error":
+                    try:
+                        await asyncio.sleep(_API_RETRY_DELAY_S)
+                    except asyncio.CancelledError:
+                        return
+                    res = await parser._api_search_direct(
+                        client, slug, ci_s, co_s, nights,
+                    )
+
+            status = res.get("status")
+            if status == "ok":
+                _apply_price(out, idx, title, ci, co, min(res["prices"]))
+                ok_count += 1
+            elif status == "sold_out":
+                _apply_price(out, idx, title, ci, co, None)
+                sold_out_count += 1
+            else:
+                # Progress НЕ двигаем — Playwright-фаза его добьёт.
+                # Предварительный дэш, чтобы промежуточный дамп в файл
+                # (при отмене) не оставлял пустую строку.
+                out[idx] = _format_row(title, ci, co, None)
+                missing.append(idx)
+                error_count += 1
+
+        await asyncio.gather(
+            *(run_pair(i) for i in range(len(date_pairs))),
+            return_exceptions=True,
+        )
+
+    dt = time.time() - t0
+    rps = (len(date_pairs) / dt) if dt > 0 else 0.0
+    logger.info(
+        f"DeepAnalysis «{title[:40]}» API-phase done in {dt:.1f}s "
+        f"({rps:.1f} pair/s): ok={ok_count} sold_out={sold_out_count} "
+        f"error={error_count}"
+    )
+    return missing
+
+
+async def _playwright_phase(
+    *,
+    browser,
+    user_agent: str,
+    title: str,
+    base_url: str,
+    date_pairs: List[Tuple[date, date]],
+    indices: List[int],
+    out: List[str],
+    price_parser,
 ) -> None:
     """
-    Одна browser.new_context + пул из K страниц-воркеров.
-    Все 435 пар пропускаются через пул с семафором K — реальный
-    параллелизм K одновременных goto внутри property.
+    Playwright goto-пул для пар-индексов, которые не ответили через API.
+    Не меняет _state.progress — он уже финализирован в API-фазе.
+    Перезаписывает out[idx] только если удалось достать цену.
     """
     context = await browser.new_context(
         user_agent=user_agent,
@@ -382,11 +556,10 @@ async def _analyze_property(
         await context.add_init_script(_AUTOSCROLL_INIT_SCRIPT)
         await context.route("**/*", _route_filter)
 
-        # Создаём воркеры заранее — повторное использование страниц
-        # избавляет от stigma new_page() per pair (~50-100ms экономии).
+        pool_size = min(_PAGES_PER_PROPERTY, max(1, len(indices)))
         workers: List[_PageWorker] = []
         try:
-            for _ in range(_PAGES_PER_PROPERTY):
+            for _ in range(pool_size):
                 if _cancel_event.is_set():
                     break
                 page = await context.new_page()
@@ -396,14 +569,16 @@ async def _analyze_property(
                 return
 
             logger.info(
-                f"DeepAnalysis «{title[:40]}»: {len(workers)} workers, "
-                f"{len(date_pairs)} pairs"
+                f"DeepAnalysis «{title[:40]}» fallback: {len(workers)} workers, "
+                f"{len(indices)} pairs (patient=True, timeout={_RETRY_PAIR_TIMEOUT_S}s)"
             )
 
-            sem = asyncio.Semaphore(len(workers))
-            missing_indices: List[int] = []
+            sem      = asyncio.Semaphore(len(workers))
+            wi_ref   = [0]
+            recovered = 0
 
-            async def process_pair(idx: int, worker_idx_ref: List[int]) -> None:
+            async def run_pair(idx: int) -> None:
+                nonlocal recovered
                 if _cancel_event.is_set():
                     return
                 ci, co = date_pairs[idx]
@@ -412,67 +587,26 @@ async def _analyze_property(
                 async with sem:
                     if _cancel_event.is_set():
                         return
-                    # Round-robin присвоение воркера.
-                    w = workers[worker_idx_ref[0] % len(workers)]
-                    worker_idx_ref[0] += 1
-                    price = await w.fetch(url, nights)
-                _apply_price(out, idx, title, ci, co, price)
-                if not (price and price > 0):
-                    missing_indices.append(idx)
+                    w = workers[wi_ref[0] % len(workers)]
+                    wi_ref[0] += 1
+                    price = await w.fetch(url, nights, patient=True)
+                if price and price > 0:
+                    out[idx] = _format_row(title, ci, co, price)
+                    recovered += 1
+                # Progress двигаем здесь — API-фаза для error-пар его не
+                # инкрементировала. Итого progress = total, когда Phase B
+                # отработал по всем missing-индексам.
+                _state["progress"] += 1
 
-            worker_idx_ref = [0]
             await asyncio.gather(
-                *(process_pair(i, worker_idx_ref) for i in range(len(date_pairs))),
+                *(run_pair(i) for i in indices),
                 return_exceptions=True,
             )
-
-            # ── Retry pass: пары без цены прогоняем ещё раз с меньшим
-            # parallelism и бóльшими таймаутами. Это ловит случаи когда
-            # /rates под нагрузкой не успел прилететь за 12с.
-            if missing_indices and not _cancel_event.is_set():
-                retry_sem = asyncio.Semaphore(
-                    max(2, min(_RETRY_CONCURRENCY, len(workers)))
-                )
-                logger.info(
-                    f"DeepAnalysis «{title[:40]}»: retry pass for "
-                    f"{len(missing_indices)} missing pairs "
-                    f"(concurrency={_RETRY_CONCURRENCY}, timeout={_RETRY_PAIR_TIMEOUT_S}s)"
-                )
-
-                async def retry_pair(idx: int, wi_ref: List[int]) -> None:
-                    if _cancel_event.is_set():
-                        return
-                    ci, co = date_pairs[idx]
-                    nights = (co - ci).days
-                    url    = _build_page_url(base_url, ci, co)
-                    async with retry_sem:
-                        if _cancel_event.is_set():
-                            return
-                        w = workers[wi_ref[0] % len(workers)]
-                        wi_ref[0] += 1
-                        price = await w.fetch(url, nights, patient=True)
-                    # Записываем только успех — не затираем уже
-                    # предзаполненное "—" и не крутим прогресс-бар.
-                    if price and price > 0:
-                        label = f"{_fmt_short(ci)}-{_fmt_short(co)}"
-                        price_str = f"{price:,.0f} ₽".replace(",", "\u202f")
-                        out[idx] = f"{title}; {label}; {price_str}"
-
-                retry_wi = [0]
-                await asyncio.gather(
-                    *(retry_pair(i, retry_wi) for i in missing_indices),
-                    return_exceptions=True,
-                )
-                recovered = sum(
-                    1 for i in missing_indices
-                    if out[i].rstrip().endswith("₽")
-                )
-                logger.info(
-                    f"DeepAnalysis «{title[:40]}»: retry recovered "
-                    f"{recovered}/{len(missing_indices)}"
-                )
+            logger.info(
+                f"DeepAnalysis «{title[:40]}» fallback: recovered "
+                f"{recovered}/{len(indices)}"
+            )
         finally:
-            # Закрываем всех воркеров с лимитом по времени.
             for w in workers:
                 try:
                     await w.close()
@@ -714,6 +848,17 @@ class _PageWorker:
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def _format_row(
+    title: str, ci: date, co: date, price: Optional[float],
+) -> str:
+    label = f"{_fmt_short(ci)}-{_fmt_short(co)}"
+    if price and price > 0:
+        price_str = f"{price:,.0f} ₽".replace(",", "\u202f")
+    else:
+        price_str = "—"
+    return f"{title}; {label}; {price_str}"
+
+
 def _apply_price(
     out: List[str],
     idx: int,
@@ -722,12 +867,7 @@ def _apply_price(
     co: date,
     price: Optional[float],
 ) -> None:
-    label = f"{_fmt_short(ci)}-{_fmt_short(co)}"
-    if price and price > 0:
-        price_str = f"{price:,.0f} ₽".replace(",", "\u202f")
-    else:
-        price_str = "—"
-    out[idx] = f"{title}; {label}; {price_str}"
+    out[idx] = _format_row(title, ci, co, price)
     _state["progress"] += 1
 
 

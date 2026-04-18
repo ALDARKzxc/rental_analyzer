@@ -16,7 +16,7 @@ import asyncio
 import random
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 import httpx
 from loguru import logger
@@ -34,11 +34,65 @@ class OstrovokParser(BaseParser):
 
     async def _fetch_once(self, url: str) -> Dict[str, Any]:
         hotel_id          = self._extract_hotel_id(url)
+        hotel_slug        = self._extract_slug(url)
         checkin, checkout = self._extract_dates(url)
         fetch_url         = self._normalize_url(url, checkin, checkout)
-        logger.info(f"OstrovokParser: hotel_id={hotel_id} url={fetch_url[:90]}")
+        logger.info(
+            f"OstrovokParser: hotel_id={hotel_id} slug={hotel_slug} "
+            f"url={fetch_url[:90]}"
+        )
 
-        # Playwright — XHR перехват (основная стратегия)
+        # ── Прямой API /hotel/search/v1/site/hp/search ───────────
+        # Быстрый путь без браузера. Авторитетно ловит rates=null
+        # (max-stay превышен) и не тратит 12–22 сек на ожидание XHR.
+        if hotel_slug and checkin and checkout:
+            try:
+                nights = (
+                    date.fromisoformat(checkout) - date.fromisoformat(checkin)
+                ).days
+            except Exception:
+                nights = 0
+            if nights > 0:
+                try:
+                    async with httpx.AsyncClient(
+                        timeout=httpx.Timeout(8.0, connect=4.0),
+                        trust_env=False,
+                        headers=self._headers(),
+                        proxy=self._proxy if getattr(self, "_proxy", None) else None,
+                    ) as client:
+                        res = await self._api_search_direct(
+                            client, hotel_slug, checkin, checkout, nights,
+                        )
+                    st = res.get("status")
+                    if st == "ok":
+                        price = min(res["prices"])
+                        logger.info(f"OstrovokParser API direct: price={price}")
+                        return {
+                            "price":       price,
+                            "title":       None,
+                            "external_id": hotel_id,
+                            "status":      "ok",
+                            "error":       None,
+                        }
+                    if st == "sold_out":
+                        logger.info("OstrovokParser API direct: sold_out/max_stay")
+                        return {
+                            "price":       None,
+                            "title":       None,
+                            "external_id": hotel_id,
+                            "status":      "not_found",
+                            "error":       "Нет доступных предложений на выбранные даты",
+                        }
+                    logger.debug(
+                        f"OstrovokParser API direct: {res.get('error')} — "
+                        "fallback Playwright"
+                    )
+                except Exception as e:
+                    logger.debug(
+                        f"OstrovokParser API direct exception: {e} — fallback Playwright"
+                    )
+
+        # Playwright — XHR перехват (fallback при ошибке API)
         result = None
         try:
             result = await self._playwright_strategy(fetch_url, hotel_id)
@@ -273,6 +327,78 @@ class OstrovokParser(BaseParser):
                 continue
 
         return None
+
+    # ── Direct API (no browser) ──────────────────────────────────
+    #
+    # Ostrovok отдаёт цены через /hotel/search/v1/site/hp/search с
+    # query-параметром ?body={JSON}. Эндпоинт отвечает JSON-ом даже без
+    # cookies/CSRF/Cloudflare-токенов, поэтому его можно дергать чистым
+    # httpx — на порядок быстрее браузерной навигации и сразу даёт
+    # однозначный сигнал «rates=null → max-stay превышен».
+    #
+    # Используется:
+    #   • в _fetch_once как первичная стратегия (до Playwright);
+    #   • в deep_analysis._api_phase как массовый пул запросов.
+
+    def _extract_slug(self, url: str) -> Optional[str]:
+        """Slug из URL вида /hotel/russia/<region>/mid<id>/<slug>/ — это
+        поле `hotel` в API-запросе (ota_hotel_id)."""
+        m = re.search(r'/mid\d+/([^/?#]+)', url)
+        return m.group(1) if m else None
+
+    def _build_api_search_url(
+        self, slug: str, checkin: str, checkout: str, adults: int = 2,
+    ) -> str:
+        """
+        Прямой URL /hotel/search/v1/site/hp/search. Даты в ISO (YYYY-MM-DD).
+        body передаётся URL-encoded JSON-ом в query.
+        """
+        body = {
+            "hotel":    slug,
+            "checkin":  checkin,
+            "checkout": checkout,
+            "currency": "RUB",
+            "adults":   adults,
+            "children": [],
+        }
+        body_json = json.dumps(body, separators=(",", ":"))
+        return (
+            "https://ostrovok.ru/hotel/search/v1/site/hp/search"
+            f"?body={quote(body_json)}"
+        )
+
+    async def _api_search_direct(
+        self,
+        client: httpx.AsyncClient,
+        slug: str,
+        checkin: str,
+        checkout: str,
+        nights: int = 0,
+    ) -> Dict[str, Any]:
+        """
+        Возвращает:
+          {"status":"ok",       "prices":[...], "data": dict}
+          {"status":"sold_out", "prices":[],    "data": dict}  # rates=null/[] (max-stay / непродажа)
+          {"status":"error",    "error":<msg>}                 # network/5xx/HTML
+        """
+        url = self._build_api_search_url(slug, checkin, checkout)
+        try:
+            resp = await client.get(url)
+        except Exception as e:
+            return {"status": "error", "error": f"net:{e.__class__.__name__}"}
+        if resp.status_code != 200:
+            return {"status": "error", "error": f"http:{resp.status_code}"}
+        ct = resp.headers.get("content-type", "")
+        if "json" not in ct:
+            return {"status": "error", "error": f"ct:{ct[:30]}"}
+        try:
+            data = resp.json()
+        except Exception as e:
+            return {"status": "error", "error": f"json:{e.__class__.__name__}"}
+        prices = self._prices_from_xhr(data, nights) if isinstance(data, dict) else []
+        if prices:
+            return {"status": "ok", "prices": prices, "data": data}
+        return {"status": "sold_out", "prices": [], "data": data}
 
     # ── XHR price extraction ─────────────────────────────────────
 

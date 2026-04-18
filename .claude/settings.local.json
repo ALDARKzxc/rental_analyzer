@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(npx ctx7:*)",
-      "Bash(python main.py)"
+      "Bash(python main.py)",
+      "Bash(grep \"; —$\" \"Глубокий Анализ 18.04.2026.txt\")",
+      "Bash(grep -v \"; —$\" \"Глубокий Анализ 18.04.2026.txt\")",
+      "Bash(awk -F\"; \" '{print $1}')",
+      "WebFetch(domain:ostrovok.ru)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/parser/ostrovok_parser.py', encoding='utf-8'\\).read\\(\\)\\); print\\('ostrovok_parser.py OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/backend/deep_analysis.py', encoding='utf-8'\\).read\\(\\)\\); print\\('deep_analysis.py OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/parser/ostrovok_parser.py', encoding='utf-8'\\).read\\(\\)\\); print\\('ostrovok_parser OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/backend/deep_analysis.py', encoding='utf-8'\\).read\\(\\)\\); print\\('deep_analysis OK'\\)\")",
+      "Bash(python -c \"from app.parser.ostrovok_parser import OstrovokParser; p = OstrovokParser\\(\\); print\\('slug-1:', p._extract_slug\\('https://ostrovok.ru/hotel/russia/terskol/mid10019616/gostevoy_dom_zzz/'\\)\\); print\\('slug-2:', p._extract_slug\\('https://ostrovok.ru/hotel/russia/moscow/mid13313968/knokey_tekstilschiki_apartments/'\\)\\); print\\('api-url:', p._build_api_search_url\\('x','2026-04-19','2026-04-20'\\)[:140]\\)\")"
     ]
   }
 }
