@@ -115,13 +115,18 @@ class OstrovokParser(BaseParser):
             "blocked",
             "captcha",
         }:
+            status = str(result.get("status") or "not_found")
+            default_error = {
+                "not_found": "Нет доступных предложений на выбранные даты",
+                "blocked":   "Доступ к сайту временно заблокирован",
+                "captcha":   "Требуется прохождение капчи",
+            }.get(status, "Нет доступных предложений на выбранные даты")
             return {
                 "price":       None,
                 "title":       result.get("title"),
                 "external_id": hotel_id,
-                "status":      str(result.get("status") or "not_found"),
-                "error":       result.get("error")
-                or "Р¦РµРЅР° РЅРµ РЅР°Р№РґРµРЅР°. Р”РѕР±Р°РІСЊС‚Рµ РґР°С‚С‹ (?dates=DD.MM.YYYY-DD.MM.YYYY).",
+                "status":      status,
+                "error":       result.get("error") or default_error,
             }
 
         best = result or result2 or {}
@@ -130,7 +135,7 @@ class OstrovokParser(BaseParser):
             "title":       best.get("title"),
             "external_id": hotel_id,
             "status":      "not_found",
-            "error":       "Цена не найдена. Добавьте даты (?dates=DD.MM.YYYY-DD.MM.YYYY).",
+            "error":       "Нет доступных предложений на выбранные даты",
         }
 
     # ── Playwright strategy ──────────────────────────────────────
@@ -175,10 +180,18 @@ class OstrovokParser(BaseParser):
                     xhr_event.set()
                     logger.debug(f"OstrovokParser XHR prices={prices} from {rurl[:70]}")
                 elif "rates" in data:
-                    # XHR пришёл, поле rates есть, но предложений нет → объект занят/недоступен
+                    # XHR пришёл с полем rates, но извлекаемых цен нет.
+                    # Два подслучая, оба = "нет предложений на эти даты":
+                    #   rates=None/[]            — объект занят/непродажа на эти даты
+                    #   rates=[{...}, ...]       — max-stay превышен, либо все тарифы без цен
+                    rates_field = data.get("rates")
+                    rates_len = len(rates_field) if isinstance(rates_field, list) else 0
                     xhr_no_avail = True
                     xhr_event.set()
-                    logger.debug(f"OstrovokParser XHR: rates=[] → no availability")
+                    logger.debug(
+                        f"OstrovokParser XHR: rates_len={rates_len}, no extractable prices "
+                        f"→ no availability ({rurl[:70]})"
+                    )
             except Exception as e:
                 logger.debug(f"OstrovokParser XHR handler error: {e}")
 
@@ -429,9 +442,11 @@ class OstrovokParser(BaseParser):
         if rates is None:
             return {"status": "sold_out", "prices": [], "data": data}
         if isinstance(rates, list):
-            if not rates:
-                return {"status": "sold_out", "prices": [], "data": data}
-            return {"status": "error", "error": "schema:rates_without_prices"}
+            # Непустой список без извлекаемых цен (обычно — запрошенная длина стоя
+            # превышает max-stay отеля, либо все rates — "not available" заглушки).
+            # Для пользователя это эквивалентно "нет предложений на эти даты".
+            # Возвращаем sold_out консистентно с Playwright XHR-веткой.
+            return {"status": "sold_out", "prices": [], "data": data}
         return {"status": "error", "error": f"schema:rates_type:{type(rates).__name__}"}
 
     # ── XHR price extraction ─────────────────────────────────────

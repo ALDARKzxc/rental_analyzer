@@ -1360,30 +1360,6 @@ async def _final_verify_phase(
             await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
         except asyncio.CancelledError:
             return {"slow_lane_candidates": slow_lane_candidates}
-        continue
-
-
-        if (
-            status == "occupied"
-            or (
-                status == "not_found"
-                and "Нет доступных предложений" in error
-            )
-        ):
-            _set_pair_status(
-                out, states, idx, title, ci, co,
-                status=_ROW_SOLD_OUT, count_progress=True,
-            )
-            sold_out_count += 1
-            continue
-
-        error_count += 1
-        reason = f"{status}:{error[:80]}" if error else str(status or "unknown")
-        error_reasons[reason] += 1
-        try:
-            await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
-        except asyncio.CancelledError:
-            return {"slow_lane_candidates": slow_lane_candidates}
 
     dt = time.time() - t0
     logger.info(
