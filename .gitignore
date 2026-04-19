@@ -1,0 +1,26 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# Runtime data
+logs/
+результаты анализа/
+*.log
+
+# Local database/state
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# OS/editor files
+.DS_Store
+Thumbs.db

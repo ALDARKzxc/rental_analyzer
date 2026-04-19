@@ -38,12 +38,21 @@ from __future__ import annotations
 import asyncio
 import sys
 import time
+from collections import Counter
+from contextlib import AsyncExitStack
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from loguru import logger
+
+try:
+    import h2  # noqa: F401
+except ImportError:
+    _HTTP2_AVAILABLE = False
+else:
+    _HTTP2_AVAILABLE = True
 
 
 # ── Directory helpers ────────────────────────────────────────────────────────
@@ -93,9 +102,11 @@ def _fmt_short(d: date) -> str:
 # дают ~1.2 GB памяти на property context (вкл. overhead изоляции).
 _PAGES_PER_PROPERTY   = 12
 
-# Одновременно обрабатываем не больше K property — иначе 24+ страниц
-# в сумме могут спровоцировать rate-limit сервера по IP.
-_PROPERTY_CONCURRENCY = 2
+# Одновременно обрабатываем только 1 property.
+# После перехода на API-first это самый безопасный режим: он убирает
+# межобъектное самозадушение через один IP/прокси и при этом сохраняет
+# быстрый per-property API пул.
+_PROPERTY_CONCURRENCY = 1
 
 # Таймауты per pair. 12 сек — с запасом для медленного XHR под нагрузкой
 # (24 одновременных goto-ов создают реальную нагрузку на сервер).
@@ -121,9 +132,26 @@ _RETRY_FORCE_SCROLL_S   = 1.5
 # Поэтому основная фаза — httpx-пул по всем 435 парам; Playwright
 # включается только для пар, где API упал по сети/5xx/Cloudflare.
 _API_CONCURRENCY        = 10
-_API_PAIR_TIMEOUT_S     = 7.0
+_API_PAIR_TIMEOUT_S     = 5.0
 _API_CONNECT_TIMEOUT_S  = 4.0
 _API_RETRY_DELAY_S      = 0.3
+_API_BATCH_SIZE         = 60
+_API_DEGRADED_CONCURRENCY = 4
+_API_DEGRADE_NET_ERRORS   = 4
+_API_ABORT_NET_ERRORS     = 12
+_API_RESCUE_CONCURRENCY = 2
+_API_RESCUE_PAIR_TIMEOUT_S = 7.0
+_API_RESCUE_DELAYS_S    = (0.0, 0.6, 1.4, 2.4)
+_FINAL_VERIFY_GRACE_S   = 0.35
+
+_ROW_PENDING   = "pending"
+_ROW_FALLBACK  = "fallback"
+_ROW_PRICED    = "priced"
+_ROW_SOLD_OUT  = "sold_out"
+_ROW_ERROR     = "error"
+_ROW_CANCELLED = "cancelled"
+_FINAL_PROGRESS_STATES = {_ROW_PRICED, _ROW_SOLD_OUT, _ROW_ERROR}
+_UNRESOLVED_STATES     = {_ROW_PENDING, _ROW_FALLBACK}
 
 # Ресурсы, безопасно блокируемые (не ломают XHR с ценами).
 _BLOCK_RESOURCE_TYPES = {"image", "font", "media", "stylesheet"}
@@ -203,6 +231,39 @@ _cancel_event:  Optional[asyncio.Event] = None
 _analysis_task: Optional[asyncio.Task]  = None
 
 
+def _api_client_kwargs(
+    *,
+    parser,
+    api_headers: Dict[str, str],
+    concurrency: int,
+    pair_timeout_s: float,
+) -> Dict[str, Any]:
+    return {
+        "limits": httpx.Limits(
+            max_connections=concurrency + 4,
+            max_keepalive_connections=concurrency,
+        ),
+        "timeout": httpx.Timeout(pair_timeout_s, connect=_API_CONNECT_TIMEOUT_S),
+        "headers": dict(api_headers),
+        "trust_env": False,
+        "proxy": getattr(parser, "_proxy", None) or None,
+        "http2": _HTTP2_AVAILABLE,
+    }
+
+
+def _should_try_direct_api_without_proxy(parser, error: str) -> bool:
+    """
+    Безопасный trigger для второй попытки без системного прокси.
+
+    Используем его только на явно сетевых/прокси-подобных ошибках. Нормальные
+    API-ответы и схемные ошибки не трогаем, чтобы не тратить лишнее время и не
+    менять корректное поведение на быстрых машинах.
+    """
+    if not (getattr(parser, "_proxy", None) or None):
+        return False
+    return error.startswith(("net:", "http:", "ct:", "json:"))
+
+
 def get_state() -> Dict[str, Any]:
     d = dict(_state)
     if d["running"] and d["start_ts"]:
@@ -211,6 +272,8 @@ def get_state() -> Dict[str, Any]:
 
 
 def request_cancel() -> None:
+    if not _state["cancelled"]:
+        logger.info("DeepAnalysis: cancel requested")
     _state["cancelled"] = True
     if _cancel_event:
         _cancel_event.set()
@@ -293,6 +356,8 @@ async def _do_analysis(prop_ids: List[int]) -> None:
         _PARSER_INSTANCES["ostrovok"] = _make_parser("ostrovok")
     parser: OstrovokParser = _PARSER_INSTANCES["ostrovok"]  # type: ignore[assignment]
     browser = await parser._get_browser()
+    api_headers = parser._headers()
+    api_headers["User-Agent"] = PARSER_USER_AGENTS[0]
 
     results_per_prop: Dict[int, List[str]] = {}
     write_lock = asyncio.Lock()
@@ -309,14 +374,12 @@ async def _do_analysis(prop_ids: List[int]) -> None:
         _write_file(file_path, lines)
 
     async def process_property(idx: int, prop) -> None:
-        if _cancel_event.is_set():
-            return
         title    = prop.title
         base_url = prop.url.split("?")[0]
+        pair_states: List[str] = [_ROW_PENDING for _ in date_pairs]
 
-        # Pre-fill слотов — гарантирует корректный вывод при отмене/ошибке.
         pair_results: List[str] = [
-            f"{title}; {_fmt_short(ci)}-{_fmt_short(co)}; —"
+            _format_row(title, ci, co, status=_ROW_PENDING)
             for ci, co in date_pairs
         ]
 
@@ -332,14 +395,29 @@ async def _do_analysis(prop_ids: List[int]) -> None:
                     base_url     = base_url,
                     date_pairs   = date_pairs,
                     out          = pair_results,
+                    states       = pair_states,
                     price_parser = parser._prices_from_xhr,
                     parser       = parser,
+                    api_headers  = api_headers,
                 )
         except Exception as e:
             logger.error(
                 f"DeepAnalysis property «{title[:40]}» failed: {e}", exc_info=True
             )
         finally:
+            sealed = _seal_incomplete_pairs(
+                out=pair_results,
+                states=pair_states,
+                title=title,
+                date_pairs=date_pairs,
+                cancelled=_cancel_event.is_set(),
+            )
+            if sealed:
+                label = "cancelled" if _cancel_event.is_set() else "error"
+                logger.info(
+                    f"DeepAnalysis: «{title[:40]}» finalized {sealed} "
+                    f"unfinished pairs as {label}"
+                )
             dt = time.time() - t0
             rps = (n_pairs / dt) if dt > 0 else 0.0
             logger.info(
@@ -382,8 +460,10 @@ async def _analyze_property(
     base_url: str,
     date_pairs: List[Tuple[date, date]],
     out: List[str],
+    states: List[str],
     price_parser,
     parser,
+    api_headers: Dict[str, str],
 ) -> None:
     slug = parser._extract_slug(base_url)
 
@@ -394,19 +474,30 @@ async def _analyze_property(
             slug       = slug,
             date_pairs = date_pairs,
             out        = out,
+            states     = states,
             parser     = parser,
-            user_agent = user_agent,
+            api_headers= api_headers,
         )
     else:
         logger.warning(
             f"DeepAnalysis «{title[:40]}»: не удалось извлечь slug из "
             f"URL {base_url[:100]} — будет использован только Playwright"
         )
-        # Для не-ostrovok URL-ов (или нестандартного формата) предзаполняем
-        # прочерками без прогресса — его добьёт Playwright-фаза.
-        for idx, (ci, co) in enumerate(date_pairs):
-            out[idx] = _format_row(title, ci, co, None)
         missing_error = list(range(len(date_pairs)))
+
+    if not missing_error or _cancel_event.is_set():
+        return
+
+    missing_error = await _api_rescue_phase(
+        title       = title,
+        slug        = slug,
+        date_pairs  = date_pairs,
+        indices     = missing_error,
+        out         = out,
+        states      = states,
+        parser      = parser,
+        api_headers = api_headers,
+    )
 
     if not missing_error or _cancel_event.is_set():
         return
@@ -424,7 +515,28 @@ async def _analyze_property(
         date_pairs   = date_pairs,
         indices      = missing_error,
         out          = out,
+        states       = states,
         price_parser = price_parser,
+    )
+
+    if _cancel_event.is_set():
+        return
+
+    fallback_missing = [
+        idx for idx in missing_error
+        if states[idx] == _ROW_FALLBACK
+    ]
+    if not fallback_missing:
+        return
+
+    await _final_verify_phase(
+        title      = title,
+        base_url   = base_url,
+        date_pairs = date_pairs,
+        indices    = fallback_missing,
+        out        = out,
+        states     = states,
+        parser     = parser,
     )
 
 
@@ -434,8 +546,9 @@ async def _api_phase(
     slug: str,
     date_pairs: List[Tuple[date, date]],
     out: List[str],
+    states: List[str],
     parser,
-    user_agent: str,
+    api_headers: Dict[str, str],
 ) -> List[int]:
     """
     Параллельный httpx-пул по всем парам дат.
@@ -443,30 +556,229 @@ async def _api_phase(
     пойдут в Playwright fallback. Успех и sold_out считаются финальными.
     """
     t0 = time.time()
-    ok_count = sold_out_count = error_count = 0
+    ok_count = sold_out_count = error_count = deferred_count = 0
     missing: List[int] = []
+    error_reasons: Counter[str] = Counter()
+    slow_over_5s = 0
+    concurrency = _API_CONCURRENCY
+    all_indices = list(range(len(date_pairs)))
 
-    limits  = httpx.Limits(
-        max_connections           = _API_CONCURRENCY + 4,
-        max_keepalive_connections = _API_CONCURRENCY,
+    for offset in range(0, len(all_indices), _API_BATCH_SIZE):
+        if _cancel_event.is_set():
+            break
+        batch_indices = all_indices[offset:offset + _API_BATCH_SIZE]
+        batch = await _run_api_batch(
+            title       = title,
+            slug        = slug,
+            date_pairs  = date_pairs,
+            indices     = batch_indices,
+            out         = out,
+            states      = states,
+            parser      = parser,
+            api_headers = api_headers,
+            concurrency = concurrency,
+        )
+        ok_count       += batch["ok_count"]
+        sold_out_count += batch["sold_out_count"]
+        error_count    += batch["error_count"]
+        slow_over_5s   += batch["slow_over_5s"]
+        error_reasons.update(batch["error_reasons"])
+
+        batch_missing = batch["missing"]
+        if batch_missing and not _cancel_event.is_set():
+            batch_missing = await _api_rescue_phase(
+                title       = title,
+                slug        = slug,
+                date_pairs  = date_pairs,
+                indices     = batch_missing,
+                out         = out,
+                states      = states,
+                parser      = parser,
+                api_headers = api_headers,
+            )
+        missing.extend(batch_missing)
+
+        batch_net_errors = sum(
+            count
+            for reason, count in batch["error_reasons"].items()
+            if str(reason).startswith("net:")
+        )
+        if (
+            batch_net_errors >= _API_DEGRADE_NET_ERRORS
+            and concurrency > _API_DEGRADED_CONCURRENCY
+        ):
+            concurrency = _API_DEGRADED_CONCURRENCY
+            logger.warning(
+                f"DeepAnalysis «{title[:40]}»: API degraded after batch "
+                f"{offset // _API_BATCH_SIZE + 1}; net_errors={batch_net_errors}, "
+                f"switching concurrency to {concurrency}"
+            )
+
+        if batch_net_errors >= _API_ABORT_NET_ERRORS:
+            rest = all_indices[offset + _API_BATCH_SIZE:]
+            if rest:
+                deferred_count += len(rest)
+                missing.extend(rest)
+                logger.warning(
+                    f"DeepAnalysis «{title[:40]}»: API circuit breaker tripped; "
+                    f"deferring {len(rest)} remaining pairs to Playwright fallback"
+                )
+            break
+
+    dt = time.time() - t0
+    rps = (len(date_pairs) / dt) if dt > 0 else 0.0
+    logger.info(
+        f"DeepAnalysis «{title[:40]}» API-phase done in {dt:.1f}s "
+        f"({rps:.1f} pair/s): ok={ok_count} sold_out={sold_out_count} "
+        f"error={error_count}, deferred={deferred_count}, slow_gt_5s={slow_over_5s}, "
+        f"errors_top={dict(error_reasons.most_common(5))}"
     )
-    timeout = httpx.Timeout(_API_PAIR_TIMEOUT_S, connect=_API_CONNECT_TIMEOUT_S)
-    headers = {
-        "User-Agent":      user_agent,
-        "Accept":          "*/*",
-        "Accept-Language": "ru-RU,ru;q=0.9",
-        "Accept-Encoding": "gzip, deflate",
-    }
-    proxy = getattr(parser, "_proxy", None) or None
-    sem   = asyncio.Semaphore(_API_CONCURRENCY)
+    return missing
 
-    async with httpx.AsyncClient(
-        limits=limits, timeout=timeout, headers=headers,
-        trust_env=False, proxy=proxy,
-    ) as client:
+
+async def _api_rescue_phase(
+    *,
+    title: str,
+    slug: str,
+    date_pairs: List[Tuple[date, date]],
+    indices: List[int],
+    out: List[str],
+    states: List[str],
+    parser,
+    api_headers: Dict[str, str],
+) -> List[int]:
+    """
+    Второй API-проход по редким error-парам.
+
+    Здесь важнее корректность, чем raw-throughput: используем свежий httpx-клиент,
+    малую concurrency и более длинный backoff, чтобы выбить транзиентные
+    ConnectTimeout/ConnectError до тяжёлого Playwright fallback.
+    """
+    if not indices:
+        return []
+
+    t0 = time.time()
+    ok_count = sold_out_count = error_count = 0
+    remaining: List[int] = []
+    error_reasons: Counter[str] = Counter()
+    sem = asyncio.Semaphore(_API_RESCUE_CONCURRENCY)
+
+    rescue_kwargs = _api_client_kwargs(
+        parser=parser,
+        api_headers=api_headers,
+        concurrency=_API_RESCUE_CONCURRENCY,
+        pair_timeout_s=_API_RESCUE_PAIR_TIMEOUT_S,
+    )
+
+    async with AsyncExitStack() as stack:
+        client = await stack.enter_async_context(httpx.AsyncClient(**rescue_kwargs))
+        direct_client = None
+        if getattr(parser, "_proxy", None):
+            direct_kwargs = dict(rescue_kwargs)
+            direct_kwargs["proxy"] = None
+            direct_client = await stack.enter_async_context(
+                httpx.AsyncClient(**direct_kwargs)
+            )
 
         async def run_pair(idx: int) -> None:
             nonlocal ok_count, sold_out_count, error_count
+            if _cancel_event.is_set():
+                return
+            ci, co = date_pairs[idx]
+            nights = (co - ci).days
+            ci_s   = ci.isoformat()
+            co_s   = co.isoformat()
+            res: Dict[str, Any] = {"status": "error", "error": "rescue:not_run"}
+
+            async with sem:
+                if _cancel_event.is_set():
+                    return
+                for delay_s in _API_RESCUE_DELAYS_S:
+                    if delay_s > 0:
+                        try:
+                            await asyncio.sleep(delay_s)
+                        except asyncio.CancelledError:
+                            return
+                    if _cancel_event.is_set():
+                        return
+                    res = await parser._api_search_direct(
+                        client, slug, ci_s, co_s, nights,
+                    )
+                    if (
+                        res.get("status") == "error"
+                        and direct_client is not None
+                        and _should_try_direct_api_without_proxy(
+                            parser, str(res.get("error", ""))
+                        )
+                    ):
+                        direct_res = await parser._api_search_direct(
+                            direct_client, slug, ci_s, co_s, nights,
+                        )
+                        if direct_res.get("status") != "error":
+                            res = direct_res
+                    if res.get("status") != "error":
+                        break
+
+            status = res.get("status")
+            if status == "ok":
+                _set_pair_status(
+                    out, states, idx, title, ci, co,
+                    status=_ROW_PRICED, price=min(res["prices"]), count_progress=True,
+                )
+                ok_count += 1
+            elif status == "sold_out":
+                _set_pair_status(
+                    out, states, idx, title, ci, co,
+                    status=_ROW_SOLD_OUT, count_progress=True,
+                )
+                sold_out_count += 1
+            else:
+                remaining.append(idx)
+                error_count += 1
+                error_reasons[res.get("error", "unknown")] += 1
+
+        await asyncio.gather(
+            *(run_pair(i) for i in indices),
+            return_exceptions=True,
+        )
+
+    dt = time.time() - t0
+    logger.info(
+        f"DeepAnalysis «{title[:40]}» API-rescue done in {dt:.1f}s: "
+        f"recovered_ok={ok_count} recovered_sold_out={sold_out_count} "
+        f"still_error={error_count}, errors_top={dict(error_reasons.most_common(5))}"
+    )
+    return remaining
+
+
+async def _run_api_batch(
+    *,
+    title: str,
+    slug: str,
+    date_pairs: List[Tuple[date, date]],
+    indices: List[int],
+    out: List[str],
+    states: List[str],
+    parser,
+    api_headers: Dict[str, str],
+    concurrency: int,
+) -> Dict[str, Any]:
+    ok_count = sold_out_count = error_count = 0
+    missing: List[int] = []
+    error_reasons: Counter[str] = Counter()
+    slow_over_5s = 0
+    sem = asyncio.Semaphore(concurrency)
+
+    async with httpx.AsyncClient(
+        **_api_client_kwargs(
+            parser=parser,
+            api_headers=api_headers,
+            concurrency=concurrency,
+            pair_timeout_s=_API_PAIR_TIMEOUT_S,
+        )
+    ) as client:
+        async def run_pair(idx: int) -> None:
+            nonlocal ok_count, sold_out_count, error_count, slow_over_5s
             if _cancel_event.is_set():
                 return
             ci, co = date_pairs[idx]
@@ -477,47 +789,57 @@ async def _api_phase(
             async with sem:
                 if _cancel_event.is_set():
                     return
+                pair_t0 = time.time()
                 res = await parser._api_search_direct(
                     client, slug, ci_s, co_s, nights,
                 )
-                # Один мягкий retry только для транзиентных ошибок
                 if res.get("status") == "error":
                     try:
                         await asyncio.sleep(_API_RETRY_DELAY_S)
                     except asyncio.CancelledError:
                         return
+                    if _cancel_event.is_set():
+                        return
                     res = await parser._api_search_direct(
                         client, slug, ci_s, co_s, nights,
                     )
+                if (time.time() - pair_t0) > 5.0:
+                    slow_over_5s += 1
 
             status = res.get("status")
             if status == "ok":
-                _apply_price(out, idx, title, ci, co, min(res["prices"]))
+                _set_pair_status(
+                    out, states, idx, title, ci, co,
+                    status=_ROW_PRICED, price=min(res["prices"]), count_progress=True,
+                )
                 ok_count += 1
             elif status == "sold_out":
-                _apply_price(out, idx, title, ci, co, None)
+                _set_pair_status(
+                    out, states, idx, title, ci, co,
+                    status=_ROW_SOLD_OUT, count_progress=True,
+                )
                 sold_out_count += 1
             else:
-                # Progress НЕ двигаем — Playwright-фаза его добьёт.
-                # Предварительный дэш, чтобы промежуточный дамп в файл
-                # (при отмене) не оставлял пустую строку.
-                out[idx] = _format_row(title, ci, co, None)
+                _set_pair_status(
+                    out, states, idx, title, ci, co, status=_ROW_FALLBACK,
+                )
                 missing.append(idx)
                 error_count += 1
+                error_reasons[res.get("error", "unknown")] += 1
 
         await asyncio.gather(
-            *(run_pair(i) for i in range(len(date_pairs))),
+            *(run_pair(i) for i in indices),
             return_exceptions=True,
         )
 
-    dt = time.time() - t0
-    rps = (len(date_pairs) / dt) if dt > 0 else 0.0
-    logger.info(
-        f"DeepAnalysis «{title[:40]}» API-phase done in {dt:.1f}s "
-        f"({rps:.1f} pair/s): ok={ok_count} sold_out={sold_out_count} "
-        f"error={error_count}"
-    )
-    return missing
+    return {
+        "ok_count": ok_count,
+        "sold_out_count": sold_out_count,
+        "error_count": error_count,
+        "missing": missing,
+        "error_reasons": error_reasons,
+        "slow_over_5s": slow_over_5s,
+    }
 
 
 async def _playwright_phase(
@@ -529,6 +851,7 @@ async def _playwright_phase(
     date_pairs: List[Tuple[date, date]],
     indices: List[int],
     out: List[str],
+    states: List[str],
     price_parser,
 ) -> None:
     """
@@ -576,27 +899,42 @@ async def _playwright_phase(
             sem      = asyncio.Semaphore(len(workers))
             wi_ref   = [0]
             recovered = 0
+            sold_out_recovered = 0
+            error_reasons: Counter[str] = Counter()
 
             async def run_pair(idx: int) -> None:
-                nonlocal recovered
+                nonlocal recovered, sold_out_recovered
                 if _cancel_event.is_set():
                     return
                 ci, co = date_pairs[idx]
                 nights = (co - ci).days
                 url    = _build_page_url(base_url, ci, co)
-                async with sem:
-                    if _cancel_event.is_set():
-                        return
-                    w = workers[wi_ref[0] % len(workers)]
-                    wi_ref[0] += 1
-                    price = await w.fetch(url, nights, patient=True)
-                if price and price > 0:
-                    out[idx] = _format_row(title, ci, co, price)
+                try:
+                    async with sem:
+                        if _cancel_event.is_set():
+                            return
+                        w = workers[wi_ref[0] % len(workers)]
+                        wi_ref[0] += 1
+                        result = await w.fetch(url, nights, patient=True)
+                except Exception as e:
+                    error_reasons[f"worker:{e.__class__.__name__}"] += 1
+                    return
+                status = result.get("status")
+                price = result.get("price")
+                if status == "ok" and price and price > 0:
+                    _set_pair_status(
+                        out, states, idx, title, ci, co,
+                        status=_ROW_PRICED, price=price, count_progress=True,
+                    )
                     recovered += 1
-                # Progress двигаем здесь — API-фаза для error-пар его не
-                # инкрементировала. Итого progress = total, когда Phase B
-                # отработал по всем missing-индексам.
-                _state["progress"] += 1
+                elif status == "sold_out":
+                    _set_pair_status(
+                        out, states, idx, title, ci, co,
+                        status=_ROW_SOLD_OUT, count_progress=True,
+                    )
+                    sold_out_recovered += 1
+                elif not _cancel_event.is_set():
+                    error_reasons[result.get("error", "fallback:no_price")] += 1
 
             await asyncio.gather(
                 *(run_pair(i) for i in indices),
@@ -604,7 +942,9 @@ async def _playwright_phase(
             )
             logger.info(
                 f"DeepAnalysis «{title[:40]}» fallback: recovered "
-                f"{recovered}/{len(indices)}"
+                f"priced={recovered}, sold_out={sold_out_recovered}, "
+                f"still_unresolved={sum(1 for i in indices if states[i] == _ROW_FALLBACK)}, "
+                f"errors_top={dict(error_reasons.most_common(5))}"
             )
         finally:
             for w in workers:
@@ -620,6 +960,87 @@ async def _playwright_phase(
 
 
 # ── Route filter (context-level, применяется ко всем страницам) ──────────────
+
+async def _final_verify_phase(
+    *,
+    title: str,
+    base_url: str,
+    date_pairs: List[Tuple[date, date]],
+    indices: List[int],
+    out: List[str],
+    states: List[str],
+    parser,
+) -> None:
+    """
+    Последний страховочный проход только для пар, которые пережили и API, и
+    браузерный fallback без подтверждённой цены.
+
+    Здесь используем parser.fetch() целиком: direct API -> Playwright -> httpx
+    fallback с ретраями. Это дороже обычного fallback-пула, но применяется к
+    единичным аномалиям и снимает ложные [error], когда цена существует, но
+    не успела прийти в массовом параллельном режиме.
+    """
+    if not indices:
+        return
+
+    t0 = time.time()
+    ok_count = sold_out_count = error_count = 0
+    error_reasons: Counter[str] = Counter()
+
+    for idx in indices:
+        if _cancel_event.is_set():
+            return
+        if states[idx] != _ROW_FALLBACK:
+            continue
+
+        ci, co = date_pairs[idx]
+        url = _build_page_url(base_url, ci, co)
+        try:
+            result = await parser.fetch(url)
+        except Exception as e:
+            result = {"status": "error", "error": f"verify:{e.__class__.__name__}"}
+
+        status = result.get("status")
+        price = result.get("price")
+        error = str(result.get("error") or "")
+
+        if status == "ok" and price and price > 0:
+            _set_pair_status(
+                out, states, idx, title, ci, co,
+                status=_ROW_PRICED, price=price, count_progress=True,
+            )
+            ok_count += 1
+            continue
+
+        if (
+            status == "occupied"
+            or (
+                status == "not_found"
+                and "Нет доступных предложений" in error
+            )
+        ):
+            _set_pair_status(
+                out, states, idx, title, ci, co,
+                status=_ROW_SOLD_OUT, count_progress=True,
+            )
+            sold_out_count += 1
+            continue
+
+        error_count += 1
+        reason = f"{status}:{error[:80]}" if error else str(status or "unknown")
+        error_reasons[reason] += 1
+        try:
+            await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
+        except asyncio.CancelledError:
+            return
+
+    dt = time.time() - t0
+    logger.info(
+        f'DeepAnalysis "{title[:40]}" final-verify done in {dt:.1f}s: '
+        f"recovered_ok={ok_count} recovered_sold_out={sold_out_count} "
+        f"still_error={error_count}, errors_top={dict(error_reasons.most_common(5))}"
+    )
+
 
 async def _route_filter(route) -> None:
     """Блокируем тяжёлые ресурсы и трекеры. XHR и document пропускаем."""
@@ -667,6 +1088,7 @@ class _PageWorker:
         self._cur_prices: List[float]           = []
         self._price_event: Optional[asyncio.Event]    = None
         self._sold_out_event: Optional[asyncio.Event] = None
+        self._saw_authoritative_sold_out = False
         self._lock         = asyncio.Lock()
         self._pending_tasks: List[asyncio.Task] = []
         # Пул id запросов, начатых во время текущего fetch. Чистится на
@@ -763,13 +1185,14 @@ class _PageWorker:
         # Authoritative sold-out: только от /rates с реальным полем rates
         # (не null — null ответ от /search НЕ считается sold-out).
         if any(p in rurl for p in _OSTROVOK_AUTHORITATIVE_PATHS):
-            if isinstance(data, dict) and isinstance(data.get("rates"), list):
+            if isinstance(data, dict) and data.get("rates") == []:
+                self._saw_authoritative_sold_out = True
                 if self._sold_out_event and not self._sold_out_event.is_set():
                     self._sold_out_event.set()
 
     async def fetch(
         self, url: str, nights: int, *, patient: bool = False,
-    ) -> Optional[float]:
+    ) -> Dict[str, Any]:
         """
         patient=False → main-проход: force-scroll 0.8с, total 12с.
         patient=True  → retry-проход: force-scroll 1.5с, total 22с.
@@ -784,6 +1207,7 @@ class _PageWorker:
             self._cur_seq     = self._seq
             self._cur_nights  = nights
             self._cur_prices  = []
+            self._saw_authoritative_sold_out = False
             self._own_request_ids = set()   # сброс stale-XHR защиты
             self._price_event    = asyncio.Event()
             self._sold_out_event = asyncio.Event()
@@ -835,7 +1259,19 @@ class _PageWorker:
                     except asyncio.CancelledError:
                         pass
 
-                return min(self._cur_prices) if self._cur_prices else None
+                if self._cur_prices:
+                    return {"status": "ok", "price": min(self._cur_prices)}
+
+                if self._saw_authoritative_sold_out:
+                    try:
+                        await asyncio.sleep(_XHR_GRACE_S)
+                    except asyncio.CancelledError:
+                        pass
+                    if self._cur_prices:
+                        return {"status": "ok", "price": min(self._cur_prices)}
+                    return {"status": "sold_out", "price": None}
+
+                return {"status": "error", "price": None, "error": "fallback:no_price"}
             finally:
                 # Инвалидируем seq, чтобы запоздавшие отклики не лезли в
                 # следующий fetch этой же страницы (доп. защита поверх
@@ -843,32 +1279,84 @@ class _PageWorker:
                 self._cur_seq += 1000
                 self._price_event    = None
                 self._sold_out_event = None
+                self._saw_authoritative_sold_out = False
                 self._own_request_ids = set()
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _format_row(
-    title: str, ci: date, co: date, price: Optional[float],
+    title: str,
+    ci: date,
+    co: date,
+    *,
+    status: str,
+    price: Optional[float] = None,
 ) -> str:
     label = f"{_fmt_short(ci)}-{_fmt_short(co)}"
-    if price and price > 0:
+    if status == _ROW_PRICED and price and price > 0:
         price_str = f"{price:,.0f} ₽".replace(",", "\u202f")
+    elif status == _ROW_SOLD_OUT:
+        price_str = "[sold_out]"
+    elif status == _ROW_PENDING:
+        price_str = "[pending]"
+    elif status == _ROW_FALLBACK:
+        price_str = "[fallback]"
+    elif status == _ROW_CANCELLED:
+        price_str = "[cancelled]"
+    elif status == _ROW_ERROR:
+        price_str = "[error]"
     else:
-        price_str = "—"
+        price_str = "[unknown]"
     return f"{title}; {label}; {price_str}"
 
 
-def _apply_price(
+def _set_pair_status(
     out: List[str],
+    states: List[str],
     idx: int,
     title: str,
     ci: date,
     co: date,
-    price: Optional[float],
+    *,
+    status: str,
+    price: Optional[float] = None,
+    count_progress: bool = False,
 ) -> None:
-    out[idx] = _format_row(title, ci, co, price)
-    _state["progress"] += 1
+    prev = states[idx]
+    out[idx] = _format_row(title, ci, co, status=status, price=price)
+    states[idx] = status
+    if count_progress and prev not in _FINAL_PROGRESS_STATES:
+        _state["progress"] += 1
+
+
+def _seal_incomplete_pairs(
+    *,
+    out: List[str],
+    states: List[str],
+    title: str,
+    date_pairs: List[Tuple[date, date]],
+    cancelled: bool,
+) -> int:
+    sealed = 0
+    final_state = _ROW_CANCELLED if cancelled else _ROW_ERROR
+    count_progress = not cancelled
+    for idx, state in enumerate(states):
+        if state not in _UNRESOLVED_STATES:
+            continue
+        ci, co = date_pairs[idx]
+        _set_pair_status(
+            out,
+            states,
+            idx,
+            title,
+            ci,
+            co,
+            status=final_state,
+            count_progress=count_progress,
+        )
+        sealed += 1
+    return sealed
 
 
 async def _any_event(events: List[asyncio.Event]) -> None:

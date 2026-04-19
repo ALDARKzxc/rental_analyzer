@@ -14,6 +14,7 @@ import re
 import json
 import asyncio
 import random
+import uuid
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse, parse_qs, quote
@@ -350,16 +351,17 @@ class OstrovokParser(BaseParser):
         self, slug: str, checkin: str, checkout: str, adults: int = 2,
     ) -> str:
         """
-        Прямой URL /hotel/search/v1/site/hp/search. Даты в ISO (YYYY-MM-DD).
-        body передаётся URL-encoded JSON-ом в query.
+        Прямой URL /hotel/search/v1/site/hp/search.
+        Ostrovok ожидает browser-like body c arrival/departure_date и paxes.
         """
         body = {
-            "hotel":    slug,
-            "checkin":  checkin,
-            "checkout": checkout,
-            "currency": "RUB",
-            "adults":   adults,
-            "children": [],
+            "arrival_date":   checkin,
+            "departure_date": checkout,
+            "hotel":          slug,
+            "currency":       "RUB",
+            "lang":           "ru",
+            "paxes":          [{"adults": adults}],
+            "search_uuid":    str(uuid.uuid4()),
         }
         body_json = json.dumps(body, separators=(",", ":"))
         return (
@@ -398,7 +400,25 @@ class OstrovokParser(BaseParser):
         prices = self._prices_from_xhr(data, nights) if isinstance(data, dict) else []
         if prices:
             return {"status": "ok", "prices": prices, "data": data}
-        return {"status": "sold_out", "prices": [], "data": data}
+        if not isinstance(data, dict):
+            return {"status": "error", "error": "schema:not_dict"}
+
+        if any(k in data for k in ("error", "errors", "message")):
+            keys = ",".join(sorted(str(k) for k in list(data.keys())[:5]))
+            return {"status": "error", "error": f"api:{keys or 'message'}"}
+
+        if "rates" not in data:
+            keys = ",".join(sorted(str(k) for k in list(data.keys())[:5]))
+            return {"status": "error", "error": f"schema:no_rates:{keys or 'empty'}"}
+
+        rates = data.get("rates")
+        if rates is None:
+            return {"status": "sold_out", "prices": [], "data": data}
+        if isinstance(rates, list):
+            if not rates:
+                return {"status": "sold_out", "prices": [], "data": data}
+            return {"status": "error", "error": "schema:rates_without_prices"}
+        return {"status": "error", "error": f"schema:rates_type:{type(rates).__name__}"}
 
     # ── XHR price extraction ─────────────────────────────────────
 

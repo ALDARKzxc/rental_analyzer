@@ -5,6 +5,7 @@ Screen 1 — Property list v2.
 """
 from __future__ import annotations
 
+import html
 import re
 import time
 from datetime import datetime, timedelta
@@ -14,7 +15,8 @@ from typing import Dict, List, Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QMessageBox,
-    QMenu, QGraphicsOpacityEffect, QLineEdit, QTextEdit, QDialog
+    QMenu, QGraphicsOpacityEffect, QLineEdit, QTextEdit, QDialog,
+    QLayout
 )
 from PySide6.QtCore import (
     Qt, Signal, QThread, QObject, QTimer, QEvent,
@@ -223,6 +225,7 @@ class PropertyCard(QFrame):
         self._timer.timeout.connect(self._tick)
         self.setObjectName("card"); self.setMinimumHeight(116)
         self._build(prop)
+        self._sync_height()
 
     def _build(self, prop: Dict):
         root = QVBoxLayout(self)
@@ -268,8 +271,12 @@ class PropertyCard(QFrame):
         row2_w.setStyleSheet("background:transparent;")
         info.addWidget(row2_w)
 
-        url_lbl = QLabel(prop.get("url","")[:70]); url_lbl.setObjectName("hintLabel")
-        info.addWidget(url_lbl)
+        self._url_full = (prop.get("url") or "").strip()
+        self._url_text = self._url_full[:70]
+        self._url_lbl = QLabel()
+        self._url_lbl.setObjectName("hintLabel")
+        self._set_url_clickable(False)
+        info.addWidget(self._url_lbl)
 
         notes = (prop.get("notes") or "").strip()
         if notes:
@@ -429,9 +436,51 @@ class PropertyCard(QFrame):
     def _toggle_edit(self):
         visible = not self._edit_panel.isVisible()
         self._edit_panel.setVisible(visible)
+        self._set_url_clickable(visible)
+        self._sync_height()
 
     def _cancel_edit(self):
         self._edit_panel.setVisible(False)
+        self._set_url_clickable(False)
+        self._sync_height()
+
+    def _set_url_clickable(self, enabled: bool):
+        if not hasattr(self, "_url_lbl"):
+            return
+
+        display = self._url_text or self._url_full
+        if not display:
+            self._url_lbl.clear()
+            return
+
+        if enabled and self._url_full:
+            href = html.escape(self._url_full, quote=True)
+            label = html.escape(display)
+            self._url_lbl.setTextFormat(Qt.TextFormat.RichText)
+            self._url_lbl.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextBrowserInteraction
+            )
+            self._url_lbl.setOpenExternalLinks(True)
+            self._url_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._url_lbl.setText(
+                f'<a href="{href}" style="color:#8f7065;text-decoration:underline;">{label}</a>'
+            )
+        else:
+            self._url_lbl.setTextFormat(Qt.TextFormat.PlainText)
+            self._url_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+            self._url_lbl.setOpenExternalLinks(False)
+            self._url_lbl.unsetCursor()
+            self._url_lbl.setText(display)
+
+    def _sync_height(self):
+        if self.layout() is None:
+            return
+        self.layout().invalidate()
+        self.layout().activate()
+        target = max(116, self.layout().sizeHint().height())
+        self.setMinimumHeight(target)
+        self.setMaximumHeight(target)
+        self.updateGeometry()
 
     # ── notes counter ─────────────────────────────────────────
     def _on_edit_notes_changed(self):
@@ -849,12 +898,14 @@ class PropertyListScreen(QWidget):
         root.addWidget(div)
 
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignTop)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self._container = QWidget(); self._container.setStyleSheet("background:transparent;")
         self._cl = QVBoxLayout(self._container)
         self._cl.setContentsMargins(0,0,6,0); self._cl.setSpacing(10)
+        self._cl.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
         self._cl.addStretch()
 
         scroll.setWidget(self._container); root.addWidget(scroll, stretch=1)
