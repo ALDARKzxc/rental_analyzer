@@ -110,6 +110,20 @@ class OstrovokParser(BaseParser):
         if result2 and result2.get("price"):
             return result2
 
+        if result and not result.get("price") and result.get("status") in {
+            "not_found",
+            "blocked",
+            "captcha",
+        }:
+            return {
+                "price":       None,
+                "title":       result.get("title"),
+                "external_id": hotel_id,
+                "status":      str(result.get("status") or "not_found"),
+                "error":       result.get("error")
+                or "Р¦РµРЅР° РЅРµ РЅР°Р№РґРµРЅР°. Р”РѕР±Р°РІСЊС‚Рµ РґР°С‚С‹ (?dates=DD.MM.YYYY-DD.MM.YYYY).",
+            }
+
         best = result or result2 or {}
         return {
             "price":       None,

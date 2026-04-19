@@ -142,16 +142,76 @@ _API_ABORT_NET_ERRORS     = 12
 _API_RESCUE_CONCURRENCY = 2
 _API_RESCUE_PAIR_TIMEOUT_S = 7.0
 _API_RESCUE_DELAYS_S    = (0.0, 0.6, 1.4, 2.4)
+_API_RESCUE_MAX_PAIRS   = 12
 _FINAL_VERIFY_GRACE_S   = 0.35
+_SLOW_LANE_TRIGGER_COUNT = 3
+_SLOW_LANE_TRIGGER_RATIO = 0.10
+_SLOW_LANE_PAUSE_S       = 2.0
 
 _ROW_PENDING   = "pending"
 _ROW_FALLBACK  = "fallback"
 _ROW_PRICED    = "priced"
 _ROW_SOLD_OUT  = "sold_out"
+_ROW_BLOCKED   = "blocked"
+_ROW_CAPTCHA   = "captcha"
+_ROW_NETWORK   = "network"
 _ROW_ERROR     = "error"
 _ROW_CANCELLED = "cancelled"
-_FINAL_PROGRESS_STATES = {_ROW_PRICED, _ROW_SOLD_OUT, _ROW_ERROR}
+_FINAL_PROGRESS_STATES = {
+    _ROW_PRICED,
+    _ROW_SOLD_OUT,
+    _ROW_BLOCKED,
+    _ROW_CAPTCHA,
+    _ROW_NETWORK,
+    _ROW_ERROR,
+}
 _UNRESOLVED_STATES     = {_ROW_PENDING, _ROW_FALLBACK}
+_SLOW_LANE_RETRY_STATES = {_ROW_BLOCKED, _ROW_CAPTCHA, _ROW_NETWORK}
+
+_NO_OFFERS_MARKERS = (
+    "нет доступных предложений",
+    "нет предложений",
+    "no available offers",
+    "no offers available",
+)
+_CAPTCHA_MARKERS = (
+    "captcha",
+    "recaptcha",
+    "hcaptcha",
+)
+_BLOCKED_MARKERS = (
+    "access denied",
+    "forbidden",
+    "blocked",
+    "you have been blocked",
+    "cf-challenge",
+    "cloudflare",
+)
+_NETWORK_ERROR_MARKERS = (
+    "net:",
+    "http:",
+    "ct:",
+    "json:",
+    "timeout",
+    "timed out",
+    "connect",
+    "connection",
+    "proxy",
+    "ssl",
+    "tls",
+    "socket",
+    "dns",
+    "network",
+    "tunnel",
+    "remoteprotocolerror",
+    "readtimeout",
+    "connecttimeout",
+    "proxyerror",
+    "econn",
+    "eof",
+    "err_",
+    "ns_error",
+)
 
 # Ресурсы, безопасно блокируемые (не ломают XHR с ценами).
 _BLOCK_RESOURCE_TYPES = {"image", "font", "media", "stylesheet"}
@@ -229,6 +289,153 @@ _state: Dict[str, Any] = {
 }
 _cancel_event:  Optional[asyncio.Event] = None
 _analysis_task: Optional[asyncio.Task]  = None
+
+
+def _compose_reason(phase: str, category: str, detail: Optional[str] = None) -> str:
+    if detail:
+        clean = " ".join(str(detail).split())[:160]
+        return f"{phase}:{category}:{clean}"
+    return f"{phase}:{category}"
+
+
+def _reason_group(reason: Optional[str]) -> Optional[str]:
+    if not reason:
+        return None
+    parts = reason.split(":", 2)
+    return ":".join(parts[:2])
+
+
+def _set_pair_reason(reasons: Optional[List[Optional[str]]], idx: int, reason: Optional[str]) -> None:
+    if reasons is not None and reason:
+        reasons[idx] = reason
+
+
+def _has_any_marker(text: str, markers: Tuple[str, ...]) -> bool:
+    return any(marker in text for marker in markers)
+
+
+def _is_no_offers_error(error: str) -> bool:
+    return _has_any_marker((error or "").lower(), _NO_OFFERS_MARKERS)
+
+
+def _is_network_error(error: str) -> bool:
+    return _has_any_marker((error or "").lower(), _NETWORK_ERROR_MARKERS)
+
+
+def _is_blocked_error(status: str, error: str) -> bool:
+    if status == "blocked":
+        return True
+    return _has_any_marker((error or "").lower(), _BLOCKED_MARKERS)
+
+
+def _is_captcha_error(status: str, error: str) -> bool:
+    if status == "captcha":
+        return True
+    return _has_any_marker((error or "").lower(), _CAPTCHA_MARKERS)
+
+
+def _classify_terminal_result(
+    result: Dict[str, Any],
+    *,
+    phase: str,
+) -> Tuple[str, Optional[float], str]:
+    status = str(result.get("status") or "")
+    price = result.get("price")
+    error = str(result.get("error") or "")
+
+    if status == "ok" and isinstance(price, (int, float)) and price > 0:
+        return _ROW_PRICED, float(price), _compose_reason(phase, "priced")
+
+    if status == "occupied" or (status == "not_found" and _is_no_offers_error(error)):
+        return _ROW_SOLD_OUT, None, _compose_reason(phase, "sold_out", status or None)
+
+    if _is_captcha_error(status, error):
+        return _ROW_CAPTCHA, None, _compose_reason(phase, "captcha", error or status)
+
+    if _is_blocked_error(status, error):
+        return _ROW_BLOCKED, None, _compose_reason(phase, "blocked", error or status)
+
+    if status in {"error", "not_found"} and _is_network_error(error):
+        return _ROW_NETWORK, None, _compose_reason(phase, "network", error or status)
+
+    detail = f"{status}:{error}" if error else (status or "unknown")
+    return _ROW_ERROR, None, _compose_reason(phase, "error", detail)
+
+
+def _should_run_slow_lane(unresolved_count: int, degraded_count: int) -> bool:
+    if unresolved_count <= 0 or degraded_count <= 0:
+        return False
+    return (
+        degraded_count >= _SLOW_LANE_TRIGGER_COUNT
+        or (degraded_count / unresolved_count) > _SLOW_LANE_TRIGGER_RATIO
+    )
+
+
+def _summarize_terminal_states(states: List[str]) -> Dict[str, int]:
+    counts = Counter(states)
+    ordered = (
+        _ROW_PRICED,
+        _ROW_SOLD_OUT,
+        _ROW_BLOCKED,
+        _ROW_CAPTCHA,
+        _ROW_NETWORK,
+        _ROW_ERROR,
+        _ROW_CANCELLED,
+    )
+    return {key: counts[key] for key in ordered if counts.get(key)}
+
+
+def _should_try_api_rescue(reason: Optional[str]) -> bool:
+    if not reason:
+        return False
+    parts = reason.split(":", 2)
+    if len(parts) < 3:
+        return False
+    phase, category, detail = parts
+    return phase == "api" and category == "fallback" and _is_network_error(detail)
+
+
+def _select_api_rescue_indices(
+    indices: List[int],
+    reasons: List[Optional[str]],
+) -> List[int]:
+    selected: List[int] = []
+    for idx in indices:
+        if len(selected) >= _API_RESCUE_MAX_PAIRS:
+            break
+        if _should_try_api_rescue(reasons[idx]):
+            selected.append(idx)
+    return selected
+
+
+def _apply_terminal_result(
+    *,
+    result: Dict[str, Any],
+    phase: str,
+    out: List[str],
+    states: List[str],
+    reasons: Optional[List[Optional[str]]],
+    idx: int,
+    title: str,
+    ci: date,
+    co: date,
+    count_progress: bool,
+) -> Tuple[str, Optional[float], str]:
+    status, price, reason = _classify_terminal_result(result, phase=phase)
+    _set_pair_status(
+        out,
+        states,
+        idx,
+        title,
+        ci,
+        co,
+        status=status,
+        price=price,
+        count_progress=count_progress,
+        reasons=reasons,
+        reason=reason,
+    )
+    return status, price, reason
 
 
 def _api_client_kwargs(
@@ -377,6 +584,7 @@ async def _do_analysis(prop_ids: List[int]) -> None:
         title    = prop.title
         base_url = prop.url.split("?")[0]
         pair_states: List[str] = [_ROW_PENDING for _ in date_pairs]
+        pair_reasons: List[Optional[str]] = [None for _ in date_pairs]
 
         pair_results: List[str] = [
             _format_row(title, ci, co, status=_ROW_PENDING)
@@ -396,6 +604,7 @@ async def _do_analysis(prop_ids: List[int]) -> None:
                     date_pairs   = date_pairs,
                     out          = pair_results,
                     states       = pair_states,
+                    reasons      = pair_reasons,
                     price_parser = parser._prices_from_xhr,
                     parser       = parser,
                     api_headers  = api_headers,
@@ -408,6 +617,7 @@ async def _do_analysis(prop_ids: List[int]) -> None:
             sealed = _seal_incomplete_pairs(
                 out=pair_results,
                 states=pair_states,
+                reasons=pair_reasons,
                 title=title,
                 date_pairs=date_pairs,
                 cancelled=_cancel_event.is_set(),
@@ -422,6 +632,11 @@ async def _do_analysis(prop_ids: List[int]) -> None:
             rps = (n_pairs / dt) if dt > 0 else 0.0
             logger.info(
                 f"DeepAnalysis: «{title[:40]}» done in {dt:.1f}s ({rps:.2f} pairs/s)"
+            )
+            logger.info(
+                f"DeepAnalysis: В«{title[:40]}В» terminal states "
+                f"{_summarize_terminal_states(pair_states)}, "
+                f"reasons_top={dict(Counter(filter(None, (_reason_group(r) for r in pair_reasons))).most_common(8))}"
             )
             async with write_lock:
                 results_per_prop[idx] = pair_results
@@ -461,6 +676,7 @@ async def _analyze_property(
     date_pairs: List[Tuple[date, date]],
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     price_parser,
     parser,
     api_headers: Dict[str, str],
@@ -475,6 +691,7 @@ async def _analyze_property(
             date_pairs = date_pairs,
             out        = out,
             states     = states,
+            reasons    = reasons,
             parser     = parser,
             api_headers= api_headers,
         )
@@ -488,16 +705,39 @@ async def _analyze_property(
     if not missing_error or _cancel_event.is_set():
         return
 
-    missing_error = await _api_rescue_phase(
-        title       = title,
-        slug        = slug,
-        date_pairs  = date_pairs,
-        indices     = missing_error,
-        out         = out,
-        states      = states,
-        parser      = parser,
-        api_headers = api_headers,
-    )
+    rescue_candidates = [
+        idx for idx in missing_error
+        if _should_try_api_rescue(reasons[idx])
+    ]
+    rescue_indices = _select_api_rescue_indices(missing_error, reasons)
+    if rescue_indices:
+        rescued_remaining = await _api_rescue_phase(
+            title       = title,
+            slug        = slug,
+            date_pairs  = date_pairs,
+            indices     = rescue_indices,
+            out         = out,
+            states      = states,
+            reasons     = reasons,
+            parser      = parser,
+            api_headers = api_headers,
+        )
+        rescued_set = set(rescue_indices)
+        missing_error = [
+            idx for idx in missing_error
+            if idx not in rescued_set
+        ] + rescued_remaining
+        skipped = len(rescue_candidates) - len(rescue_indices)
+        if skipped > 0:
+            logger.info(
+                f'DeepAnalysis "{title[:40]}" skipped API-rescue for '
+                f"{skipped} degraded pairs to avoid long stalls"
+            )
+    elif missing_error:
+        logger.info(
+            f'DeepAnalysis "{title[:40]}" skipping API-rescue: '
+            "remaining errors are non-network or capped"
+        )
 
     if not missing_error or _cancel_event.is_set():
         return
@@ -516,6 +756,7 @@ async def _analyze_property(
         indices      = missing_error,
         out          = out,
         states       = states,
+        reasons      = reasons,
         price_parser = price_parser,
     )
 
@@ -529,15 +770,33 @@ async def _analyze_property(
     if not fallback_missing:
         return
 
-    await _final_verify_phase(
+    verify = await _final_verify_phase(
         title      = title,
         base_url   = base_url,
         date_pairs = date_pairs,
         indices    = fallback_missing,
         out        = out,
         states     = states,
+        reasons    = reasons,
         parser     = parser,
     )
+
+    degraded_candidates = verify["slow_lane_candidates"]
+    if (
+        degraded_candidates
+        and _should_run_slow_lane(len(fallback_missing), len(degraded_candidates))
+        and not _cancel_event.is_set()
+    ):
+        await _slow_lane_phase(
+            title      = title,
+            base_url   = base_url,
+            date_pairs = date_pairs,
+            indices    = degraded_candidates,
+            out        = out,
+            states     = states,
+            reasons    = reasons,
+            parser     = parser,
+        )
 
 
 async def _api_phase(
@@ -547,6 +806,7 @@ async def _api_phase(
     date_pairs: List[Tuple[date, date]],
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     parser,
     api_headers: Dict[str, str],
 ) -> List[int]:
@@ -574,6 +834,7 @@ async def _api_phase(
             indices     = batch_indices,
             out         = out,
             states      = states,
+            reasons     = reasons,
             parser      = parser,
             api_headers = api_headers,
             concurrency = concurrency,
@@ -584,19 +845,7 @@ async def _api_phase(
         slow_over_5s   += batch["slow_over_5s"]
         error_reasons.update(batch["error_reasons"])
 
-        batch_missing = batch["missing"]
-        if batch_missing and not _cancel_event.is_set():
-            batch_missing = await _api_rescue_phase(
-                title       = title,
-                slug        = slug,
-                date_pairs  = date_pairs,
-                indices     = batch_missing,
-                out         = out,
-                states      = states,
-                parser      = parser,
-                api_headers = api_headers,
-            )
-        missing.extend(batch_missing)
+        missing.extend(batch["missing"])
 
         batch_net_errors = sum(
             count
@@ -644,6 +893,7 @@ async def _api_rescue_phase(
     indices: List[int],
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     parser,
     api_headers: Dict[str, str],
 ) -> List[int]:
@@ -723,16 +973,32 @@ async def _api_rescue_phase(
             if status == "ok":
                 _set_pair_status(
                     out, states, idx, title, ci, co,
-                    status=_ROW_PRICED, price=min(res["prices"]), count_progress=True,
+                    status=_ROW_PRICED,
+                    price=min(res["prices"]),
+                    count_progress=True,
+                    reasons=reasons,
+                    reason=_compose_reason("api-rescue", "priced"),
                 )
                 ok_count += 1
             elif status == "sold_out":
                 _set_pair_status(
                     out, states, idx, title, ci, co,
-                    status=_ROW_SOLD_OUT, count_progress=True,
+                    status=_ROW_SOLD_OUT,
+                    count_progress=True,
+                    reasons=reasons,
+                    reason=_compose_reason("api-rescue", "sold_out"),
                 )
                 sold_out_count += 1
             else:
+                _set_pair_reason(
+                    reasons,
+                    idx,
+                    _compose_reason(
+                        "api-rescue",
+                        "error",
+                        str(res.get("error", "unknown")),
+                    ),
+                )
                 remaining.append(idx)
                 error_count += 1
                 error_reasons[res.get("error", "unknown")] += 1
@@ -759,6 +1025,7 @@ async def _run_api_batch(
     indices: List[int],
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     parser,
     api_headers: Dict[str, str],
     concurrency: int,
@@ -810,18 +1077,37 @@ async def _run_api_batch(
             if status == "ok":
                 _set_pair_status(
                     out, states, idx, title, ci, co,
-                    status=_ROW_PRICED, price=min(res["prices"]), count_progress=True,
+                    status=_ROW_PRICED,
+                    price=min(res["prices"]),
+                    count_progress=True,
+                    reasons=reasons,
+                    reason=_compose_reason("api", "priced"),
                 )
                 ok_count += 1
             elif status == "sold_out":
                 _set_pair_status(
                     out, states, idx, title, ci, co,
-                    status=_ROW_SOLD_OUT, count_progress=True,
+                    status=_ROW_SOLD_OUT,
+                    count_progress=True,
+                    reasons=reasons,
+                    reason=_compose_reason("api", "sold_out"),
                 )
                 sold_out_count += 1
             else:
                 _set_pair_status(
-                    out, states, idx, title, ci, co, status=_ROW_FALLBACK,
+                    out,
+                    states,
+                    idx,
+                    title,
+                    ci,
+                    co,
+                    status=_ROW_FALLBACK,
+                    reasons=reasons,
+                    reason=_compose_reason(
+                        "api",
+                        "fallback",
+                        str(res.get("error", "unknown")),
+                    ),
                 )
                 missing.append(idx)
                 error_count += 1
@@ -852,6 +1138,7 @@ async def _playwright_phase(
     indices: List[int],
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     price_parser,
 ) -> None:
     """
@@ -924,17 +1211,30 @@ async def _playwright_phase(
                 if status == "ok" and price and price > 0:
                     _set_pair_status(
                         out, states, idx, title, ci, co,
-                        status=_ROW_PRICED, price=price, count_progress=True,
+                        status=_ROW_PRICED,
+                        price=price,
+                        count_progress=True,
+                        reasons=reasons,
+                        reason=_compose_reason("playwright", "priced"),
                     )
                     recovered += 1
                 elif status == "sold_out":
                     _set_pair_status(
                         out, states, idx, title, ci, co,
-                        status=_ROW_SOLD_OUT, count_progress=True,
+                        status=_ROW_SOLD_OUT,
+                        count_progress=True,
+                        reasons=reasons,
+                        reason=_compose_reason("playwright", "sold_out"),
                     )
                     sold_out_recovered += 1
                 elif not _cancel_event.is_set():
-                    error_reasons[result.get("error", "fallback:no_price")] += 1
+                    detail = str(result.get("error", "fallback:no_price"))
+                    _set_pair_reason(
+                        reasons,
+                        idx,
+                        _compose_reason("playwright", "fallback", detail),
+                    )
+                    error_reasons[detail] += 1
 
             await asyncio.gather(
                 *(run_pair(i) for i in indices),
@@ -969,8 +1269,9 @@ async def _final_verify_phase(
     indices: List[int],
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     parser,
-) -> None:
+) -> Dict[str, Any]:
     """
     Последний страховочный проход только для пар, которые пережили и API, и
     браузерный fallback без подтверждённой цены.
@@ -981,15 +1282,17 @@ async def _final_verify_phase(
     не успела прийти в массовом параллельном режиме.
     """
     if not indices:
-        return
+        return {"slow_lane_candidates": []}
 
     t0 = time.time()
     ok_count = sold_out_count = error_count = 0
+    blocked_count = captcha_count = network_count = 0
     error_reasons: Counter[str] = Counter()
+    slow_lane_candidates: List[int] = []
 
     for idx in indices:
         if _cancel_event.is_set():
-            return
+            return {"slow_lane_candidates": slow_lane_candidates}
         if states[idx] != _ROW_FALLBACK:
             continue
 
@@ -1000,17 +1303,65 @@ async def _final_verify_phase(
         except Exception as e:
             result = {"status": "error", "error": f"verify:{e.__class__.__name__}"}
 
-        status = result.get("status")
-        price = result.get("price")
-        error = str(result.get("error") or "")
+        terminal_state, _price, reason = _apply_terminal_result(
+            result=result,
+            phase="final-verify",
+            out=out,
+            states=states,
+            reasons=reasons,
+            idx=idx,
+            title=title,
+            ci=ci,
+            co=co,
+            count_progress=True,
+        )
 
-        if status == "ok" and price and price > 0:
-            _set_pair_status(
-                out, states, idx, title, ci, co,
-                status=_ROW_PRICED, price=price, count_progress=True,
-            )
+        if terminal_state == _ROW_PRICED:
             ok_count += 1
             continue
+
+        if terminal_state == _ROW_SOLD_OUT:
+            sold_out_count += 1
+            continue
+
+        if terminal_state == _ROW_BLOCKED:
+            blocked_count += 1
+            slow_lane_candidates.append(idx)
+            error_reasons[reason] += 1
+            try:
+                await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
+            except asyncio.CancelledError:
+                return {"slow_lane_candidates": slow_lane_candidates}
+            continue
+
+        if terminal_state == _ROW_CAPTCHA:
+            captcha_count += 1
+            slow_lane_candidates.append(idx)
+            error_reasons[reason] += 1
+            try:
+                await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
+            except asyncio.CancelledError:
+                return {"slow_lane_candidates": slow_lane_candidates}
+            continue
+
+        if terminal_state == _ROW_NETWORK:
+            network_count += 1
+            slow_lane_candidates.append(idx)
+            error_reasons[reason] += 1
+            try:
+                await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
+            except asyncio.CancelledError:
+                return {"slow_lane_candidates": slow_lane_candidates}
+            continue
+
+        error_count += 1
+        error_reasons[reason] += 1
+        try:
+            await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
+        except asyncio.CancelledError:
+            return {"slow_lane_candidates": slow_lane_candidates}
+        continue
+
 
         if (
             status == "occupied"
@@ -1032,13 +1383,132 @@ async def _final_verify_phase(
         try:
             await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
         except asyncio.CancelledError:
-            return
+            return {"slow_lane_candidates": slow_lane_candidates}
 
     dt = time.time() - t0
     logger.info(
         f'DeepAnalysis "{title[:40]}" final-verify done in {dt:.1f}s: '
         f"recovered_ok={ok_count} recovered_sold_out={sold_out_count} "
+        f"blocked={blocked_count} captcha={captcha_count} network={network_count} "
         f"still_error={error_count}, errors_top={dict(error_reasons.most_common(5))}"
+    )
+    return {"slow_lane_candidates": slow_lane_candidates}
+
+
+async def _slow_lane_phase(
+    *,
+    title: str,
+    base_url: str,
+    date_pairs: List[Tuple[date, date]],
+    indices: List[int],
+    out: List[str],
+    states: List[str],
+    reasons: List[Optional[str]],
+    parser,
+) -> None:
+    if not indices:
+        return
+
+    try:
+        await asyncio.sleep(_SLOW_LANE_PAUSE_S)
+    except asyncio.CancelledError:
+        return
+
+    recovered_ok = recovered_sold_out = 0
+    blocked_count = captcha_count = network_count = kept_terminal = 0
+    error_reasons: Counter[str] = Counter()
+    t0 = time.time()
+
+    for idx in indices:
+        if _cancel_event.is_set():
+            return
+        if states[idx] not in _SLOW_LANE_RETRY_STATES:
+            continue
+
+        ci, co = date_pairs[idx]
+        url = _build_page_url(base_url, ci, co)
+        previous_state = states[idx]
+        previous_reason = reasons[idx]
+        fresh_parser = parser.__class__()
+        try:
+            fresh_parser._proxy = getattr(parser, "_proxy", None)
+            result = await fresh_parser.fetch(url)
+        except Exception as e:
+            result = {"status": "error", "error": f"slow-lane:{e.__class__.__name__}"}
+        finally:
+            try:
+                await fresh_parser.close()
+            except Exception:
+                pass
+
+        terminal_state, price, reason = _classify_terminal_result(
+            result,
+            phase="slow-lane",
+        )
+
+        if terminal_state in {_ROW_PRICED, _ROW_SOLD_OUT}:
+            _set_pair_status(
+                out,
+                states,
+                idx,
+                title,
+                ci,
+                co,
+                status=terminal_state,
+                price=price,
+                count_progress=True,
+                reasons=reasons,
+                reason=reason,
+            )
+            if terminal_state == _ROW_PRICED:
+                recovered_ok += 1
+            else:
+                recovered_sold_out += 1
+            continue
+
+        if terminal_state in _SLOW_LANE_RETRY_STATES:
+            _set_pair_status(
+                out,
+                states,
+                idx,
+                title,
+                ci,
+                co,
+                status=terminal_state,
+                count_progress=True,
+                reasons=reasons,
+                reason=reason,
+            )
+            if terminal_state == _ROW_BLOCKED:
+                blocked_count += 1
+            elif terminal_state == _ROW_CAPTCHA:
+                captcha_count += 1
+            else:
+                network_count += 1
+            error_reasons[reason] += 1
+            continue
+
+        _set_pair_status(
+            out,
+            states,
+            idx,
+            title,
+            ci,
+            co,
+            status=previous_state,
+            count_progress=True,
+            reasons=reasons,
+            reason=previous_reason or reason,
+        )
+        kept_terminal += 1
+        error_reasons[reason] += 1
+
+    dt = time.time() - t0
+    logger.info(
+        f'DeepAnalysis "{title[:40]}" slow-lane done in {dt:.1f}s: '
+        f"recovered_ok={recovered_ok} recovered_sold_out={recovered_sold_out} "
+        f"blocked={blocked_count} captcha={captcha_count} network={network_count} "
+        f"kept_terminal={kept_terminal}, errors_top={dict(error_reasons.most_common(5))}"
     )
 
 
@@ -1298,6 +1768,12 @@ def _format_row(
         price_str = f"{price:,.0f} ₽".replace(",", "\u202f")
     elif status == _ROW_SOLD_OUT:
         price_str = "[sold_out]"
+    elif status == _ROW_BLOCKED:
+        price_str = "[blocked]"
+    elif status == _ROW_CAPTCHA:
+        price_str = "[captcha]"
+    elif status == _ROW_NETWORK:
+        price_str = "[network]"
     elif status == _ROW_PENDING:
         price_str = "[pending]"
     elif status == _ROW_FALLBACK:
@@ -1322,10 +1798,13 @@ def _set_pair_status(
     status: str,
     price: Optional[float] = None,
     count_progress: bool = False,
+    reasons: Optional[List[Optional[str]]] = None,
+    reason: Optional[str] = None,
 ) -> None:
     prev = states[idx]
     out[idx] = _format_row(title, ci, co, status=status, price=price)
     states[idx] = status
+    _set_pair_reason(reasons, idx, reason)
     if count_progress and prev not in _FINAL_PROGRESS_STATES:
         _state["progress"] += 1
 
@@ -1334,6 +1813,7 @@ def _seal_incomplete_pairs(
     *,
     out: List[str],
     states: List[str],
+    reasons: List[Optional[str]],
     title: str,
     date_pairs: List[Tuple[date, date]],
     cancelled: bool,
@@ -1354,6 +1834,12 @@ def _seal_incomplete_pairs(
             co,
             status=final_state,
             count_progress=count_progress,
+            reasons=reasons,
+            reason=(
+                _compose_reason("seal", "cancelled", reasons[idx])
+                if cancelled
+                else _compose_reason("seal", "error", reasons[idx])
+            ),
         )
         sealed += 1
     return sealed
