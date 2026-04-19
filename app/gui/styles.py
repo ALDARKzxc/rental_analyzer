@@ -51,6 +51,12 @@ QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {
 }
 
 #sidebarStatus { color: #ffa987; font-size: 11px; background: transparent; padding: 10px 14px; }
+#sidebarVersion {
+    color: #b0a09a;
+    font-size: 10px;
+    background: transparent;
+    padding: 0 14px 12px 14px;
+}
 #sidebarDivider { background: #5a5554; max-height: 1px; }
 
 /* ── Cards (правая часть) ── */

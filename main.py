@@ -23,6 +23,7 @@ os.environ["no_proxy"] = "127.0.0.1,localhost,::1"
 
 from loguru import logger
 from app.utils.config import DATA_DIR, LOGS_DIR
+from app.utils.version import APP_VERSION
 
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -89,6 +90,7 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Rental Price Analyzer")
     app.setOrganizationName("RentalTools")
+    app.setApplicationVersion(APP_VERSION.replace("V ", ""))
 
     # Splash screen
     pix = QPixmap(420, 180)

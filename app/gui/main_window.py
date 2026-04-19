@@ -12,6 +12,7 @@ from app.gui.styles import STYLESHEET
 from app.gui.screens.property_list import PropertyListScreen
 from app.gui.screens.add_property import AddPropertyScreen
 from app.gui.api_client import ApiClient
+from app.utils.version import APP_VERSION
 
 
 class MainWindow(QMainWindow):
@@ -86,6 +87,12 @@ class MainWindow(QMainWindow):
 
         self.status_lbl = QLabel("● ГОТОВ")
         self.status_lbl.setObjectName("sidebarStatus"); lay.addWidget(self.status_lbl)
+        self.version_lbl = QLabel(APP_VERSION)
+        self.version_lbl.setObjectName("sidebarVersion")
+        self.version_lbl.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom
+        )
+        lay.addWidget(self.version_lbl)
 
         self._blink_state = True
         self._blink_timer = QTimer()
