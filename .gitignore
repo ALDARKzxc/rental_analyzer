@@ -1,6 +1,13 @@
-# Python cache
+# Python artifacts
 __pycache__/
 *.py[cod]
+*.pyd
+.pytest_cache/
+pytest-cache-files-*/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Virtual environments
 .venv/
@@ -12,14 +19,20 @@ dist/
 *.spec.bak
 
 # Runtime data
-logs/
-результаты анализа/
-*.log
+data/*
+!data/.gitkeep
+logs/*
+!logs/.gitkeep
+результаты анализа/*
+!результаты анализа/.gitkeep
 
 # Local database/state
-data/*.db
-data/*.sqlite
-data/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+
+# Local tool state
+.claude/scheduled_tasks.lock
 
 # OS/editor files
 .DS_Store
