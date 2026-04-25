@@ -18,6 +18,45 @@ _NO_AVAIL_PATTERNS = [
 
 class SutochnoParser(BaseParser):
 
+    async def _extract_listing_metadata(self, page, html: str, url: str) -> Dict[str, Any]:
+        metadata = await super()._extract_listing_metadata(page, html, url)
+
+        title = await self._first_text(page, ["h1"])
+        if title:
+            metadata["title"] = title
+
+        address = await self._first_text(
+            page,
+            [
+                "[class*='address']",
+                "[data-testid*='address']",
+                "[itemprop='streetAddress']",
+            ],
+        )
+        if address:
+            metadata["address"] = address
+
+        image_url = await self._first_attr(
+            page,
+            [
+                "meta[property='og:image']",
+                "meta[name='twitter:image']",
+            ],
+            "content",
+        ) or await self._first_attr(
+            page,
+            [
+                "[class*='gallery'] img[src]",
+                "[class*='slider'] img[src]",
+                "img[src]",
+            ],
+            "src",
+        )
+        if image_url:
+            metadata["image_url"] = image_url
+
+        return metadata
+
     async def _fetch_once(self, url: str) -> Dict[str, Any]:
         context = await self._new_context()
         page = await context.new_page()

@@ -54,8 +54,14 @@ class ApiClient:
                 result.append({
                     "id": p.id, "title": p.title, "url": p.url,
                     "site": p.site, "category": p.category or "Квартиры",
-                    "parse_dates": p.parse_dates, "notes": p.notes,
+                    "parse_dates": p.parse_dates,
+                    "address": p.address,
+                    "guest_capacity": p.guest_capacity,
+                    "preview_path": p.preview_path,
+                    "notes": p.notes,
                     "is_active": p.is_active,
+                    "title_locked": getattr(p, "title_locked", False),
+                    "is_own": bool(getattr(p, "is_own", False)),
                     "created_at": p.created_at.isoformat(),
                     "latest_price":  rec.price      if rec else None,
                     "latest_status": rec.status     if rec else None,
@@ -67,8 +73,10 @@ class ApiClient:
     def create_property(self, title: str, url: str,
                         category: str = "Квартиры",
                         notes: str = None,
-                        title_locked: bool = False) -> Dict:
+                        title_locked: bool = False,
+                        is_own: bool = False) -> Dict:
         from app.backend.database import PropertyRepository
+        from app.backend.property_service import enrich_property_metadata
         from app.parser.dispatcher import ParserDispatcher
 
         async def _():
@@ -83,11 +91,20 @@ class ApiClient:
                 prop = await PropertyRepository.update(
                     any_existing.id,
                     title=title, category=category, notes=notes,
-                    title_locked=title_locked, is_active=True
+                    title_locked=title_locked, is_own=is_own, is_active=True
                 )
+                prop = await enrich_property_metadata(
+                    prop.id,
+                    allow_title_update=not title_locked,
+                ) or prop
                 return {"id": prop.id, "title": prop.title, "url": prop.url,
                         "site": prop.site, "category": prop.category,
                         "parse_dates": prop.parse_dates,
+                        "address": prop.address,
+                        "guest_capacity": prop.guest_capacity,
+                        "preview_path": prop.preview_path,
+                        "title_locked": getattr(prop, "title_locked", False),
+                        "is_own": bool(getattr(prop, "is_own", False)),
                         "is_active": prop.is_active,
                         "created_at": prop.created_at.isoformat(),
                         "latest_price": None, "latest_status": None}
@@ -97,11 +114,21 @@ class ApiClient:
             prop = await PropertyRepository.create(
                 title=title, url=url, site=site,
                 category=category, notes=notes,
-                title_locked=title_locked
+                title_locked=title_locked,
+                is_own=is_own,
             )
+            prop = await enrich_property_metadata(
+                prop.id,
+                allow_title_update=not title_locked,
+            ) or prop
             return {"id": prop.id, "title": prop.title, "url": prop.url,
                     "site": prop.site, "category": prop.category,
                     "parse_dates": prop.parse_dates,
+                    "address": prop.address,
+                    "guest_capacity": prop.guest_capacity,
+                    "preview_path": prop.preview_path,
+                    "title_locked": getattr(prop, "title_locked", False),
+                    "is_own": bool(getattr(prop, "is_own", False)),
                     "is_active": prop.is_active,
                     "created_at": prop.created_at.isoformat(),
                     "latest_price": None, "latest_status": None}

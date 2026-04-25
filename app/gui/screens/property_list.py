@@ -8,6 +8,7 @@ from __future__ import annotations
 import html
 import re
 import time
+from pathlib import Path
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Dict, List, Optional
@@ -22,9 +23,10 @@ from PySide6.QtCore import (
     Qt, Signal, QThread, QObject, QTimer, QEvent,
     QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
 )
-from PySide6.QtGui import QAction, QTextCursor
+from PySide6.QtGui import QAction, QTextCursor, QPixmap
 from loguru import logger
 from app.backend.database import CATEGORIES
+from app.utils.config import DATA_DIR
 
 
 class _PencilLabel(QLabel):
@@ -221,9 +223,11 @@ class PropertyCard(QFrame):
         self._parse_dates = prop.get("parse_dates") or ""
         self._parsing     = False
         self._dot_cnt     = 0
+        self._is_own      = bool(prop.get("is_own", False))
         self._timer       = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self.setObjectName("card"); self.setMinimumHeight(116)
+        self.setObjectName("ownCard" if self._is_own else "card")
+        self.setMinimumHeight(132)
         self._build(prop)
         self._sync_height()
 
@@ -237,16 +241,21 @@ class PropertyCard(QFrame):
         lay.setContentsMargins(18, 14, 18, 14); lay.setSpacing(14)
 
         # Левая полоса
-        bar = QFrame(); bar.setFixedWidth(3); bar.setFixedHeight(56)
+        bar = QFrame(); bar.setFixedWidth(3); bar.setFixedHeight(78)
         bar.setStyleSheet("background:#ffa987;border-radius:2px;")
         lay.addWidget(bar, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        lay.addWidget(self._build_preview(prop), 0, Qt.AlignmentFlag.AlignTop)
 
         # Информация
         info = QVBoxLayout(); info.setSpacing(4)
 
         # Заголовок + карандаш
         title_row = QHBoxLayout(); title_row.setSpacing(4); title_row.setContentsMargins(0,0,0,0)
-        t = QLabel(prop.get("title","Без названия")[:60]); t.setObjectName("cardTitle")
+        full_title = prop.get("title") or "Без названия"
+        display_title = (f"✅  {full_title}" if self._is_own else full_title)[:62]
+        t = QLabel(display_title); t.setObjectName("cardTitle")
+        t.setToolTip(full_title)
         title_row.addWidget(t)
 
         self._pencil = _PencilLabel()
@@ -271,10 +280,30 @@ class PropertyCard(QFrame):
         row2_w.setStyleSheet("background:transparent;")
         info.addWidget(row2_w)
 
+        meta_parts = []
+        meta_tooltip_parts = []
+        address = (prop.get("address") or "").strip()
+        if address:
+            meta_parts.append(f"📍 {address[:110]}")
+            meta_tooltip_parts.append(f"Адрес: {address}")
+
+        guest_capacity = prop.get("guest_capacity")
+        if isinstance(guest_capacity, int) and guest_capacity > 0:
+            meta_parts.append(f"👥 {self._guest_label(guest_capacity)}")
+            meta_tooltip_parts.append(f"Гости: {self._guest_label(guest_capacity)}")
+
+        if meta_parts:
+            meta_lbl = QLabel("  ·  ".join(meta_parts))
+            meta_lbl.setObjectName("hintLabel")
+            meta_lbl.setWordWrap(True)
+            meta_lbl.setToolTip("\n".join(meta_tooltip_parts))
+            info.addWidget(meta_lbl)
+
         self._url_full = (prop.get("url") or "").strip()
         self._url_text = self._url_full[:70]
         self._url_lbl = QLabel()
         self._url_lbl.setObjectName("hintLabel")
+        self._url_lbl.setToolTip(self._url_full)
         self._set_url_clickable(False)
         info.addWidget(self._url_lbl)
 
@@ -431,6 +460,69 @@ class PropertyCard(QFrame):
             "background:transparent;letter-spacing:1px;"
         )
         return l
+
+    @staticmethod
+    def _guest_label(guest_capacity: int) -> str:
+        mod10 = guest_capacity % 10
+        mod100 = guest_capacity % 100
+        if mod10 == 1 and mod100 != 11:
+            suffix = "гость"
+        elif 2 <= mod10 <= 4 and not 12 <= mod100 <= 14:
+            suffix = "гостя"
+        else:
+            suffix = "гостей"
+        return f"{guest_capacity} {suffix}"
+
+    def _build_preview(self, prop: Dict) -> QFrame:
+        frame = QFrame()
+        frame.setFixedSize(110, 82)
+        frame.setStyleSheet(
+            "QFrame { background:#181114; border:1px solid #3a3938; border-radius:10px; }"
+        )
+
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        label = QLabel()
+        label.setFixedSize(110, 82)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("background:transparent;color:#7a6a5c;font-size:11px;font-weight:600;")
+
+        preview_path = prop.get("preview_path")
+        pixmap = self._load_preview_pixmap(preview_path)
+        if pixmap is not None:
+            label.setPixmap(pixmap)
+        else:
+            fallback = (prop.get("site") or "Фото").upper()
+            label.setText(fallback[:12])
+
+        layout.addWidget(label)
+        return frame
+
+    def _load_preview_pixmap(self, preview_path: Optional[str]) -> Optional[QPixmap]:
+        if not preview_path:
+            return None
+
+        path = Path(preview_path)
+        if not path.is_absolute():
+            path = DATA_DIR / path
+        if not path.exists():
+            return None
+
+        pixmap = QPixmap(str(path))
+        if pixmap.isNull():
+            return None
+
+        target_w, target_h = 110, 82
+        scaled = pixmap.scaled(
+            target_w,
+            target_h,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        x = max((scaled.width() - target_w) // 2, 0)
+        y = max((scaled.height() - target_h) // 2, 0)
+        return scaled.copy(x, y, target_w, target_h)
 
     # ── toggle / cancel ───────────────────────────────────────
     def _toggle_edit(self):

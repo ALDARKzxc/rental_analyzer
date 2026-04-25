@@ -5,12 +5,14 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Optional, List
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from app.backend.database import PropertyRepository, PriceRepository, CATEGORIES
+from app.backend.property_service import enrich_property_metadata
 from app.analytics.engine import AnalyticsEngine
 from app.parser.dispatcher import ParserDispatcher as _ParserDispatcher, close_all_parsers
 
@@ -35,6 +37,31 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
 
 _parse_tasks: dict[int, str] = {}
 _parse_semaphore = asyncio.Semaphore(5)
+
+
+def _looks_like_auto_title(prop) -> bool:
+    title = (getattr(prop, "title", "") or "").strip().lower()
+    if not title:
+        return True
+
+    host = urlparse((getattr(prop, "url", "") or "").strip()).netloc
+    host = host.replace("www.", "").strip().lower()
+    return title in {"объект", host}
+
+
+def _needs_metadata_refresh(prop) -> bool:
+    if not prop:
+        return False
+
+    if not getattr(prop, "address", None):
+        return True
+    if not getattr(prop, "guest_capacity", None):
+        return True
+    if not getattr(prop, "preview_path", None):
+        return True
+    if not getattr(prop, "title_locked", False) and _looks_like_auto_title(prop):
+        return True
+    return False
 
 
 async def _body(request: Request) -> dict:
@@ -72,14 +99,28 @@ async def _run_parse(property_id: int):
             error  = result.get("error")
             title  = result.get("title")
 
+            updates = {}
             if title and title != prop.title and len(title) > 2 and not getattr(prop, 'title_locked', False):
-                await PropertyRepository.update(property_id, title=title)
+                updates["title"] = title
+            if result.get("address"):
+                updates["address"] = result["address"]
+            if result.get("guest_capacity"):
+                updates["guest_capacity"] = result["guest_capacity"]
+            if result.get("preview_path"):
+                updates["preview_path"] = result["preview_path"]
+            if updates:
+                await PropertyRepository.update(property_id, **updates)
 
             await PriceRepository.add_record(
                 property_id=property_id,
                 price=price, status=status, error_message=error,
                 parse_dates=prop.parse_dates
             )
+            if _needs_metadata_refresh(prop):
+                prop = await enrich_property_metadata(
+                    property_id,
+                    allow_title_update=not getattr(prop, "title_locked", False),
+                ) or prop
             logger.info(f"Parsed {property_id}: price={price} status={status} dates={prop.parse_dates}")
             _parse_tasks[property_id] = "done"
         except Exception as e:
@@ -106,7 +147,12 @@ def _prop_out(p, rec=None) -> dict:
         "id": p.id, "title": p.title, "url": p.url,
         "site": p.site, "category": p.category or "Квартиры",
         "parse_dates": p.parse_dates,
+        "address": p.address,
+        "guest_capacity": p.guest_capacity,
+        "preview_path": p.preview_path,
         "notes": p.notes, "is_active": p.is_active,
+        "title_locked": getattr(p, "title_locked", False),
+        "is_own": bool(getattr(p, "is_own", False)),
         "created_at": p.created_at.isoformat(),
         "latest_price": None, "latest_status": None, "latest_dates": None,
     }
@@ -154,6 +200,8 @@ async def create_property(request: Request):
     url      = data.get("url", "").strip()
     category = data.get("category", "Квартиры")
     notes    = data.get("notes")
+    title_locked = bool(data.get("title_locked", False))
+    is_own       = bool(data.get("is_own", False))
 
     if not title or not url:
         raise HTTPException(422, f"title and url required, got: {data}")
@@ -166,8 +214,14 @@ async def create_property(request: Request):
     site = ParserDispatcher().detect_site(url)
     prop = await PropertyRepository.create(
         title=title, url=url, site=site,
-        category=category, notes=notes
+        category=category, notes=notes,
+        title_locked=title_locked,
+        is_own=is_own,
     )
+    prop = await enrich_property_metadata(
+        prop.id,
+        allow_title_update=not title_locked,
+    ) or prop
     return _prop_out(prop)
 
 
@@ -184,7 +238,7 @@ async def update_property(prop_id: int, request: Request):
     data = await _body(request)
     prop = await PropertyRepository.update(prop_id, **{
         k: v for k, v in data.items()
-        if k in ("title", "url", "category", "notes", "parse_dates")
+        if k in ("title", "url", "category", "notes", "parse_dates", "title_locked", "is_own")
     })
     if not prop: raise HTTPException(404, "Not found")
     return _prop_out(prop)

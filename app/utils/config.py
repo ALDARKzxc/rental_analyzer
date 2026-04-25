@@ -7,6 +7,7 @@ BASE_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = BASE_DIR / "data"
 LOGS_DIR = BASE_DIR / "logs"
 DB_PATH  = DATA_DIR / "rental_analyzer.db"
+PREVIEWS_DIR = DATA_DIR / "previews"
 
 # Папка для результатов глубокого анализа
 # В compiled-режиме — рядом с exe; в dev — рядом с main.py

@@ -10,6 +10,7 @@ Ostrovok.ru parser.
 """
 from __future__ import annotations
 
+import html as html_lib
 import re
 import json
 import asyncio
@@ -17,7 +18,7 @@ import random
 import uuid
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import urljoin, urlparse, parse_qs, quote
 
 import httpx
 from loguru import logger
@@ -27,9 +28,478 @@ from app.utils.config import PARSER_USER_AGENTS
 
 _PW_NAV_TIMEOUT = 20_000   # ms: "commit" резолвится быстро, это safety-net
 _XHR_WAIT       = 12       # секунд ждём XHR (если нет — fallback на DOM/HTML)
+_MAP_BUTTON_LABELS = ("Показать на карте", "Show on map")
+_ADDRESS_SECTION_TITLES = ("Расположение", "Location")
+_ADDRESS_STOP_LABELS = (
+    "Что есть рядом",
+    "What's nearby",
+    "Достопримечательности",
+    "Places of interest",
+    "Популярные удобства",
+    "Popular amenities",
+    "Доступные номера",
+    "Available rooms",
+    "Посмотреть цены",
+    "See prices",
+)
+_BAD_IMAGE_TOKENS = (
+    "logo",
+    "icon",
+    "avatar",
+    "appstore",
+    "googleplay",
+    "google-play",
+    "playstore",
+    "huawei",
+    "favicon",
+    "sprite",
+    "placeholder",
+)
+
+# "N-местный" → guest count (Ostrovok room names)
+_ROOM_NAME_CAPACITY = {
+    "одноместн":  1,
+    "двухместн":  2,
+    "трехместн":  3,
+    "трёхместн":  3,
+    "четырехместн": 4,
+    "четырёхместн": 4,
+    "пятиместн":  5,
+    "шестиместн": 6,
+    "семиместн":  7,
+    "восьмиместн": 8,
+    "девятиместн": 9,
+    "десятиместн": 10,
+}
 
 
 class OstrovokParser(BaseParser):
+
+    async def _fetch_metadata_once(self, url: str) -> Dict[str, Any]:
+        """
+        Метаданные Ostrovok — server-rendered, поэтому достаём через httpx:
+          • JSON-LD <script type="application/ld+json"> @type:Hotel  → name, address, photo
+          • __NEXT_DATA__ props.pageProps.hotel.roomGroups[]         → guest_capacity
+          • <meta property="og:image">                               → fallback изображение
+          • <h1>                                                     → fallback название
+
+        ~2 сек против ~20 сек у Playwright, без таймаутов SPA.
+        Playwright оставляем как fallback на случай блокировок/CDN-челленджей.
+        """
+        clean_url = url.split("?")[0]
+        html = await self._httpx_fetch_html(clean_url)
+        if html and not self._detect_block(html):
+            metadata = self._extract_metadata_from_html(html, clean_url)
+            if metadata.get("title") or metadata.get("address") or metadata.get("image_url"):
+                logger.info(
+                    f"OstrovokParser metadata (httpx): "
+                    f"title={bool(metadata.get('title'))} "
+                    f"addr={bool(metadata.get('address'))} "
+                    f"img={bool(metadata.get('image_url'))} "
+                    f"guests={metadata.get('guest_capacity')}"
+                )
+                return metadata
+            logger.warning("OstrovokParser metadata (httpx): empty result, fallback Playwright")
+
+        return await self._playwright_metadata(clean_url)
+
+    async def _httpx_fetch_html(self, url: str) -> Optional[str]:
+        """Тянем HTML с системным прокси (если есть), иначе напрямую."""
+        for proxy in [self._proxy, None] if self._proxy else [None]:
+            try:
+                kwargs: dict = {
+                    "timeout": httpx.Timeout(15.0, connect=5.0),
+                    "follow_redirects": True,
+                    "trust_env": False,
+                }
+                if proxy:
+                    kwargs["proxy"] = proxy
+                async with httpx.AsyncClient(**kwargs) as client:
+                    resp = await client.get(url, headers=self._headers())
+                if resp.status_code == 200 and resp.text and len(resp.text) > 5000:
+                    return resp.text
+                logger.debug(
+                    f"OstrovokParser httpx metadata (proxy={bool(proxy)}): "
+                    f"status={resp.status_code} len={len(resp.text or '')}"
+                )
+            except Exception as e:
+                logger.debug(
+                    f"OstrovokParser httpx metadata (proxy={bool(proxy)}) error: {e}"
+                )
+        return None
+
+    def _extract_metadata_from_html(self, html: str, url: str) -> Dict[str, Any]:
+        """Достаём всё из server-rendered HTML — без браузера."""
+        next_data = self._parse_next_data(html)
+        hotel = self._next_data_hotel(next_data)
+        jsonld_hotel = self._jsonld_hotel(html)
+
+        title = self._meta_title(hotel, jsonld_hotel, html)
+        address = self._meta_address(hotel, jsonld_hotel)
+        image_url = self._meta_image(hotel, jsonld_hotel, html, url)
+        guest_capacity = self._meta_guest_capacity(hotel, html)
+
+        return {
+            "title":          title,
+            "image_url":      image_url,
+            "address":        address,
+            "guest_capacity": guest_capacity,
+        }
+
+    def _parse_next_data(self, html: str) -> Optional[dict]:
+        m = re.search(
+            r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>\s*(\{.*?\})\s*</script>',
+            html,
+            re.S,
+        )
+        if not m:
+            return None
+        try:
+            return json.loads(m.group(1))
+        except Exception:
+            return None
+
+    def _next_data_hotel(self, next_data: Optional[dict]) -> Optional[dict]:
+        if not isinstance(next_data, dict):
+            return None
+        try:
+            hotel = next_data["props"]["pageProps"]["hotel"]
+        except (KeyError, TypeError):
+            return None
+        return hotel if isinstance(hotel, dict) else None
+
+    def _jsonld_hotel(self, html: str) -> Optional[dict]:
+        for obj in self._jsonld_objects(html):
+            if isinstance(obj, dict) and obj.get("@type") == "Hotel":
+                return obj
+        return None
+
+    def _meta_title(
+        self, hotel: Optional[dict], jsonld: Optional[dict], html: str,
+    ) -> Optional[str]:
+        if hotel:
+            name = hotel.get("name")
+            if isinstance(name, str) and name.strip():
+                return name.strip()[:300]
+        if jsonld:
+            name = jsonld.get("name")
+            if isinstance(name, str) and name.strip():
+                return name.strip()[:300]
+        return self._html_title(html)
+
+    def _meta_address(
+        self, hotel: Optional[dict], jsonld: Optional[dict],
+    ) -> Optional[str]:
+        # JSON-LD streetAddress — самый надёжный источник
+        if jsonld:
+            addr = jsonld.get("address")
+            if isinstance(addr, dict):
+                street = addr.get("streetAddress")
+                if isinstance(street, str) and street.strip():
+                    return " ".join(street.split())[:500]
+
+        # __NEXT_DATA__ location.address
+        if hotel:
+            loc = hotel.get("location")
+            if isinstance(loc, dict):
+                for key in ("address", "fullAddress", "displayAddress"):
+                    val = loc.get(key)
+                    if isinstance(val, str) and val.strip():
+                        return " ".join(val.split())[:500]
+
+        return None
+
+    def _meta_image(
+        self,
+        hotel: Optional[dict],
+        jsonld: Optional[dict],
+        html: str,
+        url: str,
+    ) -> Optional[str]:
+        candidates: List[str] = []
+
+        if jsonld:
+            photo = jsonld.get("photo")
+            if isinstance(photo, str):
+                candidates.append(photo)
+            images = jsonld.get("image")
+            if isinstance(images, list):
+                for img in images:
+                    if isinstance(img, str):
+                        candidates.append(img)
+                    elif isinstance(img, dict) and isinstance(img.get("url"), str):
+                        candidates.append(img["url"])
+
+        if hotel:
+            for key in ("images", "photos"):
+                images = hotel.get(key)
+                if not isinstance(images, list):
+                    continue
+                for img in images[:10]:
+                    if isinstance(img, str):
+                        candidates.append(img)
+                    elif isinstance(img, dict):
+                        for url_key in ("src", "url", "originalUrl", "previewUrl"):
+                            v = img.get(url_key)
+                            if isinstance(v, str):
+                                candidates.append(v)
+
+        # og:image / twitter:image
+        for pattern in (
+            r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+        ):
+            for m in re.finditer(pattern, html, re.IGNORECASE):
+                candidates.append(m.group(1))
+
+        # CDN URLs из самого HTML — на случай если ничего выше не сработало
+        for m in re.finditer(
+            r'(?:https?:)?//cdn\.worldota\.net/[^"\'>\s]+',
+            html,
+            re.IGNORECASE,
+        ):
+            candidates.append(m.group(0))
+
+        return self._pick_ostrovok_image(candidates, url)
+
+    def _meta_guest_capacity(
+        self, hotel: Optional[dict], html: str,
+    ) -> Optional[int]:
+        capacities: List[int] = []
+
+        if hotel:
+            # roomGroups[].nameStruct.mainName: "Двухместный ...", "Четырёхместный ..."
+            for room in (hotel.get("roomGroups") or []):
+                if not isinstance(room, dict):
+                    continue
+                ns = room.get("nameStruct")
+                name = ns.get("mainName") if isinstance(ns, dict) else None
+                if not isinstance(name, str):
+                    continue
+                cap = self._capacity_from_room_name(name)
+                if cap:
+                    capacities.append(cap)
+
+            # apartmentsInfo.capacity (часто = 0, но на всякий случай)
+            ai = hotel.get("apartmentsInfo")
+            if isinstance(ai, dict):
+                cap_val = ai.get("capacity")
+                if isinstance(cap_val, (int, float)) and 1 <= cap_val <= 30:
+                    capacities.append(int(cap_val))
+
+        # HTML-уровневый fallback (для случаев когда __NEXT_DATA__ не пришёл)
+        if not capacities:
+            html_cap = self._extract_ostrovok_guest_capacity_from_html(html)
+            if html_cap:
+                capacities.append(html_cap)
+
+        return max(capacities) if capacities else None
+
+    @staticmethod
+    def _capacity_from_room_name(name: str) -> Optional[int]:
+        lower = name.lower()
+        for token, value in _ROOM_NAME_CAPACITY.items():
+            if token in lower:
+                return value
+        return None
+
+    async def _playwright_metadata(self, url: str) -> Dict[str, Any]:
+        """Fallback на случай если httpx был заблокирован/CDN-челлендж."""
+        context = await self._new_context()
+        page = await context.new_page()
+        try:
+            try:
+                response = await page.goto(
+                    url,
+                    timeout=_PW_NAV_TIMEOUT,
+                    wait_until="domcontentloaded",
+                )
+                if response and response.status in (403, 429, 503):
+                    raise BlockedError(f"HTTP {response.status}")
+            except BlockedError:
+                raise
+            except Exception as exc:
+                logger.debug(f"OstrovokParser playwright nav: {exc}")
+
+            try:
+                await page.wait_for_load_state("networkidle", timeout=6_000)
+            except Exception:
+                pass
+            await self._human_delay(0.3, 0.6)
+
+            try:
+                html = await page.content()
+            except Exception:
+                html = ""
+
+            if html and self._detect_block(html):
+                raise BlockedError("Blocked")
+
+            metadata = self._extract_metadata_from_html(html, url) if html else {}
+
+            # Доп. шанс: если streetAddress не вытащился — берём из DOM
+            if not metadata.get("address"):
+                metadata["address"] = self._extract_ostrovok_address_from_html(html or "")
+            logger.info(
+                f"OstrovokParser metadata (playwright fallback): "
+                f"title={bool(metadata.get('title'))} "
+                f"img={bool(metadata.get('image_url'))}"
+            )
+            return metadata
+        finally:
+            try:
+                await page.close()
+            except Exception:
+                pass
+            try:
+                await context.close()
+            except Exception:
+                pass
+
+    def _extract_ostrovok_address_from_html(self, html: str) -> Optional[str]:
+        if not html:
+            return None
+
+        patterns = (
+            r"(?:Показать на карте|Show on map)\s*</[^>]+>\s*<[^>]+>\s*([^<]{5,180})<",
+            r"(?:Расположение|Location)</[^>]+>\s*<[^>]+>\s*([^<]{5,180})<",
+            r"([^<>]{5,180}?)(?:Показать на карте|Show on map)",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, html, re.IGNORECASE | re.S)
+            if not match:
+                continue
+            candidate = self._clean_ostrovok_address(match.group(1))
+            if candidate:
+                return candidate
+
+        return None
+
+    def _clean_ostrovok_address(self, value: Any) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+
+        text = html_lib.unescape(value).replace("\\/", "/")
+        text = re.sub(r"\[(?:Button|Кнопка):\s*", " ", text, flags=re.IGNORECASE)
+        text = text.replace("]", " ")
+        for label in _MAP_BUTTON_LABELS:
+            text = re.sub(re.escape(label), " ", text, flags=re.IGNORECASE)
+
+        text = re.sub(
+            r"\b\d+[,.]?\d*\s*(?:м|км|m|km)\s+(?:от центра|from the city center).*$",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = " ".join(text.split()).strip(" ,;|-")
+
+        if not text or len(text) < 5 or len(text) > 180:
+            return None
+        if not self._looks_like_ostrovok_address(text):
+            return None
+        return text[:500]
+
+    def _looks_like_ostrovok_address(self, text: str) -> bool:
+        lower = text.lower()
+
+        if any(label.lower() in lower for label in _MAP_BUTTON_LABELS):
+            return False
+        if any(label.lower() in lower for label in _ADDRESS_STOP_LABELS):
+            return False
+        if lower in {label.lower() for label in _ADDRESS_SECTION_TITLES}:
+            return False
+        if "от центра" in lower or "from the city center" in lower:
+            return False
+        if any(
+            bad in lower for bad in (
+                "канатной дороги",
+                "горнолыжного подъёмника",
+                "горнолыжного подъемника",
+                "ski lift",
+                "что вокруг",
+            )
+        ):
+            return False
+
+        has_number = bool(re.search(r"\d", text))
+        has_hint = bool(re.search(
+            r"(?:\bул\.?\b|улиц|ulitsa|street|str\.|road\b|проспект|пер\.?|переулок|проезд|набереж|шоссе|бульвар|дом\b|д\.\s*\d|километр|kilometer)",
+            lower,
+            re.IGNORECASE,
+        ))
+        has_comma = "," in text
+        has_city = any(city in lower for city in ("терскол", "terskol"))
+        return (has_number and (has_hint or has_comma)) or (has_city and has_number and has_comma)
+
+    def _extract_ostrovok_guest_capacity_from_html(self, html: str) -> Optional[int]:
+        if not html:
+            return None
+
+        candidates: List[int] = []
+        patterns = (
+            r'"(?:max_guests|maxGuests|max_persons|maxPersons|max_occupancy|maxOccupancy|guest_capacity|guestCapacity|room_capacity|roomCapacity|placement_capacity|placementCapacity)"\s*:\s*"?(\d{1,2})"?',
+            r"(?:до|для|на|максимум|макс\.?|вмещает(?:\s+до)?|up to|for)\s*(\d{1,2})\s*(?:гост[а-я]*|guests?|persons?)",
+            r"(\d{1,2})\s*[- ]?\s*(?:местн(?:ый|ая|ое|ые)?|гост[а-я]*|guests?|persons?)",
+        )
+        for pattern in patterns:
+            for match in re.finditer(pattern, html, re.IGNORECASE):
+                value = int(match.group(1))
+                if 1 <= value <= 30:
+                    candidates.append(value)
+
+        return max(candidates) if candidates else None
+
+    def _pick_ostrovok_image(self, candidates: List[str], page_url: str) -> Optional[str]:
+        scored: List[tuple[int, str]] = []
+
+        for raw in candidates:
+            candidate = self._normalize_ostrovok_image_url(raw, page_url)
+            if not candidate:
+                continue
+
+            lower = candidate.lower()
+            if any(token in lower for token in _BAD_IMAGE_TOKENS):
+                continue
+
+            score = 0
+            if "cdn.worldota.net" in lower:
+                score += 50
+            if "/content/" in lower:
+                score += 20
+            if any(size in lower for size in ("640x400", "1024x768", "1200x800", "1280x720")):
+                score += 10
+            if lower.endswith((".jpg", ".jpeg", ".png", ".webp")):
+                score += 5
+
+            scored.append((score, candidate))
+
+        if not scored:
+            return None
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return scored[0][1]
+
+    def _normalize_ostrovok_image_url(self, value: Any, page_url: str) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+
+        candidate = html_lib.unescape(value).replace("\\/", "/").strip()
+        if not candidate:
+            return None
+
+        candidate = candidate.split(",")[0].strip().split()[0]
+        if candidate.startswith("//"):
+            candidate = f"https:{candidate}"
+        candidate = self._absolute_url(candidate, page_url)
+
+        if not candidate.startswith(("http://", "https://")):
+            return None
+        return candidate
+
+    def _absolute_url(self, candidate: str, page_url: str) -> str:
+        if candidate.startswith(("http://", "https://")):
+            return candidate
+        return urljoin(page_url, candidate)
 
     # ── Entry point ──────────────────────────────────────────────
 

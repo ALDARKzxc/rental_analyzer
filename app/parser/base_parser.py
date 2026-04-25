@@ -4,12 +4,14 @@ Base parser — proxy-aware, retry logic, block detection.
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 import re
 import os
 import sys
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
+from urllib.parse import urljoin
 
 from loguru import logger
 
@@ -218,6 +220,344 @@ class BaseParser(ABC):
                         return val
                 except ValueError:
                     continue
+        return None
+
+    async def fetch_metadata(self, url: str) -> Dict[str, Any]:
+        for attempt in range(1, PARSER_RETRY_COUNT + 1):
+            try:
+                metadata = await self._fetch_metadata_once(url)
+                logger.debug(
+                    f"[{self.__class__.__name__}] metadata attempt={attempt} "
+                    f"title={bool(metadata.get('title'))} "
+                    f"image={bool(metadata.get('image_url'))}"
+                )
+                return metadata
+            except (BlockedError, CaptchaError, DataNotFoundError) as e:
+                logger.warning(
+                    f"[{self.__class__.__name__}] Metadata attempt {attempt}: {e}"
+                )
+                if attempt < PARSER_RETRY_COUNT:
+                    await asyncio.sleep(PARSER_RETRY_DELAY * attempt)
+            except Exception as e:
+                logger.warning(
+                    f"[{self.__class__.__name__}] Metadata error attempt {attempt}: {e}"
+                )
+                if attempt < PARSER_RETRY_COUNT:
+                    await asyncio.sleep(PARSER_RETRY_DELAY)
+        return {}
+
+    async def _fetch_metadata_once(self, url: str) -> Dict[str, Any]:
+        context = await self._new_context()
+        page = await context.new_page()
+        try:
+            try:
+                response = await page.goto(
+                    url,
+                    timeout=PARSER_TIMEOUT,
+                    wait_until="domcontentloaded",
+                )
+                if response and response.status in (403, 429, 503):
+                    raise BlockedError(f"HTTP {response.status}")
+            except BlockedError:
+                raise
+            except Exception as exc:
+                logger.debug(
+                    f"[{self.__class__.__name__}] metadata nav warning: {exc}"
+                )
+            try:
+                await page.wait_for_load_state("domcontentloaded", timeout=8_000)
+            except Exception:
+                pass
+            await self._human_delay(0.2, 0.5)
+
+            try:
+                html = await page.content()
+            except Exception:
+                html = ""
+            if html and self._detect_block(html):
+                raise BlockedError("Blocked")
+
+            return await self._extract_listing_metadata(page, html, url)
+        finally:
+            try:
+                await page.close()
+            except Exception:
+                pass
+            try:
+                await context.close()
+            except Exception:
+                pass
+
+    async def _extract_listing_metadata(
+        self,
+        page,
+        html: str,
+        url: str,
+    ) -> Dict[str, Any]:
+        body_text = await self._page_text(page)
+        return {
+            "title": await self._extract_listing_title(page, html),
+            "image_url": await self._extract_listing_image(page, html, url),
+            "address": await self._extract_listing_address(page, html, body_text),
+            "guest_capacity": self._extract_guest_capacity(html, body_text),
+        }
+
+    async def _extract_listing_title(self, page, html: str) -> Optional[str]:
+        title = await self._first_text(
+            page,
+            [
+                "h1[itemprop='name']",
+                "[data-testid*='title']",
+                "[class*='title'] h1",
+                "h1",
+            ],
+        )
+        if title:
+            return title[:300]
+
+        for pattern in (
+            r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+name=["\']twitter:title["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<title>\s*([^<]{3,300})',
+        ):
+            match = re.search(pattern, html, re.IGNORECASE | re.S)
+            if match:
+                return " ".join(match.group(1).split())[:300]
+
+        return None
+
+    async def _extract_listing_image(
+        self,
+        page,
+        html: str,
+        url: str,
+    ) -> Optional[str]:
+        candidate = await self._first_attr(
+            page,
+            [
+                "meta[property='og:image']",
+                "meta[name='twitter:image']",
+            ],
+            "content",
+        )
+        if not candidate:
+            candidate = await self._first_attr(page, ["img[src]"], "src")
+
+        if not candidate:
+            for pattern in (
+                r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+                r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+            ):
+                match = re.search(pattern, html, re.IGNORECASE)
+                if match:
+                    candidate = match.group(1)
+                    break
+
+        if not candidate:
+            for obj in self._jsonld_objects(html):
+                image = self._jsonld_image(obj)
+                if image:
+                    candidate = image
+                    break
+
+        if candidate:
+            return urljoin(url, candidate)
+        return None
+
+    async def _extract_listing_address(
+        self,
+        page,
+        html: str,
+        body_text: str,
+    ) -> Optional[str]:
+        address = await self._first_text(
+            page,
+            [
+                "[itemprop='streetAddress']",
+                "[data-testid*='address']",
+                "[class*='address']",
+                "[class*='location']",
+            ],
+        )
+        if address:
+            return address[:500]
+
+        for obj in self._jsonld_objects(html):
+            street = self._jsonld_address(obj)
+            if street:
+                return street[:500]
+
+        match = re.search(
+            r"(?:Адрес|Address)\s*[:\-]?\s*([^\n\r]{5,200})",
+            body_text,
+            re.IGNORECASE,
+        )
+        if match:
+            return " ".join(match.group(1).split())[:500]
+
+        return None
+
+    async def _first_text(self, page, selectors: list[str]) -> Optional[str]:
+        for selector in selectors:
+            try:
+                element = await page.query_selector(selector)
+                if not element:
+                    continue
+                text = (await element.inner_text()).strip()
+                if text:
+                    return " ".join(text.split())
+            except Exception:
+                continue
+        return None
+
+    async def _first_attr(
+        self,
+        page,
+        selectors: list[str],
+        attr_name: str,
+    ) -> Optional[str]:
+        for selector in selectors:
+            try:
+                element = await page.query_selector(selector)
+                if not element:
+                    continue
+                value = await element.get_attribute(attr_name)
+                if value:
+                    return value.strip()
+            except Exception:
+                continue
+        return None
+
+    async def _page_text(self, page) -> str:
+        try:
+            text = await page.evaluate(
+                "() => document.body ? (document.body.innerText || document.body.textContent || '') : ''"
+            )
+        except Exception:
+            return ""
+        return " ".join(str(text).split())
+
+    def _jsonld_objects(self, html: str) -> list[Any]:
+        objects: list[Any] = []
+        for match in re.finditer(
+            r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+            html,
+            re.IGNORECASE | re.S,
+        ):
+            try:
+                parsed = json.loads(match.group(1))
+            except Exception:
+                continue
+            if isinstance(parsed, list):
+                objects.extend(parsed)
+            else:
+                objects.append(parsed)
+        return objects
+
+    def _jsonld_image(self, obj: Any) -> Optional[str]:
+        if isinstance(obj, dict):
+            image = obj.get("image")
+            if isinstance(image, str) and image:
+                return image
+            if isinstance(image, list):
+                for item in image:
+                    if isinstance(item, str) and item:
+                        return item
+                    if isinstance(item, dict):
+                        url = item.get("url")
+                        if isinstance(url, str) and url:
+                            return url
+            if isinstance(image, dict):
+                url = image.get("url")
+                if isinstance(url, str) and url:
+                    return url
+            for value in obj.values():
+                found = self._jsonld_image(value)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = self._jsonld_image(item)
+                if found:
+                    return found
+        return None
+
+    def _jsonld_address(self, obj: Any) -> Optional[str]:
+        if isinstance(obj, dict):
+            address = obj.get("address")
+            if isinstance(address, dict):
+                street = address.get("streetAddress")
+                if isinstance(street, str) and street:
+                    return " ".join(street.split())
+            for value in obj.values():
+                found = self._jsonld_address(value)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = self._jsonld_address(item)
+                if found:
+                    return found
+        return None
+
+    def _extract_guest_capacity(self, html: str, body_text: str) -> Optional[int]:
+        for obj in self._jsonld_objects(html):
+            found = self._jsonld_guest_capacity(obj)
+            if found:
+                return found
+
+        patterns = (
+            r"до\s+(\d{1,2})\s+гост",
+            r"(\d{1,2})\s+гост[ьяей]",
+            r"for\s+(\d{1,2})\s+guest",
+            r"sleeps\s+(\d{1,2})",
+            r"capacity\s*[:\-]?\s*(\d{1,2})",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, body_text, re.IGNORECASE)
+            if not match:
+                continue
+            try:
+                value = int(match.group(1))
+            except ValueError:
+                continue
+            if 1 <= value <= 30:
+                return value
+
+        return None
+
+    def _jsonld_guest_capacity(self, obj: Any) -> Optional[int]:
+        if isinstance(obj, dict):
+            for key in (
+                "occupancy",
+                "maxOccupancy",
+                "maximumAttendeeCapacity",
+                "guestCapacity",
+                "numberOfGuests",
+                "guests",
+                "guest_count",
+                "person_capacity",
+                "capacity",
+                "max_guests",
+            ):
+                value = obj.get(key)
+                if isinstance(value, (int, float)) and 1 <= int(value) <= 30:
+                    return int(value)
+                if isinstance(value, str):
+                    match = re.search(r"\d{1,2}", value)
+                    if match:
+                        amount = int(match.group(0))
+                        if 1 <= amount <= 30:
+                            return amount
+            for value in obj.values():
+                found = self._jsonld_guest_capacity(value)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = self._jsonld_guest_capacity(item)
+                if found:
+                    return found
         return None
 
     async def fetch(self, url: str) -> Dict[str, Any]:

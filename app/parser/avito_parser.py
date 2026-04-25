@@ -26,6 +26,74 @@ _ITEM_API = "https://www.avito.ru/web/1/item/{item_id}"
 
 class AvitoParser(BaseParser):
 
+    async def _fetch_metadata_once(self, url: str) -> Dict[str, Any]:
+        vp = random.choice([
+            {"width": 1366, "height": 768},
+            {"width": 1440, "height": 900},
+            {"width": 1920, "height": 1080},
+        ])
+        context = await self._stealth_context(vp)
+        page = await context.new_page()
+        try:
+            try:
+                await page.goto(
+                    "https://www.avito.ru/",
+                    timeout=12_000,
+                    wait_until="domcontentloaded",
+                )
+                await self._human_delay(0.6, 1.2)
+            except Exception:
+                pass
+
+            response = await page.goto(
+                url,
+                timeout=PARSER_TIMEOUT,
+                wait_until="domcontentloaded",
+            )
+            if response and response.status in (403, 429, 503):
+                raise BlockedError(f"HTTP {response.status}")
+
+            await self._human_delay(0.8, 1.5)
+            await self._mouse_wander(page)
+
+            html = await page.content()
+            if self._detect_block(html):
+                if "captcha" in html.lower():
+                    raise CaptchaError("Captcha detected")
+                raise BlockedError("Blocked")
+
+            return await self._extract_listing_metadata(page, html, url)
+        finally:
+            try:
+                await page.close()
+            except Exception:
+                pass
+            try:
+                await context.close()
+            except Exception:
+                pass
+
+    async def _extract_listing_metadata(self, page, html: str, url: str) -> Dict[str, Any]:
+        metadata = await super()._extract_listing_metadata(page, html, url)
+
+        title = await self._pw_title(page)
+        if title and title != "Unknown":
+            metadata["title"] = title
+
+        address = await self._first_text(
+            page,
+            [
+                "[data-marker='item-view/item-address']",
+                "[data-marker='item-view/address']",
+                "[itemprop='address']",
+                "[class*='address']",
+            ],
+        )
+        if address:
+            metadata["address"] = address
+
+        return metadata
+
     async def _fetch_once(self, url: str) -> Dict[str, Any]:
         item_id = self._extract_avito_id(url)
 

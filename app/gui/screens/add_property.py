@@ -167,7 +167,7 @@ class AddPropertyScreen(QWidget):
         cl.addWidget(self._lbl("НАЗВАНИЕ ОБЪЕКТА"))
 
         self.inp_title = QLineEdit()
-        self.inp_title.setPlaceholderText("Будет получено при первом обновлении")
+        self.inp_title.setPlaceholderText("Будет получено при сохранении")
         self.inp_title.setFixedHeight(40)
         self.inp_title.setEnabled(False)
         self.inp_title.setStyleSheet(self._INP_DISABLED)
@@ -198,6 +198,20 @@ class AddPropertyScreen(QWidget):
 
         hint = QLabel("Вставьте чистую ссылку без дат — даты задаются отдельно на главном экране")
         hint.setObjectName("hintLabel"); hint.setWordWrap(True); cl.addWidget(hint)
+
+        # ── Тумблер «Свой объект» (независимая отметка) ────────────
+        own_row = QHBoxLayout()
+        own_row.setSpacing(10)
+        own_row.setContentsMargins(0, 10, 0, 0)
+
+        self.toggle_own = ToggleSwitch()
+        own_row.addWidget(self.toggle_own)
+
+        own_hint = QLabel("Свой объект (✅ и зелёная рамка в списке)")
+        own_hint.setObjectName("hintLabel")
+        own_hint.setWordWrap(True)
+        own_row.addWidget(own_hint, 1)
+        cl.addLayout(own_row)
 
         cl.addWidget(self._div())
         cl.addWidget(self._sec("КАТЕГОРИЯ"))
@@ -280,7 +294,7 @@ class AddPropertyScreen(QWidget):
         else:
             self.inp_title.setStyleSheet(self._INP_DISABLED)
             self.inp_title.clear()
-            self.inp_title.setPlaceholderText("Будет получено при первом обновлении")
+            self.inp_title.setPlaceholderText("Будет получено при сохранении")
 
     # ── reset / load ──────────────────────────────────────────────
     def reset(self, prop=None):
@@ -300,6 +314,8 @@ class AddPropertyScreen(QWidget):
         self.toggle_title.toggled.connect(self._on_title_toggle)
         self._on_title_toggle(False)
 
+        self.toggle_own.setChecked(False)
+
         if prop:
             self.prop_id = prop.get("id")
             self.inp_url.setText(prop.get("url", ""))
@@ -316,6 +332,8 @@ class AddPropertyScreen(QWidget):
             self._on_title_toggle(locked)
             if locked:
                 self.inp_title.setText(prop.get("title", ""))
+
+            self.toggle_own.setChecked(bool(prop.get("is_own", False)))
 
     # ── save ──────────────────────────────────────────────────────
     def _save(self):
@@ -335,12 +353,13 @@ class AddPropertyScreen(QWidget):
             except Exception:
                 title = "Объект"
 
-        self.btn_save.setEnabled(False); self.btn_save.setText("Сохранение...")
+        self.btn_save.setEnabled(False); self.btn_save.setText("Сохранение и загрузка...")
         data = {
             "title": title, "url": url,
             "category": self.combo_cat.currentText(),
             "notes": self.inp_notes.toPlainText().strip() or None,
             "title_locked": title_locked,
+            "is_own": self.toggle_own.isChecked(),
         }
         # Сохраняем старый поток, чтобы GC не убил его раньше времени
         self._dead_threads = getattr(self, "_dead_threads", [])

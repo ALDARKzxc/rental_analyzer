@@ -84,3 +84,20 @@ class ParserDispatcher:
                 "status": "error",
                 "error": str(e),
             }
+
+    async def fetch_metadata(self, url: str) -> Dict[str, Any]:
+        """Dispatch metadata extraction to the matching parser."""
+        site = self.detect_site(url)
+        logger.info(f"Dispatching metadata: site={site} url={url[:80]}")
+
+        if site not in _PARSER_INSTANCES:
+            _PARSER_INSTANCES[site] = _make_parser(site)
+            logger.debug(f"Dispatcher: created new parser for site={site}")
+
+        parser = _PARSER_INSTANCES[site]
+
+        try:
+            return await parser.fetch_metadata(url)
+        except Exception as e:
+            logger.warning(f"Dispatcher metadata error for {url}: {e}")
+            return {}

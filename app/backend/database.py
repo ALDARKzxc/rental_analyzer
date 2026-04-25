@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, List
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, Boolean, text
@@ -10,7 +11,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.future import select
 from loguru import logger
 
-from app.utils.config import DB_PATH
+from app.utils.config import DB_PATH, DATA_DIR
 
 DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 Base = declarative_base()
@@ -28,8 +29,12 @@ class Property(Base):
     category     = Column(String(50),  nullable=True, default="Квартиры")
     parse_dates  = Column(String(30),  nullable=True)
     notes        = Column(Text,        nullable=True)
+    address      = Column(String(500), nullable=True)
+    guest_capacity = Column(Integer,   nullable=True)
+    preview_path = Column(String(500), nullable=True)
     is_active    = Column(Boolean, default=True)
     title_locked = Column(Boolean, default=False)   # если True — парсер не перезаписывает название
+    is_own       = Column(Boolean, default=False)   # отметка «свой объект» — ✅ + зелёная рамка
     created_at   = Column(DateTime, default=datetime.utcnow)
     updated_at   = Column(DateTime, default=datetime.utcnow)
 
@@ -63,7 +68,11 @@ async def _migrate(conn):
     migrations = [
         ("properties", "category",     "TEXT DEFAULT 'Квартиры'"),
         ("properties", "parse_dates",  "TEXT"),
+        ("properties", "address",      "TEXT"),
+        ("properties", "guest_capacity", "INTEGER"),
+        ("properties", "preview_path", "TEXT"),
         ("properties", "title_locked", "INTEGER DEFAULT 0"),
+        ("properties", "is_own",       "INTEGER DEFAULT 0"),
         ("price_records", "parse_dates", "TEXT"),
     ]
     for table, col, col_def in migrations:
@@ -127,12 +136,14 @@ class PropertyRepository:
     @staticmethod
     async def create(title: str, url: str, site: str = None,
                      category: str = "Квартиры", notes: str = None,
-                     title_locked: bool = False) -> Property:
+                     title_locked: bool = False,
+                     is_own: bool = False) -> Property:
         async with AsyncSessionLocal() as s:
             prop = Property(
                 title=title, url=url.split("?")[0],
                 site=site, category=category, notes=notes,
-                title_locked=title_locked
+                title_locked=title_locked,
+                is_own=is_own,
             )
             s.add(prop)
             await s.commit()
@@ -190,10 +201,26 @@ class PropertyRepository:
                 select(Property).where(Property.id == prop_id)
             )).scalar_one_or_none()
             if prop:
+                preview_path = prop.preview_path
                 await s.delete(prop)
                 await s.commit()
+                PropertyRepository._delete_preview_file(preview_path)
                 return True
             return False
+
+    @staticmethod
+    def _delete_preview_file(preview_path: Optional[str]) -> None:
+        if not preview_path:
+            return
+
+        try:
+            path = Path(preview_path)
+            if not path.is_absolute():
+                path = DATA_DIR / path
+            if path.exists():
+                path.unlink()
+        except Exception:
+            logger.warning(f"Failed to remove preview file: {preview_path}")
 
 
 class PriceRepository:

@@ -67,6 +67,13 @@ QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {
 }
 #card:hover { border-color: #ffa987; background: #22222a; }
 
+#ownCard {
+    background-color: #1e1e24;
+    border: 2px solid #4ade80;
+    border-radius: 14px;
+}
+#ownCard:hover { border-color: #6ee897; background: #22222a; }
+
 #cardTitle    { font-size: 14px; font-weight: 600; color: #f7ebe8; background: transparent; }
 #cardSub      { font-size: 12px; color: #b0a09a; background: transparent; }
 #categoryBadge {
