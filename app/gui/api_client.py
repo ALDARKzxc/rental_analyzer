@@ -163,6 +163,15 @@ class ApiClient:
             return {"updated": count}
         return _w(_())
 
+    def set_all_dates(self, dates: str) -> Dict:
+        """Установить даты парсинга для всех активных объектов."""
+        from app.backend.database import PropertyRepository
+
+        async def _():
+            count = await PropertyRepository.set_all_dates(dates)
+            return {"updated": count}
+        return _w(_())
+
     def set_property_dates(self, prop_id: int, dates: str) -> Dict:
         from app.backend.database import PropertyRepository
 

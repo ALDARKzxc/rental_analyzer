@@ -16,7 +16,44 @@ from app.utils.config import DB_PATH, DATA_DIR
 DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 Base = declarative_base()
 
-CATEGORIES = ["Квартиры", "Апартаменты", "Дома", "Коттеджи"]
+CATEGORIES = [
+    "Квартиры",
+    "Квартира - 1 комната",
+    "Квартира - 2 комнаты",
+    "Квартира - 3 комнаты",
+    "Апартаменты",
+    "Дома",
+    "Дом - до 2 человек",
+    "Дом - до 4 человек",
+    "Дом - до 6 человек",
+    "Дом - до 8 человек",
+    "Дом - до 10 человек",
+    "Дом - свыше 10 человек",
+    "Коттеджи",
+]
+
+# Группы-«зонтики» в фильтре главного экрана: при выборе показываются объекты
+# всех вложенных подкатегорий + сама группа (для совместимости со старыми записями).
+CATEGORY_GROUPS = {
+    "Квартиры": [
+        "Квартиры",
+        "Квартира - 1 комната",
+        "Квартира - 2 комнаты",
+        "Квартира - 3 комнаты",
+    ],
+    "Дома": [
+        "Дома",
+        "Дом - до 2 человек",
+        "Дом - до 4 человек",
+        "Дом - до 6 человек",
+        "Дом - до 8 человек",
+        "Дом - до 10 человек",
+        "Дом - свыше 10 человек",
+    ],
+}
+
+# Категории, доступные для выбора при добавлении объекта (без зонтичных групп).
+ADD_CATEGORIES = [c for c in CATEGORIES if c not in CATEGORY_GROUPS]
 
 
 class Property(Base):
@@ -98,7 +135,10 @@ class PropertyRepository:
         async with AsyncSessionLocal() as s:
             q = select(Property).where(Property.is_active == True)
             if category and category != "Все":
-                q = q.where(Property.category == category)
+                if category in CATEGORY_GROUPS:
+                    q = q.where(Property.category.in_(CATEGORY_GROUPS[category]))
+                else:
+                    q = q.where(Property.category == category)
             q = q.order_by(Property.created_at.desc())
             return (await s.execute(q)).scalars().all()
 
@@ -182,11 +222,23 @@ class PropertyRepository:
     @staticmethod
     async def set_category_dates(category: str, dates_str: str) -> int:
         async with AsyncSessionLocal() as s:
+            q = select(Property).where(Property.is_active == True)
+            if category in CATEGORY_GROUPS:
+                q = q.where(Property.category.in_(CATEGORY_GROUPS[category]))
+            else:
+                q = q.where(Property.category == category)
+            props = (await s.execute(q)).scalars().all()
+            for p in props:
+                p.parse_dates = dates_str
+                p.updated_at  = datetime.utcnow()
+            await s.commit()
+            return len(props)
+
+    @staticmethod
+    async def set_all_dates(dates_str: str) -> int:
+        async with AsyncSessionLocal() as s:
             props = (await s.execute(
-                select(Property).where(
-                    Property.is_active == True,
-                    Property.category == category
-                )
+                select(Property).where(Property.is_active == True)
             )).scalars().all()
             for p in props:
                 p.parse_dates = dates_str

@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QThread, QObject, QTimer
 from PySide6.QtGui import QPainter, QColor, QPainterPath
 from loguru import logger
-from app.backend.database import CATEGORIES
+from app.backend.database import ADD_CATEGORIES
 
 
 # ── Кастомный переключатель-тумблер ──────────────────────────────────────────
@@ -218,7 +218,7 @@ class AddPropertyScreen(QWidget):
 
         cl.addWidget(self._lbl("ВЫБРАТЬ КАТЕГОРИЮ"))
         self.combo_cat = QComboBox()
-        for c in CATEGORIES:
+        for c in ADD_CATEGORIES:
             self.combo_cat.addItem(c)
         self.combo_cat.setFixedHeight(40); cl.addWidget(self.combo_cat)
 

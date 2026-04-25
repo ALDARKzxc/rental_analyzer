@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
 
         nav = QWidget(); nl = QVBoxLayout(nav)
         nl.setContentsMargins(10,14,10,14); nl.setSpacing(4)
-        self.btn_list = self._nav("  ОБЪЕКТЫ", "📋", 0)
+        self.btn_list = self._nav("  АНАЛИЗ ЦЕН", "📋", 0)
         self.btn_add  = self._nav("  ДОБАВИТЬ", "＋", 1)
         nl.addWidget(self.btn_list); nl.addWidget(self.btn_add); nl.addStretch()
         lay.addWidget(nav, stretch=1)

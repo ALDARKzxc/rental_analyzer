@@ -952,7 +952,7 @@ class PropertyListScreen(QWidget):
         hdr = QHBoxLayout(); hdr.setSpacing(10)
 
         col = QVBoxLayout(); col.setSpacing(3)
-        pt = QLabel("МОИ ОБЪЕКТЫ"); pt.setObjectName("pageTitle")
+        pt = QLabel("АНАЛИЗ ЦЕН"); pt.setObjectName("pageTitle")
         self.sub_lbl = QLabel("ЗАГРУЗКА..."); self.sub_lbl.setObjectName("sectionTitle")
         col.addWidget(pt); col.addWidget(self.sub_lbl)
         hdr.addLayout(col); hdr.addStretch()
@@ -1046,11 +1046,8 @@ class PropertyListScreen(QWidget):
                 count  = result.get("updated", 0)
                 msg = f"Дата {dates_str} применена к {count} объектам категории «{cat}»"
             else:
-                # Все категории — применяем по очереди
-                count = 0
-                for c in CATEGORIES:
-                    r = self.api.set_category_dates(c, dates_str)
-                    count += r.get("updated", 0)
+                result = self.api.set_all_dates(dates_str)
+                count  = result.get("updated", 0)
                 msg = f"Дата {dates_str} применена ко всем {count} объектам"
 
             self.btn_date.setText(f"  📅  {dates_str}  ")
