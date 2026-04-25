@@ -11,6 +11,7 @@ from PySide6.QtGui import QFont, QColor, QPalette
 from app.gui.styles import STYLESHEET
 from app.gui.screens.property_list import PropertyListScreen
 from app.gui.screens.add_property import AddPropertyScreen
+from app.gui.screens.comparison import ComparisonScreen
 from app.gui.api_client import ApiClient
 from app.utils.version import APP_VERSION
 
@@ -47,10 +48,13 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget(); root.addWidget(self.stack, stretch=1)
 
-        self.screen_list = PropertyListScreen(self.api)
-        self.screen_add  = AddPropertyScreen(self.api)
+        self.screen_list    = PropertyListScreen(self.api)
+        self.screen_compare = ComparisonScreen(self.api)
+        self.screen_add     = AddPropertyScreen(self.api)
 
+        # Порядок добавления = индексам в _nav (0=анализ, 1=сравнение, 2=добавить)
         self.stack.addWidget(self.screen_list)
+        self.stack.addWidget(self.screen_compare)
         self.stack.addWidget(self.screen_add)
 
         self.screen_list.open_add.connect(self._show_add)
@@ -77,9 +81,13 @@ class MainWindow(QMainWindow):
 
         nav = QWidget(); nl = QVBoxLayout(nav)
         nl.setContentsMargins(10,14,10,14); nl.setSpacing(4)
-        self.btn_list = self._nav("  АНАЛИЗ ЦЕН", "📋", 0)
-        self.btn_add  = self._nav("  ДОБАВИТЬ", "＋", 1)
-        nl.addWidget(self.btn_list); nl.addWidget(self.btn_add); nl.addStretch()
+        self.btn_list    = self._nav("  АНАЛИЗ ЦЕН", "📋", 0)
+        self.btn_compare = self._nav("  СРАВНЕНИЕ",  "⚖", 1)
+        self.btn_add     = self._nav("  ДОБАВИТЬ",   "＋", 2)
+        nl.addWidget(self.btn_list)
+        nl.addWidget(self.btn_compare)
+        nl.addWidget(self.btn_add)
+        nl.addStretch()
         lay.addWidget(nav, stretch=1)
 
         sep = QFrame(); sep.setObjectName("sidebarDivider"); sep.setFixedHeight(1)
@@ -107,19 +115,26 @@ class MainWindow(QMainWindow):
         return btn
 
     def _nav_go(self, idx, btn):
-        if idx == 1:
+        if idx == 2:
             self.screen_add.reset()
+        if idx == 1:
+            self.screen_compare.refresh()
         self.stack.setCurrentIndex(idx)
-        for b in [self.btn_list, self.btn_add]: b.setChecked(b is btn)
+        for b in [self.btn_list, self.btn_compare, self.btn_add]:
+            b.setChecked(b is btn)
 
     def _show_list(self):
         self.stack.setCurrentIndex(0)
-        self.btn_list.setChecked(True); self.btn_add.setChecked(False)
+        self.btn_list.setChecked(True)
+        self.btn_compare.setChecked(False)
+        self.btn_add.setChecked(False)
         self.screen_list.refresh()
 
     def _show_add(self):
-        self.screen_add.reset(); self.stack.setCurrentIndex(1)
-        self.btn_list.setChecked(False); self.btn_add.setChecked(True)
+        self.screen_add.reset(); self.stack.setCurrentIndex(2)
+        self.btn_list.setChecked(False)
+        self.btn_compare.setChecked(False)
+        self.btn_add.setChecked(True)
 
     def _on_saved(self): self._show_list()
 

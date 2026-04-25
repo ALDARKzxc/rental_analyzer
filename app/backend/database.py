@@ -72,6 +72,10 @@ class Property(Base):
     is_active    = Column(Boolean, default=True)
     title_locked = Column(Boolean, default=False)   # если True — парсер не перезаписывает название
     is_own       = Column(Boolean, default=False)   # отметка «свой объект» — ✅ + зелёная рамка
+    # Раздел "Сравнение объектов": кэш удобств и описания со страницы
+    amenities    = Column(Text,        nullable=True)  # JSON: {"groups": [{"name", "items": [...]}]}
+    description  = Column(Text,        nullable=True)
+    amenities_fetched_at = Column(DateTime, nullable=True)
     created_at   = Column(DateTime, default=datetime.utcnow)
     updated_at   = Column(DateTime, default=datetime.utcnow)
 
@@ -110,6 +114,9 @@ async def _migrate(conn):
         ("properties", "preview_path", "TEXT"),
         ("properties", "title_locked", "INTEGER DEFAULT 0"),
         ("properties", "is_own",       "INTEGER DEFAULT 0"),
+        ("properties", "amenities",    "TEXT"),
+        ("properties", "description",  "TEXT"),
+        ("properties", "amenities_fetched_at", "DATETIME"),
         ("price_records", "parse_dates", "TEXT"),
     ]
     for table, col, col_def in migrations:
@@ -233,6 +240,22 @@ class PropertyRepository:
                 p.updated_at  = datetime.utcnow()
             await s.commit()
             return len(props)
+
+    @staticmethod
+    async def update_amenities(prop_id: int, amenities_json: Optional[str],
+                               description: Optional[str]) -> bool:
+        async with AsyncSessionLocal() as s:
+            prop = (await s.execute(
+                select(Property).where(Property.id == prop_id)
+            )).scalar_one_or_none()
+            if not prop:
+                return False
+            prop.amenities = amenities_json
+            prop.description = description
+            prop.amenities_fetched_at = datetime.utcnow()
+            prop.updated_at = datetime.utcnow()
+            await s.commit()
+            return True
 
     @staticmethod
     async def set_all_dates(dates_str: str) -> int:

@@ -101,3 +101,20 @@ class ParserDispatcher:
         except Exception as e:
             logger.warning(f"Dispatcher metadata error for {url}: {e}")
             return {}
+
+    async def fetch_amenities(self, url: str) -> Dict[str, Any]:
+        """Dispatch amenities extraction (раздел «Сравнение»)."""
+        site = self.detect_site(url)
+        logger.info(f"Dispatching amenities: site={site} url={url[:80]}")
+
+        if site not in _PARSER_INSTANCES:
+            _PARSER_INSTANCES[site] = _make_parser(site)
+            logger.debug(f"Dispatcher: created new parser for site={site}")
+
+        parser = _PARSER_INSTANCES[site]
+
+        try:
+            return await parser.fetch_amenities(url)
+        except Exception as e:
+            logger.warning(f"Dispatcher amenities error for {url}: {e}")
+            return {"amenities": {}, "description": None}

@@ -309,6 +309,35 @@ async def parse_status(prop_id: int):
     return {"property_id": prop_id, "status": _parse_tasks.get(prop_id, "idle")}
 
 
+# ── Comparison (раздел «Сравнение объектов») ────────────────────
+@app.get("/comparison/properties")
+async def list_comparison():
+    from app.backend.comparison_service import list_for_comparison
+    return await list_for_comparison()
+
+
+@app.post("/comparison/{prop_id}/refresh")
+async def refresh_comparison(prop_id: int, request: Request):
+    from app.backend.comparison_service import fetch_amenities_for
+    data = await _body(request)
+    force = bool(data.get("force", True))
+    result = await fetch_amenities_for(prop_id, force=force)
+    if not result.get("ok"):
+        raise HTTPException(404, result.get("error", "Error"))
+    return result
+
+
+@app.post("/comparison/refresh_all")
+async def refresh_comparison_all(request: Request):
+    from app.backend.comparison_service import fetch_amenities_bulk
+    data = await _body(request)
+    force = bool(data.get("force", False))
+    props = await PropertyRepository.get_all()
+    ids = [p.id for p in props]
+    await fetch_amenities_bulk(ids, force=force)
+    return {"queued": len(ids)}
+
+
 # ── Analytics ────────────────────────────────────────────────────
 @app.get("/analytics/{prop_id}")
 async def get_analytics(prop_id: int):

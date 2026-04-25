@@ -269,6 +269,40 @@ class ApiClient:
             from app.backend.deep_analysis import request_cancel
             loop.call_soon_threadsafe(request_cancel)
 
+    # ── Comparison (раздел «Сравнение объектов») ────────────────
+
+    def list_comparison(self) -> List[Dict]:
+        """Список всех объектов с кэшированными удобствами (без сетевых запросов)."""
+        from app.backend.comparison_service import list_for_comparison
+
+        async def _():
+            return await list_for_comparison()
+        return _w(_())
+
+    def refresh_comparison_one(self, prop_id: int, force: bool = True) -> Dict:
+        """Запросить парсинг удобств для одного объекта (блокирующий)."""
+        from app.backend.comparison_service import fetch_amenities_for
+
+        async def _():
+            return await fetch_amenities_for(prop_id, force=force)
+        return _w(_())
+
+    def refresh_comparison_all(self, force: bool = False) -> Dict:
+        """Поставить в очередь фетч удобств для всех объектов (неблокирующий)."""
+        from app.backend.comparison_service import fetch_amenities_bulk
+        from app.backend.database import PropertyRepository
+
+        async def _():
+            props = await PropertyRepository.get_all()
+            ids = [p.id for p in props]
+            await fetch_amenities_bulk(ids, force=force)
+            return {"queued": len(ids)}
+        return _w(_())
+
+    def get_comparison_fetch_status(self, prop_id: int) -> str:
+        from app.backend.comparison_service import get_fetch_status
+        return get_fetch_status(prop_id)
+
     # ── Health ───────────────────────────────────────────────────
 
     def health(self) -> bool:

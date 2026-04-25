@@ -560,6 +560,40 @@ class BaseParser(ABC):
                     return found
         return None
 
+    async def fetch_amenities(self, url: str) -> Dict[str, Any]:
+        """
+        Возвращает словарь:
+            {"amenities": {"<group_name>": ["item1", ...], ...},
+             "description": "..."}
+
+        Используется ИСКЛЮЧИТЕЛЬНО разделом "Сравнение объектов" по явной
+        команде пользователя. На парсинг цен не влияет.
+        """
+        for attempt in range(1, PARSER_RETRY_COUNT + 1):
+            try:
+                data = await self._fetch_amenities_once(url)
+                return data or {"amenities": {}, "description": None}
+            except (BlockedError, CaptchaError) as e:
+                logger.warning(
+                    f"[{self.__class__.__name__}] Amenities attempt {attempt}: {e}"
+                )
+                if attempt < PARSER_RETRY_COUNT:
+                    await asyncio.sleep(PARSER_RETRY_DELAY * attempt)
+            except Exception as e:
+                logger.warning(
+                    f"[{self.__class__.__name__}] Amenities error attempt {attempt}: {e}"
+                )
+                if attempt < PARSER_RETRY_COUNT:
+                    await asyncio.sleep(PARSER_RETRY_DELAY)
+        return {"amenities": {}, "description": None}
+
+    async def _fetch_amenities_once(self, url: str) -> Dict[str, Any]:
+        """
+        По умолчанию — не реализовано (для парсеров других сайтов).
+        Раздел "Сравнение" просто покажет пустые удобства.
+        """
+        return {"amenities": {}, "description": None}
+
     async def fetch(self, url: str) -> Dict[str, Any]:
         for attempt in range(1, PARSER_RETRY_COUNT + 1):
             try:

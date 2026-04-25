@@ -501,6 +501,172 @@ class OstrovokParser(BaseParser):
             return candidate
         return urljoin(page_url, candidate)
 
+    # ── Amenities (раздел «Сравнение») ──────────────────────────
+    # Без браузера — httpx + парсинг __NEXT_DATA__. Если httpx
+    # заблокирован — fallback на Playwright. Не влияет на цены: вызывается
+    # только из comparison-флоу по явному действию пользователя.
+
+    async def _fetch_amenities_once(self, url: str) -> Dict[str, Any]:
+        clean_url = url.split("?")[0]
+        html = await self._httpx_fetch_html(clean_url)
+        if not html or self._detect_block(html):
+            html = await self._playwright_fetch_html_for_amenities(clean_url)
+        if not html:
+            return {"amenities": {}, "description": None}
+
+        next_data = self._parse_next_data(html)
+        hotel = self._next_data_hotel(next_data)
+
+        groups = self._ostrovok_amenities(hotel) if hotel else {}
+        description = self._ostrovok_description(hotel) if hotel else None
+
+        return {"amenities": groups, "description": description}
+
+    async def _playwright_fetch_html_for_amenities(self, url: str) -> Optional[str]:
+        try:
+            context = await self._new_context()
+            page = await context.new_page()
+            try:
+                try:
+                    await page.goto(url, timeout=_PW_NAV_TIMEOUT,
+                                    wait_until="domcontentloaded")
+                except Exception:
+                    pass
+                try:
+                    await page.wait_for_load_state("networkidle", timeout=6_000)
+                except Exception:
+                    pass
+                try:
+                    return await page.content()
+                except Exception:
+                    return None
+            finally:
+                try: await page.close()
+                except Exception: pass
+                try: await context.close()
+                except Exception: pass
+        except Exception as e:
+            logger.debug(f"OstrovokParser amenities playwright fallback error: {e}")
+            return None
+
+    @staticmethod
+    def _ostrovok_amenities(hotel: dict) -> Dict[str, List[str]]:
+        """
+        Защитно ищем удобства по нескольким возможным путям в __NEXT_DATA__.
+        Структура Ostrovok меняется со временем, поэтому пробуем list-альтернатив.
+        """
+        groups: Dict[str, List[str]] = {}
+
+        # Кандидаты-ключи, под которыми может лежать список групп удобств
+        for path_key in (
+            "amenityGroups", "amenity_groups",
+            "facilityGroups", "facility_groups",
+            "amenitiesGroups", "amenities_groups",
+            "serviceGroups",   "service_groups",
+        ):
+            value = hotel.get(path_key)
+            if isinstance(value, list):
+                OstrovokParser._merge_amenity_groups(value, groups)
+
+        # Плоский список — иногда удобства идут одним массивом
+        if not groups:
+            for flat_key in ("amenities", "facilities", "services"):
+                value = hotel.get(flat_key)
+                if isinstance(value, list):
+                    items = OstrovokParser._extract_amenity_items(value)
+                    if items:
+                        groups["Удобства"] = items
+
+        return groups
+
+    @staticmethod
+    def _merge_amenity_groups(raw_groups: list, out: Dict[str, List[str]]) -> None:
+        for grp in raw_groups:
+            if not isinstance(grp, dict):
+                continue
+            name = (
+                grp.get("name") or grp.get("title")
+                or grp.get("label") or grp.get("groupName")
+                or "Удобства"
+            )
+            raw_items = (
+                grp.get("items") or grp.get("amenities")
+                or grp.get("facilities") or grp.get("list")
+                or grp.get("values") or []
+            )
+            items = OstrovokParser._extract_amenity_items(raw_items)
+            if not items:
+                continue
+            key = str(name).strip()[:80] or "Удобства"
+            existing = out.setdefault(key, [])
+            for it in items:
+                if it not in existing:
+                    existing.append(it)
+
+    @staticmethod
+    def _extract_amenity_items(raw: list) -> List[str]:
+        items: List[str] = []
+        for it in raw:
+            if isinstance(it, str):
+                txt = it.strip()
+                if txt:
+                    items.append(txt[:120])
+            elif isinstance(it, dict):
+                for key in ("name", "title", "label", "value", "text"):
+                    v = it.get(key)
+                    if isinstance(v, str) and v.strip():
+                        items.append(v.strip()[:120])
+                        break
+        return items
+
+    @staticmethod
+    def _ostrovok_description(hotel: dict) -> Optional[str]:
+        """
+        "Об апартаментах" — несколько возможных путей. Берём первый
+        непустой результат, склеиваем абзацы если описание разбито.
+        """
+        # Сначала пробуем единичные ключи
+        for key in (
+            "description", "summary", "shortDescription",
+            "fullDescription", "aboutHotel", "about",
+        ):
+            value = hotel.get(key)
+            text = OstrovokParser._description_to_text(value)
+            if text:
+                return text[:5000]
+
+        # Возможен список абзацев
+        for key in ("descriptionStruct", "description_struct", "descriptions"):
+            value = hotel.get(key)
+            if isinstance(value, list):
+                parts: List[str] = []
+                for item in value:
+                    text = OstrovokParser._description_to_text(item)
+                    if text:
+                        parts.append(text)
+                if parts:
+                    return "\n\n".join(parts)[:5000]
+            elif isinstance(value, dict):
+                text = OstrovokParser._description_to_text(value)
+                if text:
+                    return text[:5000]
+        return None
+
+    @staticmethod
+    def _description_to_text(value: Any) -> Optional[str]:
+        if isinstance(value, str):
+            text = " ".join(value.split())
+            return text or None
+        if isinstance(value, dict):
+            for sub in ("text", "value", "content", "html",
+                        "description", "paragraph"):
+                v = value.get(sub)
+                if isinstance(v, str):
+                    text = " ".join(v.split())
+                    if text:
+                        return text
+        return None
+
     # ── Entry point ──────────────────────────────────────────────
 
     async def _fetch_once(self, url: str) -> Dict[str, Any]:
