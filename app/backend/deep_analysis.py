@@ -157,6 +157,9 @@ _ROW_CAPTCHA   = "captcha"
 _ROW_NETWORK   = "network"
 _ROW_ERROR     = "error"
 _ROW_CANCELLED = "cancelled"
+# Используется ТОЛЬКО при пост-обработке выходных строк (см. _apply_minlos_marker).
+# Никогда не записывается в pair_states и не участвует в retry/progress-логике.
+_ROW_MIN_LOS   = "min_los"
 _FINAL_PROGRESS_STATES = {
     _ROW_PRICED,
     _ROW_SOLD_OUT,
@@ -628,6 +631,14 @@ async def _do_analysis(prop_ids: List[int]) -> None:
                     f"DeepAnalysis: «{title[:40]}» finalized {sealed} "
                     f"unfinished pairs as {label}"
                 )
+            # MinLOS-маркировка: пост-обработка строк, не затрагивает парсинг
+            # и pair_states. При любой ошибке — оставляет [sold_out] как было.
+            _apply_minlos_marker(
+                out=pair_results,
+                states=pair_states,
+                title=title,
+                date_pairs=date_pairs,
+            )
             dt = time.time() - t0
             rps = (n_pairs / dt) if dt > 0 else 0.0
             logger.info(
@@ -1744,6 +1755,8 @@ def _format_row(
         price_str = f"{price:,.0f} ₽".replace(",", "\u202f")
     elif status == _ROW_SOLD_OUT:
         price_str = "[sold_out]"
+    elif status == _ROW_MIN_LOS:
+        price_str = "[MinLOS]"
     elif status == _ROW_BLOCKED:
         price_str = "[blocked]"
     elif status == _ROW_CAPTCHA:
@@ -1819,6 +1832,89 @@ def _seal_incomplete_pairs(
         )
         sealed += 1
     return sealed
+
+
+def _apply_minlos_marker(
+    *,
+    out: List[str],
+    states: List[str],
+    title: str,
+    date_pairs: List[Tuple[date, date]],
+) -> Optional[int]:
+    """
+    Пост-обработка: определяет MinLOS объекта по уже распарсенным результатам
+    и переписывает [sold_out] → [MinLOS] для коротких длительностей.
+
+    Запускается ПОСЛЕ полной финализации pair_states. Никаких сетевых запросов,
+    парсинг не затрагивается. На внутренние состояния не влияет — переписывает
+    только выходные строки `out`.
+
+    Стратегия (защита от ложных срабатываний):
+      1. Группируем результаты по nights = (co - ci).days.
+      2. K_min_priced — минимальный nights, на котором есть хотя бы 1 priced.
+      3. Помечаем MinLOS только если:
+         • K_min_priced > 1, и
+         • для каждого K' от 1 до K_min_priced-1: resolved (priced+sold_out)>=1
+           и priced[K']==0 (на коротких длительностях были авторитетные ответы
+           парсера, и все они sold_out).
+      4. Если данных недостаточно (есть K' < K_min_priced без resolved-пар) —
+         НИЧЕГО не помечаем, оставляем [sold_out] как есть.
+
+    Возвращает определённый MinLOS (для логирования) или None.
+    Любая ошибка → возврат None без изменений `out`.
+    """
+    try:
+        if len(states) != len(date_pairs) or len(out) != len(date_pairs):
+            return None
+
+        # Считаем по длительностям
+        priced_per_n: Dict[int, int]   = {}
+        sold_out_per_n: Dict[int, int] = {}
+        for st, (ci, co) in zip(states, date_pairs):
+            n = (co - ci).days
+            if n <= 0:
+                continue
+            if st == _ROW_PRICED:
+                priced_per_n[n] = priced_per_n.get(n, 0) + 1
+            elif st == _ROW_SOLD_OUT:
+                sold_out_per_n[n] = sold_out_per_n.get(n, 0) + 1
+
+        if not priced_per_n:
+            return None  # ни одной priced — нет базы для определения
+
+        k_min_priced = min(priced_per_n.keys())
+        if k_min_priced <= 1:
+            return None  # любая длина допустима
+
+        # Проверяем что для каждого K' < k_min_priced есть resolved-данные
+        # и все они — sold_out. Если хотя бы один K' "глухой" (только blocked/
+        # captcha/network/error) — не делаем вывод.
+        for k_prime in range(1, k_min_priced):
+            if priced_per_n.get(k_prime, 0) > 0:
+                # Это не должно произойти по построению k_min_priced, но safeguard.
+                return None
+            if sold_out_per_n.get(k_prime, 0) < 1:
+                return None  # данных на этой длительности нет
+
+        # Все условия выполнены — переписываем строки
+        replaced = 0
+        for idx, (ci, co) in enumerate(date_pairs):
+            n = (co - ci).days
+            if n < k_min_priced and states[idx] == _ROW_SOLD_OUT:
+                out[idx] = _format_row(title, ci, co, status=_ROW_MIN_LOS)
+                replaced += 1
+
+        if replaced:
+            logger.info(
+                f"DeepAnalysis: «{title[:40]}» MinLOS={k_min_priced} "
+                f"(переписано {replaced} строк sold_out → MinLOS)"
+            )
+        return k_min_priced
+    except Exception as e:
+        logger.warning(
+            f"DeepAnalysis: _apply_minlos_marker ошибка для «{title[:40]}»: {e}"
+        )
+        return None
 
 
 async def _any_event(events: List[asyncio.Event]) -> None:

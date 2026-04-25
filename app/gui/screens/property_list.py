@@ -1240,21 +1240,29 @@ class PropertyListScreen(QWidget):
     # ── Deep Analysis ─────────────────────────────────────────────
 
     def _start_deep_analysis(self):
-        """Запускает глубокий анализ всех объектов."""
+        """Запускает глубокий анализ объектов из текущего фильтра.
+        Если выбрана категория — анализируется только она; если «Все» —
+        все активные объекты."""
         if self._deep_btn.is_running:
             return
 
+        cat = self._current_category  # None = "Все"
+
         try:
-            props = self.api.get_properties()
+            props = self.api.get_properties(cat)
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось получить список объектов: {e}")
             return
 
         if not props:
-            QMessageBox.information(
-                self, "Нет объектов",
-                "Добавьте хотя бы один объект перед запуском глубокого анализа."
-            )
+            if cat:
+                msg = (
+                    f"В категории «{cat}» нет объектов.\n"
+                    f"Смените фильтр или добавьте объект в эту категорию."
+                )
+            else:
+                msg = "Добавьте хотя бы один объект перед запуском глубокого анализа."
+            QMessageBox.information(self, "Нет объектов", msg)
             return
 
         prop_ids = [p["id"] for p in props]
