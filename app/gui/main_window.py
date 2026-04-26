@@ -12,6 +12,7 @@ from app.gui.styles import STYLESHEET
 from app.gui.screens.property_list import PropertyListScreen
 from app.gui.screens.add_property import AddPropertyScreen
 from app.gui.screens.comparison import ComparisonScreen
+from app.gui.screens.bug_report import BugReportDialog
 from app.gui.api_client import ApiClient
 from app.utils.version import APP_VERSION
 
@@ -95,12 +96,33 @@ class MainWindow(QMainWindow):
 
         self.status_lbl = QLabel("● ГОТОВ")
         self.status_lbl.setObjectName("sidebarStatus"); lay.addWidget(self.status_lbl)
+
+        # Версия + неприметная кнопка-лог в один ряд внизу сайдбара
+        bottom = QWidget(); bottom.setStyleSheet("background:transparent;")
+        bl = QHBoxLayout(bottom)
+        bl.setContentsMargins(14, 0, 8, 12); bl.setSpacing(4)
         self.version_lbl = QLabel(APP_VERSION)
         self.version_lbl.setObjectName("sidebarVersion")
         self.version_lbl.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
-        lay.addWidget(self.version_lbl)
+        bl.addWidget(self.version_lbl, stretch=1)
+
+        self.btn_bug = QPushButton("🐞")
+        self.btn_bug.setFixedSize(24, 24)
+        self.btn_bug.setToolTip("Лог работы программы")
+        self.btn_bug.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_bug.setStyleSheet(
+            "QPushButton { background:transparent; color:#7a6a64;"
+            " border:1px solid transparent; border-radius:5px; font-size:12px;"
+            " padding:0; }"
+            "QPushButton:hover { color:#ffa987; border-color:#5a5554;"
+            " background:#3a3938; }"
+        )
+        self.btn_bug.clicked.connect(self._open_bug_report)
+        bl.addWidget(self.btn_bug)
+
+        lay.addWidget(bottom)
 
         self._blink_state = True
         self._blink_timer = QTimer()
@@ -137,6 +159,10 @@ class MainWindow(QMainWindow):
         self.btn_add.setChecked(True)
 
     def _on_saved(self): self._show_list()
+
+    def _open_bug_report(self):
+        dlg = BugReportDialog(self)
+        dlg.exec()
 
     def _blink(self):
         self._blink_state = not self._blink_state
