@@ -1254,19 +1254,29 @@ class OstrovokParser(BaseParser):
         Парсим JSON-ответ /hotel/search/v1/site/hp/search.
         Структура: { rates: [ { payment_options: { payment_types: [ {show_amount: 9589} ] } } ] }
 
-        nights > 0: фильтруем по точному совпадению с кол-вом запрошенных ночей,
-        чтобы min() не выбирал 1-ночную ставку для многодневных запросов.
-        Если точного совпадения нет (field отсутствует или нет matching rate) —
-        fallback: берём все rates (старое поведение, без регрессий).
+        nights > 0:
+          • если rate явно сообщает свою длительность (nights/nights_count/...)
+            — берём только точное совпадение с запрошенным сроком;
+          • если есть только min_stay/min_nights — отсекаем слишком короткие
+            запросы, но не требуем равенства;
+          • если информации о длительности нет вообще — сохраняем старый
+            fallback и берём все rates.
         """
 
-        def _rate_night_count(r: dict) -> int:
-            """Кол-во ночей у rate (0 = неизвестно)."""
-            for f in ("nights", "min_nights", "nights_count",
-                      "min_stay", "length_of_stay", "stay_nights"):
-                v = r.get(f)
-                if isinstance(v, (int, float)) and v > 0:
-                    return int(v)
+        def _rate_exact_night_count(r: dict) -> int:
+            """Exact stay length for this rate (0 = unknown)."""
+            for f in ("nights", "nights_count", "length_of_stay", "stay_nights"):
+                n = self._coerce_positive_int(r.get(f))
+                if n:
+                    return n
+            return 0
+
+        def _rate_min_stay(r: dict) -> int:
+            """Minimum stay rule for this rate (0 = unknown/no rule)."""
+            for f in ("min_nights", "min_stay"):
+                n = self._coerce_positive_int(r.get(f))
+                if n:
+                    return n
             return 0
 
         def _collect_rate_prices(rate: dict) -> List[float]:
@@ -1295,11 +1305,13 @@ class OstrovokParser(BaseParser):
             valid_rates = [r for r in rates if isinstance(r, dict)]
 
             if nights > 0 and valid_rates:
-                annotated = [(r, _rate_night_count(r)) for r in valid_rates]
-                has_info  = any(n > 0 for _, n in annotated)
+                exact_annotated = [
+                    (r, _rate_exact_night_count(r)) for r in valid_rates
+                ]
+                has_exact_info = any(n > 0 for _, n in exact_annotated)
 
-                if has_info:
-                    exact = [r for r, n in annotated if n == nights]
+                if has_exact_info:
+                    exact = [r for r, n in exact_annotated if n == nights]
                     if exact:
                         logger.debug(
                             f"_prices_from_xhr: nights={nights}, "
@@ -1309,12 +1321,29 @@ class OstrovokParser(BaseParser):
                             found.extend(_collect_rate_prices(rate))
                         return [p for p in found if 500 <= p <= 300_000]
                     else:
-                        available = sorted({n for _, n in annotated if n > 0})
+                        available = sorted({n for _, n in exact_annotated if n > 0})
                         logger.debug(
                             f"_prices_from_xhr: nights={nights}, no exact match, "
-                            f"available={available} — fallback to all rates"
+                            f"available={available} — no price for requested stay"
                         )
-                        # Нет точного совпадения → fallback ниже
+                        return []
+
+                min_stay_annotated = [
+                    (r, _rate_min_stay(r)) for r in valid_rates
+                ]
+                if any(n > 0 for _, n in min_stay_annotated):
+                    allowed = [
+                        r for r, min_stay in min_stay_annotated
+                        if min_stay <= 0 or nights >= min_stay
+                    ]
+                    if len(allowed) != len(valid_rates):
+                        logger.debug(
+                            f"_prices_from_xhr: nights={nights}, "
+                            f"min-stay filtered rates={len(allowed)}/{len(valid_rates)}"
+                        )
+                    if not allowed:
+                        return []
+                    valid_rates = allowed
 
             # Fallback: берём все rates (текущее поведение)
             for rate in valid_rates:
