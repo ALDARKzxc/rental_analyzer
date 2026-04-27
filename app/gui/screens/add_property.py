@@ -199,7 +199,7 @@ class AddPropertyScreen(QWidget):
         hint = QLabel("Вставьте чистую ссылку без дат — даты задаются отдельно на главном экране")
         hint.setObjectName("hintLabel"); hint.setWordWrap(True); cl.addWidget(hint)
 
-        # ── Тумблер «Свой объект» (независимая отметка) ────────────
+        # ── Тумблер «Мой объект» (независимая отметка) ────────────
         own_row = QHBoxLayout()
         own_row.setSpacing(10)
         own_row.setContentsMargins(0, 10, 0, 0)
@@ -207,7 +207,7 @@ class AddPropertyScreen(QWidget):
         self.toggle_own = ToggleSwitch()
         own_row.addWidget(self.toggle_own)
 
-        own_hint = QLabel("Свой объект (✅ и зелёная рамка в списке)")
+        own_hint = QLabel("Мой объект (✅ и зелёная рамка в списке)")
         own_hint.setObjectName("hintLabel")
         own_hint.setWordWrap(True)
         own_row.addWidget(own_hint, 1)

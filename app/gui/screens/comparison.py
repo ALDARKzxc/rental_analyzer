@@ -74,21 +74,27 @@ class _PropertyCard(QFrame):
     """Карточка одного объекта в разделе «Сравнение»."""
 
     refresh_requested = Signal(int)
+    collapse_toggled  = Signal(int, bool)   # (prop_id, new_collapsed_state)
 
-    def __init__(self, data: Dict[str, Any], parent=None):
+    def __init__(self, data: Dict[str, Any], collapsed: bool = False, parent=None):
         super().__init__(parent)
         self.setObjectName("ownCard" if data.get("is_own") else "card")
         self.setSizePolicy(QSizePolicy.Policy.Expanding,
                            QSizePolicy.Policy.Preferred)
         self._data = data
+        # Виджеты, которые скрываются при свёрнутом состоянии. Заполняется в _build.
+        self._collapsible: List[QWidget] = []
+        self._collapsed = bool(collapsed)
         self._build()
+        # Применяем стартовое состояние свёрнутости после построения
+        self._apply_collapse()
 
     def _build(self) -> None:
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 14, 16, 14)
         lay.setSpacing(8)
 
-        # ── Шапка: название + категория
+        # ── Шапка: название + категория + chevron
         head = QHBoxLayout(); head.setSpacing(8)
         title = QLabel(self._data.get("title") or "Без названия")
         title.setObjectName("cardTitle")
@@ -103,6 +109,18 @@ class _PropertyCard(QFrame):
                 "border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;"
             )
             head.addWidget(cat_lbl)
+
+        # Chevron для сворачивания (всегда виден)
+        self._chevron_btn = QPushButton("▾")
+        self._chevron_btn.setFixedSize(26, 26)
+        self._chevron_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._chevron_btn.setStyleSheet(
+            "QPushButton { background:transparent; color:#9a8a84; border:1px solid transparent;"
+            " border-radius:5px; font-size:14px; padding:0; }"
+            "QPushButton:hover { color:#ffa987; border-color:#5a5554; background:#3a3938; }"
+        )
+        self._chevron_btn.clicked.connect(self._on_chevron_clicked)
+        head.addWidget(self._chevron_btn)
         lay.addLayout(head)
 
         addr = self._data.get("address")
@@ -112,41 +130,88 @@ class _PropertyCard(QFrame):
 
         amenities = self._data.get("amenities") or {}
         description = self._data.get("description")
+        key_facts = self._data.get("key_facts") or []
         fetched = self._data.get("amenities_fetched_at")
 
-        if not fetched and not amenities and not description:
-            # Удобства ещё не загружены
+        if not fetched and not amenities and not description and not key_facts:
+            # Удобства ещё не загружены — заголовок и плейсхолдер; в плейсхолдере
+            # тоже регистрируем свёртываемые элементы.
             self._build_placeholder(lay)
+            self._build_footer(lay, fetched=None)
             return
 
-        # Описание
+        # ── ОБ АПАРТАМЕНТАХ (короткие факты-бейджи)
+        if key_facts:
+            sec = self._section_label("ОБ АПАРТАМЕНТАХ")
+            lay.addWidget(sec); self._collapsible.append(sec)
+            badges_w = self._build_badges_row(key_facts)
+            lay.addWidget(badges_w); self._collapsible.append(badges_w)
+
+        # ── ПОДРОБНОЕ ОПИСАНИЕ (длинный текст)
         if description:
-            lay.addWidget(self._section_label("ОБ АПАРТАМЕНТАХ"))
+            sec = self._section_label("ПОДРОБНОЕ ОПИСАНИЕ")
+            lay.addWidget(sec); self._collapsible.append(sec)
             desc_lbl = QLabel(self._truncate(description, 600))
             desc_lbl.setWordWrap(True)
             desc_lbl.setStyleSheet("color:#d0c8c4;font-size:12px;")
-            lay.addWidget(desc_lbl)
+            lay.addWidget(desc_lbl); self._collapsible.append(desc_lbl)
 
-        # Удобства по группам
+        # ── УСЛУГИ И УДОБСТВА (группы)
         if amenities:
-            lay.addWidget(self._section_label("УСЛУГИ И УДОБСТВА"))
+            sec = self._section_label("УСЛУГИ И УДОБСТВА")
+            lay.addWidget(sec); self._collapsible.append(sec)
             for group_name, items in amenities.items():
                 if not items:
                     continue
                 gl = QLabel(group_name)
                 gl.setStyleSheet("color:#ffa987;font-weight:600;font-size:11px;"
                                  "margin-top:4px;")
-                lay.addWidget(gl)
+                lay.addWidget(gl); self._collapsible.append(gl)
                 items_lbl = QLabel(" • " + "  • ".join(items))
                 items_lbl.setWordWrap(True)
                 items_lbl.setStyleSheet("color:#d0c8c4;font-size:12px;")
-                lay.addWidget(items_lbl)
-        elif fetched:
+                lay.addWidget(items_lbl); self._collapsible.append(items_lbl)
+        elif fetched and not key_facts:
             empty = QLabel("Удобства не найдены на странице объекта.")
             empty.setStyleSheet("color:#b0a09a;font-size:12px;font-style:italic;")
-            lay.addWidget(empty)
+            lay.addWidget(empty); self._collapsible.append(empty)
 
-        # Footer: кнопка обновления и статус
+        self._build_footer(lay, fetched=fetched)
+
+    @staticmethod
+    def _build_badges_row(facts: List[str]) -> QWidget:
+        """Готовый виджет-строка с фактами-«пилюльками».
+        Аналог «Об апартаментах» на сайте Ostrovok (см. скриншот).
+        Используется один QLabel с rich-text, чтобы получить word-wrap
+        при узкой карточке без сторонних FlowLayout."""
+        w = QWidget(); w.setStyleSheet("background:transparent;")
+        lay = QHBoxLayout(w)
+        lay.setContentsMargins(0, 2, 0, 4); lay.setSpacing(0)
+
+        html_parts = []
+        for f in facts:
+            safe = (
+                f.replace("&", "&amp;")
+                 .replace("<", "&lt;")
+                 .replace(">", "&gt;")
+            )
+            html_parts.append(
+                f'<span style="background:#3a3938;color:#f7ebe8;'
+                f'border:1px solid #5a5554;border-radius:10px;'
+                f'padding:3px 10px;margin-right:4px;font-size:12px;">'
+                f'{safe}</span>'
+            )
+        lbl = QLabel("&nbsp;".join(html_parts))
+        lbl.setTextFormat(Qt.TextFormat.RichText)
+        lbl.setWordWrap(True)
+        lbl.setStyleSheet("background:transparent;")
+        lay.addWidget(lbl)
+        return w
+
+    def _build_footer(self, lay: QVBoxLayout, *, fetched: Optional[str]) -> None:
+        """Footer всегда виден (даже в свёрнутом состоянии) — кнопка
+        обновления и статус загрузки. Текст кнопки зависит от того, есть ли
+        кэш: «Загрузить» при отсутствии, «⟳ Обновить» при наличии."""
         foot = QHBoxLayout(); foot.setSpacing(8)
         if fetched:
             t = QLabel(f"⟳ {fetched[:10]}")
@@ -154,35 +219,44 @@ class _PropertyCard(QFrame):
             foot.addWidget(t)
         foot.addStretch()
         status = self._data.get("fetch_status") or "idle"
-        if status == "running" or status == "queued":
+        if status in ("running", "queued"):
             s = QLabel("Загрузка удобств…")
             s.setStyleSheet("color:#ffa987;font-size:11px;")
             foot.addWidget(s)
         else:
-            btn = QPushButton("⟳ Обновить удобства")
+            label = "⟳ Обновить удобства" if fetched else "Загрузить удобства"
+            btn = QPushButton(label)
             btn.setStyleSheet(self._BTN_SMALL)
             btn.setFixedHeight(28)
             btn.clicked.connect(lambda: self.refresh_requested.emit(self._data["id"]))
             foot.addWidget(btn)
         lay.addLayout(foot)
 
+    def _on_chevron_clicked(self) -> None:
+        self._collapsed = not self._collapsed
+        self._apply_collapse()
+        self.collapse_toggled.emit(self._data["id"], self._collapsed)
+
+    def _apply_collapse(self) -> None:
+        for w in self._collapsible:
+            try:
+                w.setVisible(not self._collapsed)
+            except RuntimeError:
+                continue
+        self._chevron_btn.setText("▸" if self._collapsed else "▾")
+        self._chevron_btn.setToolTip(
+            "Развернуть карточку" if self._collapsed else "Свернуть карточку"
+        )
+
     def _build_placeholder(self, lay: QVBoxLayout) -> None:
+        # Только информационное сообщение. Кнопка «Загрузить удобства» появится
+        # автоматически в _build_footer, который вызывается сразу после.
         msg = QLabel("Удобства ещё не загружены.")
         msg.setStyleSheet("color:#b0a09a;font-size:12px;")
         lay.addWidget(msg)
-
-        status = self._data.get("fetch_status") or "idle"
-        row = QHBoxLayout(); row.setSpacing(8); row.addStretch()
-        if status in ("running", "queued"):
-            s = QLabel("Загрузка…"); s.setStyleSheet("color:#ffa987;font-size:11px;")
-            row.addWidget(s)
-        else:
-            btn = QPushButton("Загрузить удобства")
-            btn.setStyleSheet(self._BTN_SMALL)
-            btn.setFixedHeight(30)
-            btn.clicked.connect(lambda: self.refresh_requested.emit(self._data["id"]))
-            row.addWidget(btn)
-        lay.addLayout(row)
+        # Сообщение тоже свёртываемое — в свёрнутом виде показываем только
+        # шапку и footer.
+        self._collapsible.append(msg)
 
     @staticmethod
     def _section_label(text: str) -> QLabel:
@@ -226,6 +300,9 @@ class ComparisonScreen(QWidget):
         self._cards: Dict[int, _PropertyCard] = {}
         self._active_filters: List[List[str]] = []  # список keyword-наборов (AND)
         self._search_query: str = ""
+        # ID объектов с свёрнутыми карточками. Хранится здесь, а не в карточке,
+        # потому что карточки полностью пересоздаются при каждом polling-цикле.
+        self._collapsed_ids: set[int] = set()
         self._poll_timer = QTimer(self)
         self._poll_timer.setInterval(1500)
         self._poll_timer.timeout.connect(self._poll_status)
@@ -324,6 +401,25 @@ class ComparisonScreen(QWidget):
         col.addWidget(pt); col.addWidget(self.sub_lbl)
         hdr.addLayout(col); hdr.addStretch()
 
+        self.btn_collapse_all = QPushButton("▾  Свернуть все")
+        self.btn_collapse_all.setFixedHeight(38)
+        self.btn_collapse_all.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_collapse_all.setStyleSheet(
+            "QPushButton {"
+            " background:#444140; color:#f7ebe8;"
+            " border:1.5px solid #5a5554; border-radius:9px;"
+            " min-width:160px; padding:0 18px;"
+            " font-size:13px; font-weight:500;"
+            " text-align:center;"
+            "}"
+            "QPushButton:hover {"
+            " background:#3a3938; color:#ffa987; border-color:#ffa987;"
+            "}"
+            "QPushButton:pressed { background:#2e2c2b; }"
+        )
+        self.btn_collapse_all.clicked.connect(self._toggle_collapse_all)
+        hdr.addWidget(self.btn_collapse_all)
+
         self.btn_refresh_all = QPushButton("  ↻  Загрузить удобства для всех  ")
         self.btn_refresh_all.setObjectName("primaryBtn")
         self.btn_refresh_all.setFixedHeight(38)
@@ -367,11 +463,16 @@ class ComparisonScreen(QWidget):
         )
 
         for item in filtered:
-            card = _PropertyCard(item)
+            card = _PropertyCard(
+                item,
+                collapsed=item["id"] in self._collapsed_ids,
+            )
             card.refresh_requested.connect(self._refresh_one)
+            card.collapse_toggled.connect(self._on_card_collapse_toggled)
             # Вставляем перед stretch
             self._cards_layout.insertWidget(self._cards_layout.count() - 1, card)
             self._cards[item["id"]] = card
+        self._update_collapse_all_btn()
 
     def _apply_filters(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         q = (self._search_query or "").strip().lower()
@@ -418,6 +519,37 @@ class ComparisonScreen(QWidget):
     def _on_search_changed(self, text: str) -> None:
         self._search_query = text
         self._render_cards()
+
+    # ── Collapse actions ────────────────────────────────────────
+
+    def _on_card_collapse_toggled(self, prop_id: int, collapsed: bool) -> None:
+        """Карточка переключила своё состояние — синхронизируем с экраном."""
+        if collapsed:
+            self._collapsed_ids.add(prop_id)
+        else:
+            self._collapsed_ids.discard(prop_id)
+        self._update_collapse_all_btn()
+
+    def _toggle_collapse_all(self) -> None:
+        """Если хоть одна карточка развёрнута — сворачиваем все, иначе разворачиваем."""
+        visible_ids = [it["id"] for it in self._apply_filters(self._all_data)]
+        any_expanded = any(pid not in self._collapsed_ids for pid in visible_ids)
+        if any_expanded:
+            self._collapsed_ids.update(visible_ids)
+        else:
+            for pid in visible_ids:
+                self._collapsed_ids.discard(pid)
+        self._render_cards()
+        self._update_collapse_all_btn()
+
+    def _update_collapse_all_btn(self) -> None:
+        if not hasattr(self, "btn_collapse_all"):
+            return
+        visible_ids = [it["id"] for it in self._apply_filters(self._all_data)]
+        any_expanded = any(pid not in self._collapsed_ids for pid in visible_ids)
+        self.btn_collapse_all.setText(
+            "▾  Свернуть все" if any_expanded else "▸  Развернуть все"
+        )
 
     # ── Refresh actions ─────────────────────────────────────────
 

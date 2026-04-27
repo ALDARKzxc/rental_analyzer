@@ -117,4 +117,4 @@ class ParserDispatcher:
             return await parser.fetch_amenities(url)
         except Exception as e:
             logger.warning(f"Dispatcher amenities error for {url}: {e}")
-            return {"amenities": {}, "description": None}
+            return {"amenities": {}, "description": None, "key_facts": []}

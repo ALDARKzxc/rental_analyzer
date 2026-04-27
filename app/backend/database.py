@@ -75,6 +75,7 @@ class Property(Base):
     # Раздел "Сравнение объектов": кэш удобств и описания со страницы
     amenities    = Column(Text,        nullable=True)  # JSON: {"groups": [{"name", "items": [...]}]}
     description  = Column(Text,        nullable=True)
+    key_facts    = Column(Text,        nullable=True)  # JSON-list: ["До 6 гостей", "55 кв.м", ...]
     amenities_fetched_at = Column(DateTime, nullable=True)
     created_at   = Column(DateTime, default=datetime.utcnow)
     updated_at   = Column(DateTime, default=datetime.utcnow)
@@ -116,6 +117,7 @@ async def _migrate(conn):
         ("properties", "is_own",       "INTEGER DEFAULT 0"),
         ("properties", "amenities",    "TEXT"),
         ("properties", "description",  "TEXT"),
+        ("properties", "key_facts",    "TEXT"),
         ("properties", "amenities_fetched_at", "DATETIME"),
         ("price_records", "parse_dates", "TEXT"),
     ]
@@ -243,7 +245,8 @@ class PropertyRepository:
 
     @staticmethod
     async def update_amenities(prop_id: int, amenities_json: Optional[str],
-                               description: Optional[str]) -> bool:
+                               description: Optional[str],
+                               key_facts_json: Optional[str] = None) -> bool:
         async with AsyncSessionLocal() as s:
             prop = (await s.execute(
                 select(Property).where(Property.id == prop_id)
@@ -252,6 +255,7 @@ class PropertyRepository:
                 return False
             prop.amenities = amenities_json
             prop.description = description
+            prop.key_facts = key_facts_json
             prop.amenities_fetched_at = datetime.utcnow()
             prop.updated_at = datetime.utcnow()
             await s.commit()

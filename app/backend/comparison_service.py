@@ -57,6 +57,27 @@ def _encode_amenities(groups: Dict[str, List[str]]) -> Optional[str]:
         return None
 
 
+def _decode_key_facts(raw: Optional[str]) -> List[str]:
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    return [str(x) for x in data if isinstance(x, str) and x.strip()]
+
+
+def _encode_key_facts(facts: List[str]) -> Optional[str]:
+    if not facts:
+        return None
+    try:
+        return json.dumps(facts, ensure_ascii=False)
+    except Exception:
+        return None
+
+
 def comparison_dict(prop) -> Dict[str, Any]:
     """Сериализация одного объекта для UI «Сравнение»."""
     return {
@@ -71,6 +92,7 @@ def comparison_dict(prop) -> Dict[str, Any]:
         "is_own": bool(getattr(prop, "is_own", False)),
         "amenities": _decode_amenities(getattr(prop, "amenities", None)),
         "description": getattr(prop, "description", None),
+        "key_facts": _decode_key_facts(getattr(prop, "key_facts", None)),
         "amenities_fetched_at": (
             prop.amenities_fetched_at.isoformat()
             if getattr(prop, "amenities_fetched_at", None) else None
@@ -96,6 +118,11 @@ async def fetch_amenities_for(prop_id: int, force: bool = False) -> Dict[str, An
         return {"ok": False, "error": "Not found"}
 
     if not force and getattr(prop, "amenities_fetched_at", None):
+        # Кэш есть — отдаём мгновенно. Сбрасываем status в "done", чтобы UI
+        # не остался с залипшим "queued"/"running" от предыдущих вызовов
+        # (например, после bulk, где статус мог быть выставлен заранее).
+        if _fetch_status.get(prop_id) in ("queued", "running"):
+            _fetch_status[prop_id] = "done"
         return {"ok": True, "cached": True, "data": comparison_dict(prop)}
 
     if _fetch_status.get(prop_id) == "running":
@@ -108,10 +135,12 @@ async def fetch_amenities_for(prop_id: int, force: bool = False) -> Dict[str, An
             result = await _dispatcher.fetch_amenities(prop.url)
             groups = result.get("amenities") or {}
             description = result.get("description")
+            key_facts = result.get("key_facts") or []
             await PropertyRepository.update_amenities(
                 prop_id=prop_id,
                 amenities_json=_encode_amenities(groups),
                 description=description,
+                key_facts_json=_encode_key_facts(key_facts),
             )
             _fetch_status[prop_id] = "done"
             prop = await PropertyRepository.get_by_id(prop_id)
@@ -126,12 +155,16 @@ async def fetch_amenities_bulk(prop_ids: List[int], force: bool = False) -> None
     """
     Параллельный фетч с общим семафором. Запускает таски и сразу возвращается —
     UI должен опрашивать статус через list_for_comparison() / get_fetch_status().
+
+    Статусом управляет ИСКЛЮЧИТЕЛЬНО fetch_amenities_for: для объектов с кэшем
+    он молча возвращает данные, не трогая `_fetch_status`. Поэтому здесь
+    НЕ выставляем "queued" заранее — иначе кэшированные объекты получили бы
+    залипший статус и навсегда остались в состоянии «Загрузка удобств…».
     """
     loop = asyncio.get_event_loop()
     for pid in prop_ids:
         if _fetch_status.get(pid) in ("running", "queued"):
             continue
-        _fetch_status[pid] = "queued"
         loop.create_task(fetch_amenities_for(pid, force=force))
 
 

@@ -512,15 +512,20 @@ class OstrovokParser(BaseParser):
         if not html or self._detect_block(html):
             html = await self._playwright_fetch_html_for_amenities(clean_url)
         if not html:
-            return {"amenities": {}, "description": None}
+            return {"amenities": {}, "description": None, "key_facts": []}
 
         next_data = self._parse_next_data(html)
         hotel = self._next_data_hotel(next_data)
 
         groups = self._ostrovok_amenities(hotel) if hotel else {}
         description = self._ostrovok_description(hotel) if hotel else None
+        key_facts = self._ostrovok_key_facts(hotel) if hotel else []
 
-        return {"amenities": groups, "description": description}
+        return {
+            "amenities":   groups,
+            "description": description,
+            "key_facts":   key_facts,
+        }
 
     async def _playwright_fetch_html_for_amenities(self, url: str) -> Optional[str]:
         try:
@@ -658,14 +663,171 @@ class OstrovokParser(BaseParser):
             text = " ".join(value.split())
             return text or None
         if isinstance(value, dict):
+            title_str = ""
+            t = value.get("title")
+            if isinstance(t, str) and t.strip():
+                title_str = t.strip() + ": "
+
+            # 1. Прямые text-поля
             for sub in ("text", "value", "content", "html",
                         "description", "paragraph"):
                 v = value.get(sub)
                 if isinstance(v, str):
                     text = " ".join(v.split())
                     if text:
-                        return text
+                        return f"{title_str}{text}"
+
+            # 2. Реальная схема Ostrovok: { title, paragraphs: [str, str, ...] }
+            paragraphs = value.get("paragraphs")
+            if isinstance(paragraphs, list):
+                parts: List[str] = []
+                for p in paragraphs:
+                    if isinstance(p, str):
+                        ptext = " ".join(p.split())
+                        if ptext:
+                            parts.append(ptext)
+                    elif isinstance(p, dict):
+                        sub = OstrovokParser._description_to_text(p)
+                        if sub:
+                            parts.append(sub)
+                if parts:
+                    return f"{title_str}{' '.join(parts)}"
         return None
+
+    @staticmethod
+    def _ostrovok_key_facts(hotel: dict) -> List[str]:
+        """
+        Короткие факты «Об апартаментах»: «До 6 гостей», «2 комнаты», «55 кв.м»,
+        «7 этаж», «Бесконтактное заселение» и т.п.
+
+        Извлекаются из реальной схемы Ostrovok (__NEXT_DATA__.props.pageProps.hotel):
+          • apartmentsInfo.{capacity, bedroomsQuantity, space, floor, bedCount*}
+          • roomGroups[].size  (fallback для площади)
+          • roomGroups[].nameStruct.mainName  (fallback для гостей по «N-местный»)
+          • facts.floorsNumber, facts.yearBuilt
+          • isContactless
+
+        Никаких новых сетевых запросов: данные берутся из уже скачанного HTML.
+        """
+        facts: List[str] = []
+
+        ai      = hotel.get("apartmentsInfo") or {}
+        rgs     = hotel.get("roomGroups") or []
+        f_dict  = hotel.get("facts") or {}
+
+        # ── Гости ────────────────────────────────────────────────
+        capacity = OstrovokParser._coerce_positive_int(ai.get("capacity"))
+        if not capacity:
+            # Fallback на roomGroups[].nameStruct.mainName ("N-местный...")
+            for r in rgs:
+                if not isinstance(r, dict):
+                    continue
+                ns = r.get("nameStruct") or {}
+                name = ns.get("mainName") if isinstance(ns, dict) else None
+                if isinstance(name, str):
+                    cap = OstrovokParser._capacity_from_room_name(name)
+                    if cap:
+                        capacity = max(capacity or 0, cap)
+        if capacity:
+            facts.append(f"До {capacity} гостей")
+
+        # ── Комнаты ──────────────────────────────────────────────
+        rooms = OstrovokParser._coerce_positive_int(ai.get("bedroomsQuantity"))
+        if not rooms:
+            rooms = OstrovokParser._coerce_positive_int(f_dict.get("roomsNumber"))
+        if rooms:
+            if rooms == 1:
+                facts.append("1 комната")
+            elif 2 <= rooms <= 4:
+                facts.append(f"{rooms} комнаты")
+            else:
+                facts.append(f"{rooms} комнат")
+
+        # ── Площадь ──────────────────────────────────────────────
+        space = OstrovokParser._coerce_positive_int(ai.get("space"))
+        if not space:
+            # Fallback на размер первой комнаты
+            for r in rgs:
+                if not isinstance(r, dict):
+                    continue
+                size = OstrovokParser._coerce_positive_int(r.get("size"))
+                if size:
+                    space = size
+                    break
+        if space:
+            facts.append(f"{space} кв.м")
+
+        # ── Этаж конкретного объекта ────────────────────────────
+        floor = OstrovokParser._coerce_positive_int(ai.get("floor"))
+        if floor:
+            facts.append(f"{floor} этаж")
+        else:
+            # Этажность здания (если этажа объекта нет)
+            floors_total = OstrovokParser._coerce_positive_int(
+                f_dict.get("floorsNumber")
+            )
+            if floors_total:
+                facts.append(f"Этажей: {floors_total}")
+
+        # ── Бесконтактное заселение ──────────────────────────────
+        if hotel.get("isContactless") is True:
+            facts.append("Бесконтактное заселение")
+
+        # ── Кровати (если есть) ──────────────────────────────────
+        bed_total = 0
+        for k in ("bedCountDouble", "bedCountSingle", "bedCountKing",
+                  "bedCountQueen", "bedCountBunk", "bedCountSofa",
+                  "bedCountChair"):
+            n = OstrovokParser._coerce_positive_int(ai.get(k))
+            if n:
+                bed_total += n
+        if bed_total:
+            if bed_total == 1:
+                facts.append("1 кровать")
+            elif 2 <= bed_total <= 4:
+                facts.append(f"{bed_total} кровати")
+            else:
+                facts.append(f"{bed_total} кроватей")
+
+        # ── Год постройки ────────────────────────────────────────
+        year = OstrovokParser._coerce_positive_int(f_dict.get("yearBuilt"))
+        if year and 1800 <= year <= 2100:
+            facts.append(f"Построен в {year}")
+
+        # Уникализация
+        seen: set = set()
+        unique: List[str] = []
+        for f in facts:
+            text = f.strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(text[:100])
+        return unique[:12]
+
+    @staticmethod
+    def _coerce_positive_int(v: Any) -> int:
+        """Принимает int/float/str → возвращает int>0 или 0.
+        В Ostrovok JSON часть полей приходят как пустая строка вместо null,
+        часть — как строки с числом. Унифицируем."""
+        if isinstance(v, bool):
+            return 0
+        if isinstance(v, (int, float)):
+            n = int(v)
+            return n if n > 0 else 0
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return 0
+            try:
+                n = int(float(s))
+                return n if n > 0 else 0
+            except (ValueError, TypeError):
+                return 0
+        return 0
 
     # ── Entry point ──────────────────────────────────────────────
 
