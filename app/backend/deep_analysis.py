@@ -1850,15 +1850,12 @@ def _apply_minlos_marker(
     только выходные строки `out`.
 
     Стратегия (защита от ложных срабатываний):
-      1. Группируем результаты по nights = (co - ci).days.
-      2. K_min_priced — минимальный nights, на котором есть хотя бы 1 priced.
-      3. Помечаем MinLOS только если:
-         • K_min_priced > 1, и
-         • для каждого K' от 1 до K_min_priced-1: resolved (priced+sold_out)>=1
-           и priced[K']==0 (на коротких длительностях были авторитетные ответы
-           парсера, и все они sold_out).
-      4. Если данных недостаточно (есть K' < K_min_priced без resolved-пар) —
-         НИЧЕГО не помечаем, оставляем [sold_out] как есть.
+      1. Группируем результаты по check-in, а внутри него по nights.
+      2. Для каждого check-in ищем первый priced на K ночей.
+      3. Помечаем MinLOS только локально для этого check-in, если все
+         длительности 1..K-1 существуют и являются sold_out.
+      4. Если хотя бы одна короткая длительность не resolved или не sold_out,
+         ничего не помечаем для этого check-in.
 
     Возвращает определённый MinLOS (для логирования) или None.
     Любая ошибка → возврат None без изменений `out`.
@@ -1867,49 +1864,65 @@ def _apply_minlos_marker(
         if len(states) != len(date_pairs) or len(out) != len(date_pairs):
             return None
 
-        # Считаем по длительностям
-        priced_per_n: Dict[int, int]   = {}
-        sold_out_per_n: Dict[int, int] = {}
-        for st, (ci, co) in zip(states, date_pairs):
+        # Conservative anchored detection:
+        # prove MinLOS only inside one check-in row, never by mixing dates.
+        # Pattern: same check-in has sold_out for 1..K-1 nights and priced at K.
+        by_checkin: Dict[date, Dict[int, int]] = {}
+        for idx, (ci, co) in enumerate(date_pairs):
             n = (co - ci).days
             if n <= 0:
                 continue
-            if st == _ROW_PRICED:
-                priced_per_n[n] = priced_per_n.get(n, 0) + 1
-            elif st == _ROW_SOLD_OUT:
-                sold_out_per_n[n] = sold_out_per_n.get(n, 0) + 1
+            by_checkin.setdefault(ci, {})[n] = idx
 
-        if not priced_per_n:
-            return None  # ни одной priced — нет базы для определения
+        candidate_counts: Counter[int] = Counter()
+        mark_indices = set()
 
-        k_min_priced = min(priced_per_n.keys())
-        if k_min_priced <= 1:
-            return None  # любая длина допустима
+        for _ci, nights_to_idx in by_checkin.items():
+            priced_nights = sorted(
+                n for n, idx in nights_to_idx.items()
+                if states[idx] == _ROW_PRICED
+            )
+            if not priced_nights:
+                continue
 
-        # Проверяем что для каждого K' < k_min_priced есть resolved-данные
-        # и все они — sold_out. Если хотя бы один K' "глухой" (только blocked/
-        # captcha/network/error) — не делаем вывод.
-        for k_prime in range(1, k_min_priced):
-            if priced_per_n.get(k_prime, 0) > 0:
-                # Это не должно произойти по построению k_min_priced, но safeguard.
-                return None
-            if sold_out_per_n.get(k_prime, 0) < 1:
-                return None  # данных на этой длительности нет
+            k_min_priced = priced_nights[0]
+            if k_min_priced <= 1:
+                continue
 
-        # Все условия выполнены — переписываем строки
+            shorter_indices: List[int] = []
+            valid_anchor = True
+            for k_prime in range(1, k_min_priced):
+                idx = nights_to_idx.get(k_prime)
+                if idx is None or states[idx] != _ROW_SOLD_OUT:
+                    valid_anchor = False
+                    break
+                shorter_indices.append(idx)
+
+            if not valid_anchor:
+                continue
+
+            candidate_counts[k_min_priced] += 1
+            mark_indices.update(shorter_indices)
+
+        if not mark_indices:
+            return None
+
         replaced = 0
-        for idx, (ci, co) in enumerate(date_pairs):
-            n = (co - ci).days
-            if n < k_min_priced and states[idx] == _ROW_SOLD_OUT:
+        for idx in sorted(mark_indices):
+            if states[idx] == _ROW_SOLD_OUT:
+                ci, co = date_pairs[idx]
                 out[idx] = _format_row(title, ci, co, status=_ROW_MIN_LOS)
                 replaced += 1
 
+        detected_minlos = candidate_counts.most_common(1)[0][0]
         if replaced:
+            confidence = "high" if len(candidate_counts) == 1 else "mixed"
             logger.info(
-                f"DeepAnalysis: «{title[:40]}» MinLOS={k_min_priced} "
+                f"DeepAnalysis: «{title[:40]}» MinLOS={detected_minlos} "
+                f"confidence={confidence} candidates={dict(candidate_counts)} "
                 f"(переписано {replaced} строк sold_out → MinLOS)"
             )
-        return k_min_priced
+        return detected_minlos
     except Exception as e:
         logger.warning(
             f"DeepAnalysis: _apply_minlos_marker ошибка для «{title[:40]}»: {e}"

@@ -223,6 +223,82 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(reasons[0].startswith("seal:error"))
         self.assertIn("playwright:fallback", reasons[1])
 
+    def test_minlos_marker_uses_same_checkin_anchor(self):
+        today = date(2026, 4, 19)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (today, today + timedelta(days=3)),
+        ]
+        states = [da._ROW_SOLD_OUT, da._ROW_SOLD_OUT, da._ROW_PRICED]
+        out = [
+            da._format_row("OBJ", *date_pairs[0], status=states[0]),
+            da._format_row("OBJ", *date_pairs[1], status=states[1]),
+            da._format_row("OBJ", *date_pairs[2], status=states[2], price=9000),
+        ]
+
+        detected = da._apply_minlos_marker(
+            out=out,
+            states=states,
+            title="OBJ",
+            date_pairs=date_pairs,
+        )
+
+        self.assertEqual(detected, 3)
+        self.assertIn("[MinLOS]", out[0])
+        self.assertIn("[MinLOS]", out[1])
+        self.assertEqual(states, [da._ROW_SOLD_OUT, da._ROW_SOLD_OUT, da._ROW_PRICED])
+
+    def test_minlos_marker_does_not_mix_different_checkins(self):
+        today = date(2026, 4, 19)
+        other = today + timedelta(days=1)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (other, other + timedelta(days=3)),
+        ]
+        states = [da._ROW_SOLD_OUT, da._ROW_SOLD_OUT, da._ROW_PRICED]
+        out = [
+            da._format_row("OBJ", *date_pairs[0], status=states[0]),
+            da._format_row("OBJ", *date_pairs[1], status=states[1]),
+            da._format_row("OBJ", *date_pairs[2], status=states[2], price=9000),
+        ]
+
+        detected = da._apply_minlos_marker(
+            out=out,
+            states=states,
+            title="OBJ",
+            date_pairs=date_pairs,
+        )
+
+        self.assertIsNone(detected)
+        self.assertIn("[sold_out]", out[0])
+        self.assertIn("[sold_out]", out[1])
+
+    def test_minlos_marker_requires_resolved_shorter_lengths(self):
+        today = date(2026, 4, 19)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (today, today + timedelta(days=3)),
+        ]
+        states = [da._ROW_SOLD_OUT, da._ROW_NETWORK, da._ROW_PRICED]
+        out = [
+            da._format_row("OBJ", *date_pairs[0], status=states[0]),
+            da._format_row("OBJ", *date_pairs[1], status=states[1]),
+            da._format_row("OBJ", *date_pairs[2], status=states[2], price=9000),
+        ]
+
+        detected = da._apply_minlos_marker(
+            out=out,
+            states=states,
+            title="OBJ",
+            date_pairs=date_pairs,
+        )
+
+        self.assertIsNone(detected)
+        self.assertIn("[sold_out]", out[0])
+
 
 if __name__ == "__main__":
     unittest.main()
