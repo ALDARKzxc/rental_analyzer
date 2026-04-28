@@ -49,6 +49,9 @@ QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #e54b4b, stop:1 #c03030);
     color: #f7ebe8; border-color: #e54b4b;
 }
+#navButton[compactNav="true"] {
+    font-size: 11px;
+}
 
 #sidebarStatus { color: #ffa987; font-size: 11px; background: transparent; padding: 10px 14px; }
 #sidebarVersion {

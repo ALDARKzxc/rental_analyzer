@@ -14,6 +14,7 @@ UX-принципы:
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Tuple, Optional
 
 from PySide6.QtCore import Qt, Signal, QTimer
@@ -25,47 +26,148 @@ from PySide6.QtWidgets import (
 
 from app.gui.api_client import ApiClient
 
-# Группы фильтров: (display_name, [(checkbox_label, [keyword_substrings])])
-# Ключевые слова — нижний регистр, проверяются в join'нутой строке всех удобств.
-FILTER_GROUPS: List[Tuple[str, List[Tuple[str, List[str]]]]] = [
+FilterDef = Dict[str, Any]
+
+
+# Группы фильтров. Текстовые фильтры ищутся по удобствам, описанию и коротким
+# фактам; числовые фильтры читают значения из key_facts/category/guest_capacity.
+FILTER_GROUPS: List[Tuple[str, List[FilterDef]]] = [
     ("⭐ Популярные", [
-        ("Wi-Fi / интернет",       ["wi-fi", "wifi", "интернет", "wi fi"]),
-        ("Парковка",               ["парковк"]),
-        ("Подходит для детей",     ["для детей", "подходит для дет"]),
-        ("С животными",            ["животн", "питомц"]),
+        {"label": "Wi-Fi / интернет",       "mode": "any", "keywords": ["wifi", "wi fi", "вайфай", "вай фай", "интернет"]},
+        {"label": "Парковка",               "mode": "any", "keywords": ["парковк", "parking"]},
+        {
+            "label": "Подходит для детей",
+            "mode": "any",
+            "keywords": [
+                "для детей", "подходит для дет", "можно с детьми", "с детьми",
+                "детская площадка", "детская игровая площадка", "игровая площадка",
+                "площадка для детей", "детская комната", "игровая комната",
+                "детский клуб", "клуб для детей", "детские кроватки", "детская кроватка",
+                "кроватка для ребенка", "детский стульчик", "стульчик для кормления",
+                "детское меню", "детская зона", "детская мебель", "детская анимация",
+                "анимация для детей", "услуги няни", "няня", "манеж", "детская ванночка",
+                "горшок", "защитные барьеры", "семейные номера", "семейный номер",
+                "kids", "children", "playground", "kids club", "family room",
+                "family friendly", "kid friendly", "child friendly",
+                "baby cot", "crib", "high chair", "baby bath", "babysitting",
+            ],
+            "keyword_groups": [
+                ["детск", "детей", "ребен", "ребенк"],
+                [
+                    "площадк", "игров", "кроват", "стульчик", "кормлен",
+                    "клуб", "комнат", "меню", "зон", "мебел", "анимац",
+                    "нян", "манеж", "ванноч", "горш", "барьер", "семейн",
+                ],
+            ],
+            "exclude_patterns": [
+                r"(?:дет|ребен|children|kids).{0,45}(?:запрещ|нельзя|не допуска|не разреш|не подход)",
+                r"(?:запрещ|нельзя|не допуска|не разреш|не подход).{0,45}(?:дет|ребен|children|kids)",
+            ],
+        },
+        {
+            "label": "С животными",
+            "mode": "any",
+            "keywords": ["с животными", "с домашними животными", "размещение с животными", "можно с животными", "pet friendly", "pets allowed"],
+            "exclude_patterns": [
+                r"(?:животн|питомц|pet).{0,45}(?:запрещ|нельзя|не допуска|не разреш|запрет)",
+                r"(?:запрещ|нельзя|не допуска|не разреш|запрет).{0,45}(?:животн|питомц|pet)",
+            ],
+        },
     ]),
     ("🏠 Общее", [
-        ("Магазины поблизости",    ["магазин"]),
-        ("Для некурящих",          ["некурящ"]),
-        ("Сад",                    ["сад"]),
-        ("Ускоренная регистрация", ["ускоренная регистрация"]),
+        {"label": "Магазины поблизости",    "mode": "any", "keywords": ["магазин"]},
+        {"label": "Для некурящих",          "mode": "any", "keywords": ["некурящ", "non smoking"]},
+        {"label": "Сад",                    "mode": "any", "keywords": ["сад", "garden"]},
+        {"label": "Ускоренная регистрация", "mode": "any", "keywords": ["ускоренная регистрация", "express check"]},
     ]),
     ("🛏 В апартаментах", [
-        ("Собственная ванная",     ["собственная ванн", "ванная комната"]),
-        ("Кухня",                  ["кухн"]),
-        ("Кондиционер",            ["кондиционер"]),
-        ("Стиральная машина",      ["стиральн"]),
+        {"label": "Собственная ванная",     "mode": "any", "keywords": ["собственная ванн", "ванная комната", "private bathroom"]},
+        {"label": "Кухня",                  "mode": "any", "keywords": ["кухн", "kitchen"]},
+        {"label": "Кондиционер",            "mode": "any", "keywords": ["кондиционер", "air conditioning"]},
+        {"label": "Стиральная машина",      "mode": "any", "keywords": ["стиральн", "washing machine"]},
     ]),
     ("📶 Интернет", [
-        ("Wi-Fi",                  ["wi-fi", "wifi"]),
-        ("Бесплатный интернет",    ["бесплатный интернет"]),
+        {"label": "Wi-Fi",                  "mode": "any", "keywords": ["wifi", "wi fi", "вайфай", "вай фай"]},
+        {"label": "Бесплатный интернет",    "mode": "all_groups", "keyword_groups": [["бесплатн", "free"], ["интернет", "wifi", "wi fi", "вайфай", "вай фай"]]},
+    ]),
+    ("🛌 Тип кровати", [
+        {"label": "1-спальная",             "mode": "any", "keywords": ["односпальн", "1 спальн", "single bed", "twin bed"]},
+        {"label": "2-спальная",             "mode": "any", "keywords": ["двуспальн", "2 спальн", "double bed", "queen", "king"]},
+        {"label": "Диван-кровать",          "mode": "any", "keywords": ["диван кровать", "sofa bed"]},
+        {"label": "1 кровать",              "field": "beds", "value": 1},
+        {"label": "2 кровати",              "field": "beds", "value": 2},
+        {"label": "3+ кровати",             "field": "beds", "min": 3},
+    ]),
+    ("📐 Метраж", [
+        {"label": "до 30 кв.м",              "field": "area", "max": 30},
+        {"label": "30-49 кв.м",              "field": "area", "min": 30, "max": 49},
+        {"label": "50-69 кв.м",              "field": "area", "min": 50, "max": 69},
+        {"label": "70+ кв.м",                "field": "area", "min": 70},
+    ]),
+    ("🚪 Комнаты", [
+        {"label": "1 комната",               "field": "rooms", "value": 1},
+        {"label": "2 комнаты",               "field": "rooms", "value": 2},
+        {"label": "3 комнаты",               "field": "rooms", "value": 3},
+        {"label": "4+ комнаты",              "field": "rooms", "min": 4},
+    ]),
+    ("👥 Гости", [
+        {"label": "до 2 гостей",             "field": "guests", "max": 2},
+        {"label": "3-4 гостя",               "field": "guests", "min": 3, "max": 4},
+        {"label": "5-6 гостей",              "field": "guests", "min": 5, "max": 6},
+        {"label": "7+ гостей",               "field": "guests", "min": 7},
     ]),
     ("🎯 Развлечения", [
-        ("Барбекю",                ["барбекю"]),
-        ("Бассейн",                ["бассейн"]),
-        ("Спортзал / фитнес",      ["спортзал", "фитнес"]),
-        ("Сауна / баня",           ["сауна", "баня"]),
+        {"label": "Барбекю",                "mode": "any", "keywords": ["барбекю", "bbq"]},
+        {"label": "Бассейн",                "mode": "any", "keywords": ["бассейн", "pool"]},
+        {"label": "Спортзал / фитнес",      "mode": "any", "keywords": ["спортзал", "фитнес", "gym"]},
+        {"label": "Сауна / баня",           "mode": "any", "keywords": ["сауна", "баня"]},
     ]),
     ("🚗 Парковка", [
-        ("Парковка",               ["парковк"]),
-        ("Бесплатная парковка",    ["бесплатн", "парковк"]),
+        {"label": "Парковка",               "mode": "any", "keywords": ["парковк", "parking"]},
+        {"label": "Бесплатная парковка",    "mode": "all_groups", "keyword_groups": [["бесплатн", "free"], ["парковк", "parking"]]},
     ]),
     ("👶 Дети", [
-        ("Подходит для детей",     ["для детей", "подходит для дет"]),
-        ("Детские телеканалы",     ["детск"]),
+        {
+            "label": "Подходит для детей",
+            "mode": "any",
+            "keywords": [
+                "для детей", "подходит для дет", "можно с детьми", "с детьми",
+                "детская площадка", "детская игровая площадка", "игровая площадка",
+                "площадка для детей", "детская комната", "игровая комната",
+                "детский клуб", "клуб для детей", "детские кроватки", "детская кроватка",
+                "кроватка для ребенка", "детский стульчик", "стульчик для кормления",
+                "детское меню", "детская зона", "детская мебель", "детская анимация",
+                "анимация для детей", "услуги няни", "няня", "манеж", "детская ванночка",
+                "горшок", "защитные барьеры", "семейные номера", "семейный номер",
+                "kids", "children", "playground", "kids club", "family room",
+                "family friendly", "kid friendly", "child friendly",
+                "baby cot", "crib", "high chair", "baby bath", "babysitting",
+            ],
+            "keyword_groups": [
+                ["детск", "детей", "ребен", "ребенк"],
+                [
+                    "площадк", "игров", "кроват", "стульчик", "кормлен",
+                    "клуб", "комнат", "меню", "зон", "мебел", "анимац",
+                    "нян", "манеж", "ванноч", "горш", "барьер", "семейн",
+                ],
+            ],
+            "exclude_patterns": [
+                r"(?:дет|ребен|children|kids).{0,45}(?:запрещ|нельзя|не допуска|не разреш|не подход)",
+                r"(?:запрещ|нельзя|не допуска|не разреш|не подход).{0,45}(?:дет|ребен|children|kids)",
+            ],
+        },
+        {"label": "Детские телеканалы",     "mode": "any", "keywords": ["детские телеканалы", "телеканалы для детей", "детское тв", "kids tv", "children television"]},
     ]),
     ("🐾 Животные", [
-        ("С домашними животными",  ["животн", "питомц"]),
+        {
+            "label": "С домашними животными",
+            "mode": "any",
+            "keywords": ["с животными", "с домашними животными", "размещение с животными", "можно с животными", "pet friendly", "pets allowed"],
+            "exclude_patterns": [
+                r"(?:животн|питомц|pet).{0,45}(?:запрещ|нельзя|не допуска|не разреш|запрет)",
+                r"(?:запрещ|нельзя|не допуска|не разреш|запрет).{0,45}(?:животн|питомц|pet)",
+            ],
+        },
     ]),
 ]
 
@@ -298,7 +400,7 @@ class ComparisonScreen(QWidget):
         self.api = api
         self._all_data: List[Dict[str, Any]] = []  # сырой список из api
         self._cards: Dict[int, _PropertyCard] = {}
-        self._active_filters: List[List[str]] = []  # список keyword-наборов (AND)
+        self._active_filters: List[FilterDef] = []
         self._search_query: str = ""
         # ID объектов с свёрнутыми карточками. Хранится здесь, а не в карточке,
         # потому что карточки полностью пересоздаются при каждом polling-цикле.
@@ -360,18 +462,18 @@ class ComparisonScreen(QWidget):
         cont = QWidget(); cont.setStyleSheet("background:transparent;")
         cl = QVBoxLayout(cont); cl.setContentsMargins(0, 0, 6, 0); cl.setSpacing(8)
 
-        self._filter_checkboxes: List[Tuple[QCheckBox, List[str]]] = []
+        self._filter_checkboxes: List[Tuple[QCheckBox, FilterDef]] = []
         for group_name, items in FILTER_GROUPS:
             gl = QLabel(group_name)
             gl.setStyleSheet("color:#f7ebe8;font-weight:700;font-size:12px;"
                              "background:transparent;margin-top:6px;")
             cl.addWidget(gl)
-            for label, keywords in items:
-                cb = QCheckBox(label)
+            for filter_def in items:
+                cb = QCheckBox(filter_def["label"])
                 cb.setStyleSheet(self._CB_STYLE)
                 cb.toggled.connect(self._on_filter_toggled)
                 cl.addWidget(cb)
-                self._filter_checkboxes.append((cb, keywords))
+                self._filter_checkboxes.append((cb, filter_def))
 
         cl.addStretch()
         scroll.setWidget(cont)
@@ -475,36 +577,126 @@ class ComparisonScreen(QWidget):
         self._update_collapse_all_btn()
 
     def _apply_filters(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        q = (self._search_query or "").strip().lower()
+        q = self._normalize_text(self._search_query)
         result = []
         for it in items:
-            if q and q not in (it.get("title") or "").lower():
+            if q and q not in self._normalize_text(it.get("title") or ""):
                 continue
             if self._active_filters:
                 haystack = self._build_haystack(it)
-                ok = all(
-                    any(kw in haystack for kw in keyword_set)
-                    for keyword_set in self._active_filters
-                )
+                ok = all(self._matches_filter(it, haystack, f) for f in self._active_filters)
                 if not ok:
                     continue
             result.append(it)
         return result
 
-    @staticmethod
-    def _build_haystack(item: Dict[str, Any]) -> str:
+    @classmethod
+    def _build_haystack(cls, item: Dict[str, Any]) -> str:
         parts: List[str] = []
         amenities = item.get("amenities") or {}
         for group, ams in amenities.items():
             parts.append(group)
             parts.extend(ams)
+        parts.extend(item.get("key_facts") or [])
+        if item.get("category"):
+            parts.append(item["category"])
         if item.get("description"):
             parts.append(item["description"])
-        return " ".join(parts).lower()
+        return cls._normalize_text(" ".join(parts))
+
+    @staticmethod
+    def _normalize_text(text: Any, *, expand_wifi: bool = True) -> str:
+        value = str(text or "").lower().replace("ё", "е").replace("м²", "м2")
+        value = re.sub(r"[\u2010-\u2015–—\-_/]+", " ", value)
+        value = re.sub(r"[^\w\s.]+", " ", value, flags=re.UNICODE)
+        value = re.sub(r"\s+", " ", value).strip()
+        if expand_wifi and (
+            "wi fi" in value or "wifi" in value or "вай фай" in value or "вайфай" in value
+        ):
+            value += " wifi интернет"
+        return value
+
+    def _matches_filter(self, item: Dict[str, Any], haystack: str, filter_def: FilterDef) -> bool:
+        if self._has_excluded_context(haystack, filter_def):
+            return False
+
+        field = filter_def.get("field")
+        if field:
+            value = self._extract_numeric_fact(item, field)
+            if value is None:
+                return False
+            if "value" in filter_def:
+                return value == filter_def["value"]
+            if "min" in filter_def and value < filter_def["min"]:
+                return False
+            if "max" in filter_def and value > filter_def["max"]:
+                return False
+            return True
+
+        mode = filter_def.get("mode", "any")
+        if mode == "all":
+            return all(
+                self._normalize_text(kw, expand_wifi=False) in haystack
+                for kw in filter_def.get("keywords", [])
+            )
+        if mode == "all_groups":
+            return all(
+                any(self._normalize_text(kw, expand_wifi=False) in haystack for kw in group)
+                for group in filter_def.get("keyword_groups", [])
+            )
+        keyword_match = any(
+            self._normalize_text(kw, expand_wifi=False) in haystack
+            for kw in filter_def.get("keywords", [])
+        )
+        group_match = bool(filter_def.get("keyword_groups")) and all(
+            any(self._normalize_text(kw, expand_wifi=False) in haystack for kw in group)
+            for group in filter_def.get("keyword_groups", [])
+        )
+        return keyword_match or group_match
+
+    @classmethod
+    def _has_excluded_context(cls, haystack: str, filter_def: FilterDef) -> bool:
+        for phrase in filter_def.get("exclude_keywords", []):
+            if cls._normalize_text(phrase, expand_wifi=False) in haystack:
+                return True
+        for pattern in filter_def.get("exclude_patterns", []):
+            if re.search(cls._normalize_pattern(pattern), haystack):
+                return True
+        return False
+
+    @staticmethod
+    def _normalize_pattern(pattern: str) -> str:
+        return pattern.lower().replace("ё", "е")
+
+    @classmethod
+    def _extract_numeric_fact(cls, item: Dict[str, Any], field: str) -> Optional[int]:
+        facts = item.get("key_facts") or []
+        haystack = cls._normalize_text(" ".join([str(x) for x in facts] + [item.get("category") or ""]))
+
+        if field == "guests":
+            match = re.search(r"(?:до\s*)?(\d{1,2})\s*гост", haystack)
+            if match:
+                return int(match.group(1))
+            capacity = item.get("guest_capacity")
+            return capacity if isinstance(capacity, int) and capacity > 0 else None
+
+        if field == "rooms":
+            match = re.search(r"(\d{1,2})\s*комнат", haystack)
+            return int(match.group(1)) if match else None
+
+        if field == "area":
+            match = re.search(r"(\d{1,3})\s*(?:кв\s*\.?\s*м|м2|м\s*2)", haystack)
+            return int(match.group(1)) if match else None
+
+        if field == "beds":
+            match = re.search(r"(\d{1,2})\s*кроват", haystack)
+            return int(match.group(1)) if match else None
+
+        return None
 
     def _on_filter_toggled(self) -> None:
         self._active_filters = [
-            keywords for cb, keywords in self._filter_checkboxes if cb.isChecked()
+            filter_def for cb, filter_def in self._filter_checkboxes if cb.isChecked()
         ]
         self._render_cards()
 

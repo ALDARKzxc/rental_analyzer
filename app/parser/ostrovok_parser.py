@@ -775,12 +775,18 @@ class OstrovokParser(BaseParser):
 
         # ── Кровати (если есть) ──────────────────────────────────
         bed_total = 0
+        single_beds = 0
+        double_beds = 0
         for k in ("bedCountDouble", "bedCountSingle", "bedCountKing",
                   "bedCountQueen", "bedCountBunk", "bedCountSofa",
                   "bedCountChair"):
             n = OstrovokParser._coerce_positive_int(ai.get(k))
             if n:
                 bed_total += n
+                if k == "bedCountSingle":
+                    single_beds += n
+                elif k in ("bedCountDouble", "bedCountKing", "bedCountQueen"):
+                    double_beds += n
         if bed_total:
             if bed_total == 1:
                 facts.append("1 кровать")
@@ -788,6 +794,10 @@ class OstrovokParser(BaseParser):
                 facts.append(f"{bed_total} кровати")
             else:
                 facts.append(f"{bed_total} кроватей")
+        if single_beds:
+            facts.append("1-спальная кровать")
+        if double_beds:
+            facts.append("2-спальная кровать")
 
         # ── Год постройки ────────────────────────────────────────
         year = OstrovokParser._coerce_positive_int(f_dict.get("yearBuilt"))
