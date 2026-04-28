@@ -488,6 +488,7 @@ class OstrovokParser(BaseParser):
             return None
 
         candidate = candidate.split(",")[0].strip().split()[0]
+        candidate = self._resolve_ostrovok_image_size(candidate)
         if candidate.startswith("//"):
             candidate = f"https:{candidate}"
         candidate = self._absolute_url(candidate, page_url)
@@ -495,6 +496,12 @@ class OstrovokParser(BaseParser):
         if not candidate.startswith(("http://", "https://")):
             return None
         return candidate
+
+    @staticmethod
+    def _resolve_ostrovok_image_size(candidate: str) -> str:
+        # Ostrovok sometimes stores CDN photos as templates:
+        # https://cdn.worldota.net/t/{size}/content/...
+        return re.sub(r"(?:\{size\}|%7bsize%7d)", "1024x768", candidate, flags=re.IGNORECASE)
 
     def _absolute_url(self, candidate: str, page_url: str) -> str:
         if candidate.startswith(("http://", "https://")):

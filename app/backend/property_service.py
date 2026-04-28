@@ -29,6 +29,7 @@ _IMAGE_SIGNATURES = (
     b"RIFF",
     b"BM",
 )
+_OSTROVOK_PREVIEW_SIZE = "1024x768"
 
 
 def _clean_text(value: object, *, limit: int) -> str | None:
@@ -87,6 +88,19 @@ def _looks_like_image_payload(content_type: str, image_url: str, payload: bytes)
     return any(payload.startswith(signature) for signature in _IMAGE_SIGNATURES)
 
 
+def _preview_url_candidates(image_url: str) -> list[str]:
+    if not re.search(r"(?:\{size\}|%7bsize%7d)", image_url, flags=re.IGNORECASE):
+        return [image_url]
+
+    fixed = re.sub(
+        r"(?:\{size\}|%7bsize%7d)",
+        _OSTROVOK_PREVIEW_SIZE,
+        image_url,
+        flags=re.IGNORECASE,
+    )
+    return [fixed]
+
+
 async def _cache_preview_image(property_id: int, image_url: str) -> str | None:
     PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -101,24 +115,29 @@ async def _cache_preview_image(property_id: int, image_url: str) -> str | None:
     proxy = _detect_system_proxy()
     proxies_to_try = [proxy, None] if proxy else [None]
     response = None
-    for attempt_proxy in proxies_to_try:
-        kwargs: dict = {
-            "timeout": httpx.Timeout(15.0, connect=5.0),
-            "follow_redirects": True,
-            "trust_env": False,
-        }
-        if attempt_proxy:
-            kwargs["proxy"] = attempt_proxy
-        try:
-            async with httpx.AsyncClient(**kwargs) as client:
-                response = await client.get(image_url, headers=headers)
+    used_image_url = image_url
+    for candidate_url in _preview_url_candidates(image_url):
+        for attempt_proxy in proxies_to_try:
+            kwargs: dict = {
+                "timeout": httpx.Timeout(15.0, connect=5.0),
+                "follow_redirects": True,
+                "trust_env": False,
+            }
+            if attempt_proxy:
+                kwargs["proxy"] = attempt_proxy
+            try:
+                async with httpx.AsyncClient(**kwargs) as client:
+                    response = await client.get(candidate_url, headers=headers)
+                used_image_url = candidate_url
+                break
+            except Exception as exc:
+                logger.debug(
+                    f"Preview download (proxy={bool(attempt_proxy)}) failed for "
+                    f"property {property_id}: {exc}"
+                )
+                response = None
+        if response is not None:
             break
-        except Exception as exc:
-            logger.debug(
-                f"Preview download (proxy={bool(attempt_proxy)}) failed for "
-                f"property {property_id}: {exc}"
-            )
-            response = None
 
     if response is None:
         logger.warning(f"Preview download failed for property {property_id}: all attempts errored")
@@ -127,7 +146,7 @@ async def _cache_preview_image(property_id: int, image_url: str) -> str | None:
     content_type = response.headers.get("content-type", "")
     if response.status_code != 200 or not _looks_like_image_payload(
         content_type,
-        image_url,
+        used_image_url,
         response.content,
     ):
         logger.debug(
@@ -138,7 +157,7 @@ async def _cache_preview_image(property_id: int, image_url: str) -> str | None:
         )
         return None
 
-    suffix = _guess_image_suffix(image_url, content_type)
+    suffix = _guess_image_suffix(used_image_url, content_type)
     target_path = PREVIEWS_DIR / f"property_{property_id}{suffix}"
 
     try:
