@@ -1894,9 +1894,13 @@ def _apply_minlos_marker(
         if len(states) != len(date_pairs) or len(out) != len(date_pairs):
             return None
 
-        # Conservative anchored detection:
-        # prove MinLOS only inside one check-in row, never by mixing dates.
-        # Pattern: same check-in has sold_out for 1..K-1 nights and priced at K.
+        # Conservative two-pass detection:
+        # 1) Strong local proof: same check-in has sold_out for 1..K-1 nights
+        #    and a price at K nights.
+        # 2) If this object has a confirmed dominant K, use it as a weak proof
+        #    for rows where 1..K nights are all sold_out. The K-night row remains
+        #    sold_out; only shorter rows become MinLOS. This handles dates where
+        #    the stay length is sufficient but the object is sold out.
         by_checkin: Dict[date, Dict[int, int]] = {}
         for idx, (ci, co) in enumerate(date_pairs):
             n = (co - ci).days
@@ -1906,33 +1910,64 @@ def _apply_minlos_marker(
 
         candidate_counts: Counter[int] = Counter()
         mark_indices = set()
+        weak_candidates: Dict[int, List[int]] = {}
 
-        for _ci, nights_to_idx in by_checkin.items():
+        for ci, nights_to_idx in by_checkin.items():
             priced_nights = sorted(
                 n for n, idx in nights_to_idx.items()
                 if states[idx] == _ROW_PRICED
             )
-            if not priced_nights:
+            if priced_nights:
+                k_min_priced = priced_nights[0]
+                if k_min_priced > 1:
+                    shorter_indices: List[int] = []
+                    valid_anchor = True
+                    for k_prime in range(1, k_min_priced):
+                        idx = nights_to_idx.get(k_prime)
+                        if idx is None or states[idx] != _ROW_SOLD_OUT:
+                            valid_anchor = False
+                            break
+                        shorter_indices.append(idx)
+
+                    if valid_anchor:
+                        candidate_counts[k_min_priced] += 1
+                        mark_indices.update(shorter_indices)
                 continue
 
-            k_min_priced = priced_nights[0]
-            if k_min_priced <= 1:
+            sold_out_nights = {
+                n for n, idx in nights_to_idx.items()
+                if states[idx] == _ROW_SOLD_OUT
+            }
+            if not sold_out_nights:
                 continue
 
-            shorter_indices: List[int] = []
-            valid_anchor = True
-            for k_prime in range(1, k_min_priced):
-                idx = nights_to_idx.get(k_prime)
-                if idx is None or states[idx] != _ROW_SOLD_OUT:
-                    valid_anchor = False
-                    break
-                shorter_indices.append(idx)
+            max_contiguous_sold_out = 0
+            while (max_contiguous_sold_out + 1) in sold_out_nights:
+                max_contiguous_sold_out += 1
 
-            if not valid_anchor:
-                continue
+            if max_contiguous_sold_out >= 2:
+                weak_candidates[ci.toordinal()] = [
+                    nights_to_idx[n]
+                    for n in range(1, max_contiguous_sold_out + 1)
+                ]
 
-            candidate_counts[k_min_priced] += 1
-            mark_indices.update(shorter_indices)
+        dominant_minlos: Optional[int] = None
+        if candidate_counts:
+            most_common = candidate_counts.most_common()
+            dominant_minlos = most_common[0][0]
+            dominant_count = most_common[0][1]
+            runner_up_count = most_common[1][1] if len(most_common) > 1 else 0
+            if runner_up_count and runner_up_count >= dominant_count:
+                dominant_minlos = None
+
+        if dominant_minlos and dominant_minlos > 1:
+            for indices in weak_candidates.values():
+                if len(indices) < dominant_minlos:
+                    continue
+                shorter_indices = indices[:dominant_minlos - 1]
+                boundary_idx = indices[dominant_minlos - 1]
+                if states[boundary_idx] == _ROW_SOLD_OUT:
+                    mark_indices.update(shorter_indices)
 
         if not mark_indices:
             return None
@@ -1944,7 +1979,9 @@ def _apply_minlos_marker(
                 out[idx] = _format_row(title, ci, co, status=_ROW_MIN_LOS)
                 replaced += 1
 
-        detected_minlos = candidate_counts.most_common(1)[0][0]
+        detected_minlos = dominant_minlos or (
+            candidate_counts.most_common(1)[0][0] if candidate_counts else None
+        )
         if replaced:
             confidence = "high" if len(candidate_counts) == 1 else "mixed"
             logger.info(

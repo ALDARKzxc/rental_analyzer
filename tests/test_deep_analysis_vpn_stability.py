@@ -299,6 +299,64 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(detected)
         self.assertIn("[sold_out]", out[0])
 
+    def test_minlos_marker_uses_confirmed_object_minlos_for_sold_out_boundary(self):
+        today = date(2026, 4, 19)
+        other = today + timedelta(days=1)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (other, other + timedelta(days=1)),
+            (other, other + timedelta(days=2)),
+        ]
+        states = [
+            da._ROW_SOLD_OUT,
+            da._ROW_PRICED,
+            da._ROW_SOLD_OUT,
+            da._ROW_SOLD_OUT,
+        ]
+        out = [
+            da._format_row("OBJ", *date_pairs[0], status=states[0]),
+            da._format_row("OBJ", *date_pairs[1], status=states[1], price=9000),
+            da._format_row("OBJ", *date_pairs[2], status=states[2]),
+            da._format_row("OBJ", *date_pairs[3], status=states[3]),
+        ]
+
+        detected = da._apply_minlos_marker(
+            out=out,
+            states=states,
+            title="OBJ",
+            date_pairs=date_pairs,
+        )
+
+        self.assertEqual(detected, 2)
+        self.assertIn("[MinLOS]", out[0])
+        self.assertIn("[MinLOS]", out[2])
+        self.assertIn("[sold_out]", out[3])
+
+    def test_minlos_marker_does_not_guess_when_all_rows_are_sold_out(self):
+        today = date(2026, 4, 19)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (today, today + timedelta(days=3)),
+        ]
+        states = [da._ROW_SOLD_OUT, da._ROW_SOLD_OUT, da._ROW_SOLD_OUT]
+        out = [
+            da._format_row("OBJ", *pair, status=state)
+            for pair, state in zip(date_pairs, states)
+        ]
+
+        detected = da._apply_minlos_marker(
+            out=out,
+            states=states,
+            title="OBJ",
+            date_pairs=date_pairs,
+        )
+
+        self.assertIsNone(detected)
+        self.assertIn("[sold_out]", out[0])
+        self.assertIn("[sold_out]", out[1])
+
 
 if __name__ == "__main__":
     unittest.main()
