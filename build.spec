@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
 PyInstaller spec для Rental Price Analyzer.
-Собирает в ОДНУ папку с одним exe.
+Собирает в один exe.
 Запуск сборки: pyinstaller build.spec --clean
 """
 
@@ -45,9 +45,6 @@ a = Analysis(
         (str(playwright_pkg), 'playwright'),
         # Браузер Chromium (самая тяжёлая часть — ~150 МБ)
         (str(chromium_dir), f'ms-playwright/{chromium_dir.name}'),
-        # Пустые папки для данных
-        ('data', 'data'),
-        ('logs', 'logs'),
     ],
     hiddenimports=[
         # Uvicorn — все внутренние модули явно
@@ -110,6 +107,9 @@ a = Analysis(
         'unittest', 'unittest.mock', 'email', 'email.mime',
         'email.mime.text', 'email.mime.multipart',
         'multipart', 'numpy', 'pandas',
+        'openpyxl', 'openpyxl.cell', 'openpyxl.styles',
+        'openpyxl.worksheet', 'openpyxl.worksheet.table',
+        'openpyxl.drawing.image', 'PIL', 'PIL.Image',
         # Asyncio internals
         'asyncio', 'asyncio.events', 'asyncio.futures',
         'asyncio.tasks', 'asyncio.streams',
@@ -129,8 +129,11 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
+    exclude_binaries=False,
     name='RentalAnalyzer',
     debug=False,
     bootloader_ignore_signals=False,
@@ -138,15 +141,4 @@ exe = EXE(
     upx=True,
     console=False,     # ← False = без чёрного консольного окна
     icon=None,         # ← сюда можно добавить путь к .ico файлу
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=['vcruntime140.dll', 'python*.dll'],
-    name='RentalAnalyzer',
 )

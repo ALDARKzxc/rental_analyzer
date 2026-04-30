@@ -65,15 +65,15 @@ def get_results_dir() -> Path:
     return BASE_DIR / "результаты анализа"
 
 
-def _make_filename(results_dir: Path) -> Path:
+def _make_filename(results_dir: Path, suffix: str = ".xlsx") -> Path:
     today = date.today()
     base = f"Глубокий Анализ {today.strftime('%d.%m.%Y')}"
-    p = results_dir / f"{base}.txt"
+    p = results_dir / f"{base}{suffix}"
     if not p.exists():
         return p
     n = 2
     while True:
-        p = results_dir / f"{base} ({n}).txt"
+        p = results_dir / f"{base} ({n}){suffix}"
         if not p.exists():
             return p
         n += 1
@@ -535,6 +535,10 @@ async def _run(prop_ids: List[int]) -> None:
 
 async def _do_analysis(prop_ids: List[int]) -> None:
     from app.backend.database import PropertyRepository
+    from app.backend.deep_analysis_export import (
+        build_property_export_result,
+        write_deep_analysis_xlsx,
+    )
     from app.parser.dispatcher import _PARSER_INSTANCES, _make_parser
     from app.parser.ostrovok_parser import OstrovokParser
     from app.utils.config import PARSER_USER_AGENTS
@@ -569,19 +573,39 @@ async def _do_analysis(prop_ids: List[int]) -> None:
     api_headers = parser._headers()
     api_headers["User-Agent"] = PARSER_USER_AGENTS[0]
 
-    results_per_prop: Dict[int, List[str]] = {}
+    export_results_per_prop: Dict[int, Any] = {}
+    legacy_rows_per_prop: Dict[int, List[str]] = {}
     write_lock = asyncio.Lock()
     prop_sem   = asyncio.Semaphore(_PROPERTY_CONCURRENCY)
 
-    async def _flush() -> None:
+    def _legacy_lines() -> List[str]:
         """Пишет файл: все готовые объекты в порядке input; незаконченные пропускаются."""
         lines: List[str] = []
         for i in range(len(props)):
-            res = results_per_prop.get(i)
+            res = legacy_rows_per_prop.get(i)
             if res is not None:
                 lines.extend(res)
                 lines.append("")
-        _write_file(file_path, lines)
+        return lines
+
+    def _write_final_output() -> None:
+        """Writes one final XLSX workbook; falls back to legacy text on export errors."""
+        ordered = [
+            export_results_per_prop[i]
+            for i in range(len(props))
+            if i in export_results_per_prop
+        ]
+        try:
+            write_deep_analysis_xlsx(file_path, ordered, date_pairs)
+            return
+        except Exception as e:
+            txt_path = _make_filename(results_dir, suffix=".txt")
+            _state["file_path"] = str(txt_path)
+            logger.error(
+                f"DeepAnalysis: XLSX export failed, writing legacy txt to {txt_path}: {e}",
+                exc_info=True,
+            )
+            _write_file(txt_path, _legacy_lines())
 
     async def process_property(idx: int, prop) -> None:
         title    = prop.title
@@ -650,8 +674,14 @@ async def _do_analysis(prop_ids: List[int]) -> None:
                 f"reasons_top={dict(Counter(filter(None, (_reason_group(r) for r in pair_reasons))).most_common(8))}"
             )
             async with write_lock:
-                results_per_prop[idx] = pair_results
-                await _flush()
+                legacy_rows_per_prop[idx] = pair_results
+                export_results_per_prop[idx] = build_property_export_result(
+                    prop=prop,
+                    date_pairs=date_pairs,
+                    rows=pair_results,
+                    states=pair_states,
+                    reasons=pair_reasons,
+                )
 
     await asyncio.gather(
         *(process_property(i, p) for i, p in enumerate(props)),
@@ -659,7 +689,7 @@ async def _do_analysis(prop_ids: List[int]) -> None:
     )
 
     async with write_lock:
-        await _flush()
+        _write_final_output()
 
 
 # ── Per-property pipeline ────────────────────────────────────────────────────
