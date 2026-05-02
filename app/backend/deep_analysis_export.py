@@ -199,8 +199,6 @@ def _write_matrix_sheet(
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     for row_idx, result in enumerate(results, start=2):
-        ws.row_dimensions[row_idx].height = 118
-
         object_cell = ws.cell(row_idx, 1, _clean_cell_text(result.title))
         object_cell.fill = styles.object_fill
         object_cell.font = styles.object_font
@@ -233,8 +231,14 @@ def _write_matrix_sheet(
             view = matrix.get(checkin)
             cell = ws.cell(row_idx, offset)
             cell.border = styles.border
-            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             _apply_matrix_cell(cell, view, styles)
+
+        ws.row_dimensions[row_idx].height = _matrix_row_height(
+            result,
+            desc_cell.value,
+            amenities_cell.value,
+        )
 
 
 def _write_detail_sheet(
@@ -276,7 +280,7 @@ def _write_detail_sheet(
                     cell.number_format = "dd.mm.yyyy"
                 elif col_idx == 9 and isinstance(value, (int, float)):
                     cell.number_format = "#,##0"
-            ws.row_dimensions[row_idx].height = 42
+            ws.row_dimensions[row_idx].height = _detail_row_height(values)
             row_idx += 1
 
 
@@ -422,6 +426,44 @@ def _finalize_detail_sheet(
     widths = [40, 10, 16, 26, 54, 16, 16, 10, 14, 18, 56]
     for idx, width in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(idx)].width = width
+
+
+def _matrix_row_height(
+    result: PropertyExportResult,
+    description: Any,
+    amenities: Any,
+) -> float:
+    lines = max(
+        _wrapped_line_count(result.title, 34),
+        _wrapped_line_count(description, 58),
+        _wrapped_line_count(amenities, 48),
+        6,
+    )
+    return _row_height(lines, minimum=118, maximum=280)
+
+
+def _detail_row_height(values: Sequence[Any]) -> float:
+    widths = (36, 10, 14, 22, 48, 14, 14, 8, 12, 16, 50)
+    lines = max(
+        _wrapped_line_count(value, width)
+        for value, width in zip(values, widths)
+    )
+    return _row_height(lines, minimum=42, maximum=180)
+
+
+def _wrapped_line_count(value: Any, width: int) -> int:
+    text = "" if value is None else str(value)
+    if not text:
+        return 1
+    total = 0
+    for line in text.splitlines() or [""]:
+        length = max(1, len(line.strip()))
+        total += max(1, (length + width - 1) // width)
+    return total
+
+
+def _row_height(lines: int, *, minimum: float, maximum: float) -> float:
+    return min(maximum, max(minimum, float(lines * 15 + 10)))
 
 
 def _write_legend(ws: Any, start_row: int, styles: "_WorkbookStyles") -> None:
