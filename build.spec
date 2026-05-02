@@ -91,6 +91,7 @@ a = Analysis(
         'pyparsing', 'pyparsing.testing',
         # Наши модули
         'app', 'app.backend', 'app.backend.api', 'app.backend.database',
+        'app.backend.deep_analysis', 'app.backend.deep_analysis_export',
         'app.parser', 'app.parser.dispatcher', 'app.parser.base_parser',
         'app.parser.ostrovok_parser', 'app.parser.avito_parser',
         'app.parser.generic_parser', 'app.parser.sutochno_parser',

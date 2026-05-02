@@ -77,6 +77,35 @@ class OstrovokPriceExtractionTests(unittest.TestCase):
 
         self.assertEqual(self.parser._prices_from_xhr(data, nights=2), [])
 
+    def test_prefers_total_stay_price_over_nightly_price(self):
+        data = {
+            "rates": [
+                {
+                    "nights": 3,
+                    "night_price": "7000",
+                    "payment_options": {
+                        "payment_types": [
+                            {"show_amount": "21000", "amount": "21000"},
+                        ],
+                    },
+                },
+            ],
+        }
+
+        self.assertEqual(self.parser._prices_from_xhr(data, nights=3), [21000.0])
+
+    def test_uses_nightly_price_only_when_total_is_absent(self):
+        data = {
+            "rates": [
+                {
+                    "nights": 2,
+                    "night_price": "6500",
+                },
+            ],
+        }
+
+        self.assertEqual(self.parser._prices_from_xhr(data, nights=2), [6500.0])
+
 
 if __name__ == "__main__":
     unittest.main()

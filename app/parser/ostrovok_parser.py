@@ -1297,22 +1297,46 @@ class OstrovokParser(BaseParser):
             return 0
 
         def _collect_rate_prices(rate: dict) -> List[float]:
-            prices: List[float] = []
+            payment_totals: List[float] = []
             po = rate.get("payment_options", {})
             if isinstance(po, dict):
                 for pt in po.get("payment_types", []):
                     if not isinstance(pt, dict):
                         continue
-                    for field in ("show_amount", "amount", "price"):
+                    for field in ("show_amount", "amount", "price", "total_price"):
                         p = self._to_price(pt.get(field))
                         if p:
-                            prices.append(p)
-            for field in ("price", "amount", "show_amount",
-                          "base_amount", "total_price", "night_price"):
+                            payment_totals.append(p)
+            if payment_totals:
+                return payment_totals
+
+            rate_totals: List[float] = []
+            for field in ("total_price", "show_amount", "amount",
+                          "price", "base_amount"):
                 p = self._to_price(rate.get(field))
                 if p:
-                    prices.append(p)
-            return prices
+                    rate_totals.append(p)
+            if rate_totals:
+                return rate_totals
+
+            nightly_fallbacks: List[float] = []
+            for field in ("night_price", "per_night"):
+                p = self._to_price(rate.get(field))
+                if p:
+                    nightly_fallbacks.append(p)
+            return nightly_fallbacks
+
+        def _valid_prices(prices: List[float]) -> List[float]:
+            result: List[float] = []
+            seen = set()
+            for p in prices:
+                if not (500 <= p <= 300_000):
+                    continue
+                if p in seen:
+                    continue
+                seen.add(p)
+                result.append(p)
+            return result
 
         found: List[float] = []
         try:
@@ -1336,7 +1360,7 @@ class OstrovokParser(BaseParser):
                         )
                         for rate in exact:
                             found.extend(_collect_rate_prices(rate))
-                        return [p for p in found if 500 <= p <= 300_000]
+                        return _valid_prices(found)
                     else:
                         available = sorted({n for _, n in exact_annotated if n > 0})
                         logger.debug(
@@ -1369,7 +1393,7 @@ class OstrovokParser(BaseParser):
         except Exception as e:
             logger.debug(f"_prices_from_xhr error: {e}")
 
-        return [p for p in found if 500 <= p <= 300_000]
+        return _valid_prices(found)
 
     # ── HTML price extraction ─────────────────────────────────────
 

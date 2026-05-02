@@ -45,6 +45,7 @@ class PairResult:
     display_status: str
     price: Optional[float]
     reason: Optional[str]
+    min_los_nights: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,7 @@ def build_property_export_result(
 ) -> PropertyExportResult:
     """Build a typed export snapshot from the analysis state arrays."""
     pairs: List[PairResult] = []
+    min_los_by_checkin = _min_los_categories_by_checkin(date_pairs, rows, states)
     for idx, (ci, co) in enumerate(date_pairs):
         row = rows[idx] if idx < len(rows) else ""
         state = states[idx] if idx < len(states) else "error"
@@ -87,6 +89,9 @@ def build_property_export_result(
                 display_status=display_status,
                 price=_parse_price_from_row(row) if state == PRICED else None,
                 reason=reasons[idx] if idx < len(reasons) else None,
+                min_los_nights=(
+                    min_los_by_checkin.get(ci) if display_status == MIN_LOS else None
+                ),
             )
         )
 
@@ -194,7 +199,7 @@ def _write_matrix_sheet(
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     for row_idx, result in enumerate(results, start=2):
-        ws.row_dimensions[row_idx].height = 78
+        ws.row_dimensions[row_idx].height = 118
 
         object_cell = ws.cell(row_idx, 1, _clean_cell_text(result.title))
         object_cell.fill = styles.object_fill
@@ -259,7 +264,7 @@ def _write_detail_sheet(
                 pair.checkout,
                 pair.nights,
                 pair.price,
-                _status_label(pair.display_status),
+                _pair_status_label(pair),
                 pair.reason,
             ]
             for col_idx, value in enumerate(values, start=1):
@@ -271,6 +276,7 @@ def _write_detail_sheet(
                     cell.number_format = "dd.mm.yyyy"
                 elif col_idx == 9 and isinstance(value, (int, float)):
                     cell.number_format = "#,##0"
+            ws.row_dimensions[row_idx].height = 42
             row_idx += 1
 
 
@@ -289,13 +295,15 @@ def _apply_matrix_cell(cell: Any, view: Optional[Dict[str, Any]], styles: "_Work
         cell.value = round(float(price))
         cell.number_format = "#,##0"
         cell.font = styles.body_font
-        if nights <= 1:
-            cell.fill = styles.available_fill
-        elif nights == 2:
-            cell.fill = styles.minlos2_fill
-        else:
-            cell.fill = styles.minlos3_fill
+        _apply_min_los_fill(cell, nights, styles)
         cell.comment = None if nights <= 1 else _comment_for_minlos(nights)
+        return
+
+    if status == MIN_LOS:
+        cell.value = _min_los_label(nights)
+        cell.font = styles.body_font
+        _apply_min_los_fill(cell, nights, styles)
+        cell.comment = _comment_for_minlos(nights) if nights > 1 else None
         return
 
     if status in {"blocked", "captcha", "network", "error", "cancelled"}:
@@ -316,6 +324,31 @@ def _comment_for_minlos(nights: int) -> Any:
     return Comment(f"Минимальный доступный срок: {label}", "Rental Analyzer")
 
 
+def _apply_min_los_fill(cell: Any, nights: int, styles: "_WorkbookStyles") -> None:
+    if nights <= 1:
+        cell.fill = styles.available_fill
+    elif nights == 2:
+        cell.fill = styles.minlos2_fill
+    else:
+        cell.fill = styles.minlos3_fill
+
+
+def _min_los_label(nights: Optional[int]) -> str:
+    if not nights or nights <= 1:
+        return "MinLOS 1"
+    if nights == 2:
+        return "MinLOS 2"
+    return "MinLOS 3+"
+
+
+def _pair_status_label(pair: PairResult) -> str:
+    if pair.display_status == MIN_LOS:
+        return _min_los_label(pair.min_los_nights or pair.nights)
+    if pair.display_status == PRICED:
+        return _min_los_label(pair.nights)
+    return _status_label(pair.display_status)
+
+
 def _matrix_cells_by_checkin(pairs: Sequence[PairResult]) -> Dict[date, Dict[str, Any]]:
     by_checkin: Dict[date, List[PairResult]] = {}
     for pair in pairs:
@@ -333,6 +366,19 @@ def _matrix_cells_by_checkin(pairs: Sequence[PairResult]) -> Dict[date, Dict[str
                 "status": PRICED,
                 "price": chosen.price,
                 "nights": chosen.nights,
+            }
+            continue
+
+        min_los = sorted(
+            (p for p in items if p.display_status == MIN_LOS),
+            key=lambda p: (p.min_los_nights or p.nights or 0, p.nights),
+        )
+        if min_los:
+            chosen = min_los[0]
+            matrix[checkin] = {
+                "status": MIN_LOS,
+                "price": None,
+                "nights": chosen.min_los_nights or chosen.nights,
             }
             continue
 
@@ -357,10 +403,10 @@ def _finalize_matrix_sheet(
     ws.sheet_view.showGridLines = False
     ws.auto_filter.ref = f"A1:{get_column_letter(column_count)}{max(1, result_count + 1)}"
 
-    widths = {1: 32, 2: 16, 3: 56, 4: 44}
+    widths = {1: 38, 2: 18, 3: 64, 4: 54}
     for col_idx in range(1, column_count + 1):
         letter = get_column_letter(col_idx)
-        ws.column_dimensions[letter].width = widths.get(col_idx, 10)
+        ws.column_dimensions[letter].width = widths.get(col_idx, 13)
 
 
 def _finalize_detail_sheet(
@@ -373,7 +419,7 @@ def _finalize_detail_sheet(
     ws.freeze_panes = "A2"
     ws.sheet_view.showGridLines = False
     ws.auto_filter.ref = f"A1:{get_column_letter(column_count)}{max(1, row_count + 1)}"
-    widths = [32, 10, 14, 24, 42, 14, 14, 10, 12, 18, 42]
+    widths = [40, 10, 16, 26, 54, 16, 16, 10, 14, 18, 56]
     for idx, width in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(idx)].width = width
 
@@ -485,14 +531,50 @@ def _json_loads(raw: Optional[str], *, default: Any) -> Any:
 
 
 def _parse_price_from_row(row: str) -> Optional[float]:
-    if not row or "[" in row:
+    if not row:
         return None
-    tail = row.rsplit(";", 1)[-1]
+    tail = row.rsplit(";", 1)[-1].strip()
+    if tail.startswith("["):
+        return None
     match = _PRICE_RE.search(tail)
     if not match:
         return None
     digits = re.sub(r"\D", "", match.group(1))
     return float(digits) if digits else None
+
+
+def _min_los_categories_by_checkin(
+    date_pairs: Sequence[Tuple[date, date]],
+    rows: Sequence[str],
+    states: Sequence[str],
+) -> Dict[date, int]:
+    grouped: Dict[date, Dict[str, List[int]]] = {}
+    for idx, (ci, co) in enumerate(date_pairs):
+        nights = max(0, (co - ci).days)
+        if nights <= 0:
+            continue
+        row = rows[idx] if idx < len(rows) else ""
+        state = states[idx] if idx < len(states) else ""
+        bucket = grouped.setdefault(ci, {"priced": [], "marked": []})
+        if state == PRICED and _parse_price_from_row(row):
+            bucket["priced"].append(nights)
+        if "[MinLOS]" in row:
+            bucket["marked"].append(nights)
+
+    categories: Dict[date, int] = {}
+    for ci, bucket in grouped.items():
+        marked = bucket["marked"]
+        if not marked:
+            continue
+        priced_after_mark = [
+            n for n in bucket["priced"]
+            if n > max(marked)
+        ]
+        if priced_after_mark:
+            categories[ci] = min(priced_after_mark)
+        else:
+            categories[ci] = max(marked) + 1
+    return categories
 
 
 def _ordered_checkins(date_pairs: Sequence[Tuple[date, date]]) -> List[date]:
