@@ -78,12 +78,13 @@ def test_deep_analysis_xlsx_contains_matrix_filters_and_details():
         ]
         assert matrix["A2"].value == "Test object"
         assert matrix["E2"].value == 4200
-        assert matrix["F2"].value == 7600
+        assert matrix["F2"].value == "—"
 
         details = wb["Детализация"]
         assert details.auto_filter.ref == "A1:K11"
         assert details["A2"].value == "Test object"
         assert details["I2"].value in (4200, 4200.0, None)
+        assert details["J2"].value == "Доступно"
     finally:
         if path.exists():
             path.unlink()
@@ -163,11 +164,12 @@ def test_deep_analysis_xlsx_marks_minlos_categories_and_row_sizes():
         matrix = wb[wb.sheetnames[0]]
         details = wb[wb.sheetnames[1]]
 
-        assert matrix["E2"].value == 18000
-        assert matrix["F2"].value == "MinLOS 3+"
+        assert matrix["E2"].value == "MinLOS 3+"
+        assert matrix["F2"].value == "—"
         assert matrix.row_dimensions[2].height == 118
         assert matrix.column_dimensions["C"].width == 64
         assert details["J2"].value == "MinLOS 3+"
+        assert details["J5"].value != "MinLOS 3+"
         assert details.row_dimensions[2].height == 42
     finally:
         if path.exists():

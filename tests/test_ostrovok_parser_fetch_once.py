@@ -30,6 +30,17 @@ class _FetchOnceParser(OstrovokParser):
         return type(self).httpx_result
 
 
+class _ApiSoldOutThenPlaywrightParser(_FetchOnceParser):
+    def _extract_slug(self, url: str):
+        return "slug"
+
+    def _extract_dates(self, url: str):
+        return "2026-05-03", "2026-05-04"
+
+    async def _api_search_direct(self, client, slug, checkin, checkout, nights=0):
+        return {"status": "sold_out", "prices": [], "data": {"rates": None}}
+
+
 class OstrovokFetchOnceTests(unittest.IsolatedAsyncioTestCase):
     async def test_preserves_no_offers_from_playwright(self):
         _FetchOnceParser.playwright_result = {
@@ -87,6 +98,22 @@ class OstrovokFetchOnceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["price"], 12345)
+
+    async def test_api_sold_out_is_verified_by_playwright_before_final_not_found(self):
+        _ApiSoldOutThenPlaywrightParser.playwright_result = {
+            "price": 10954,
+            "title": "Hotel",
+            "external_id": "hid",
+            "status": "ok",
+            "error": None,
+        }
+        _ApiSoldOutThenPlaywrightParser.httpx_result = None
+        parser = _ApiSoldOutThenPlaywrightParser()
+
+        result = await parser._fetch_once("https://example.com")
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["price"], 10954)
 
 
 if __name__ == "__main__":

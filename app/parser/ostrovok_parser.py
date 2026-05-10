@@ -18,7 +18,7 @@ import random
 import uuid
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
-from urllib.parse import urljoin, urlparse, parse_qs, quote
+from urllib.parse import urljoin, urlparse, parse_qs, quote, urlencode, urlunparse
 
 import httpx
 from loguru import logger
@@ -891,14 +891,37 @@ class OstrovokParser(BaseParser):
                             "error":       None,
                         }
                     if st == "sold_out":
-                        logger.info("OstrovokParser API direct: sold_out/max_stay")
-                        return {
-                            "price":       None,
-                            "title":       None,
-                            "external_id": hotel_id,
-                            "status":      "not_found",
-                            "error":       "Нет доступных предложений на выбранные даты",
-                        }
+                        if getattr(self, "_proxy", None):
+                            try:
+                                async with httpx.AsyncClient(
+                                    timeout=httpx.Timeout(8.0, connect=4.0),
+                                    trust_env=False,
+                                    headers=self._headers(),
+                                ) as direct_client:
+                                    direct_res = await self._api_search_direct(
+                                        direct_client, hotel_slug, checkin, checkout, nights,
+                                    )
+                                if direct_res.get("status") == "ok":
+                                    price = min(direct_res["prices"])
+                                    logger.info(
+                                        f"OstrovokParser API direct(no-proxy): "
+                                        f"price={price} after proxy sold_out"
+                                    )
+                                    return {
+                                        "price":       price,
+                                        "title":       None,
+                                        "external_id": hotel_id,
+                                        "status":      "ok",
+                                        "error":       None,
+                                    }
+                            except Exception as e:
+                                logger.debug(
+                                    f"OstrovokParser API direct(no-proxy) exception: {e}"
+                                )
+                        logger.info(
+                            "OstrovokParser API direct: sold_out/max_stay — "
+                            "verifying with Playwright"
+                        )
                     logger.debug(
                         f"OstrovokParser API direct: {res.get('error')} — "
                         "fallback Playwright"
@@ -995,17 +1018,23 @@ class OstrovokParser(BaseParser):
                     xhr_event.set()
                     logger.debug(f"OstrovokParser XHR prices={prices} from {rurl[:70]}")
                 elif "rates" in data:
-                    # XHR пришёл с полем rates, но извлекаемых цен нет.
-                    # Два подслучая, оба = "нет предложений на эти даты":
-                    #   rates=None/[]            — объект занят/непродажа на эти даты
-                    #   rates=[{...}, ...]       — max-stay превышен, либо все тарифы без цен
+                    # /search often returns rates=null/[] before the frontend
+                    # triggers authoritative /rates. Do not finish early on it:
+                    # otherwise we miss real prices shown on the page.
                     rates_field = data.get("rates")
                     rates_len = len(rates_field) if isinstance(rates_field, list) else 0
-                    xhr_no_avail = True
-                    xhr_event.set()
+                    if (
+                        any(path in rurl for path in (
+                            "/hotel/search/v2/site/hp/rates",
+                            "/hotel/search/v1/site/hp/rates",
+                        ))
+                        and rates_field == []
+                    ):
+                        xhr_no_avail = True
+                        xhr_event.set()
                     logger.debug(
                         f"OstrovokParser XHR: rates_len={rates_len}, no extractable prices "
-                        f"→ no availability ({rurl[:70]})"
+                        f"from {rurl[:70]}"
                     )
             except Exception as e:
                 logger.debug(f"OstrovokParser XHR handler error: {e}")
@@ -1055,7 +1084,7 @@ class OstrovokParser(BaseParser):
                 except asyncio.TimeoutError:
                     logger.debug("OstrovokParser: XHR wait timeout — trying DOM/HTML fallback")
 
-            # Быстрый выход: XHR пришёл, но rates пустые → объект занят/нет предложений
+            # Быстрый выход только для authoritative /rates=[].
             if xhr_no_avail and not xhr_prices:
                 return {
                     "price":       None,
@@ -1257,11 +1286,9 @@ class OstrovokParser(BaseParser):
         if rates is None:
             return {"status": "sold_out", "prices": [], "data": data}
         if isinstance(rates, list):
-            # Непустой список без извлекаемых цен (обычно — запрошенная длина стоя
-            # превышает max-stay отеля, либо все rates — "not available" заглушки).
-            # Для пользователя это эквивалентно "нет предложений на эти даты".
-            # Возвращаем sold_out консистентно с Playwright XHR-веткой.
-            return {"status": "sold_out", "prices": [], "data": data}
+            if not rates:
+                return {"status": "sold_out", "prices": [], "data": data}
+            return {"status": "error", "error": "schema:rates_without_prices", "data": data}
         return {"status": "error", "error": f"schema:rates_type:{type(rates).__name__}"}
 
     # ── XHR price extraction ─────────────────────────────────────
@@ -1570,14 +1597,20 @@ class OstrovokParser(BaseParser):
         return None, None
 
     def _normalize_url(self, url: str, ci: Optional[str], co: Optional[str]) -> str:
-        if "checkin=" in url or "dates=" in url:
+        if "checkin=" in url and "checkout=" in url:
             return url
         if not ci:
             ci = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
         if not co:
             co = (datetime.strptime(ci, "%Y-%m-%d") + timedelta(days=2)).strftime("%Y-%m-%d")
-        sep = "&" if "?" in url else "?"
-        return f"{url}{sep}checkin={ci}&checkout={co}&guests=2"
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        query.pop("dates", None)
+        query["checkin"] = [ci]
+        query["checkout"] = [co]
+        query.setdefault("guests", ["2"])
+        normalized_query = urlencode(query, doseq=True)
+        return urlunparse(parsed._replace(query=normalized_query))
 
     def _headers(self) -> dict:
         return {

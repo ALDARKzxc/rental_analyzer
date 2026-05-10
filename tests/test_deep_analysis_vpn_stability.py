@@ -18,6 +18,26 @@ class _SingleFetchParser:
         return None
 
 
+class _ProxySoldOutApiParser:
+    def __init__(self):
+        self._proxy = "http://proxy.local:8080"
+        self.calls = 0
+
+    async def _api_search_direct(self, client, slug, checkin, checkout, nights):
+        self.calls += 1
+        if self.calls == 1:
+            return {"status": "sold_out", "prices": [], "data": {"rates": None}}
+        return {"status": "ok", "prices": [12345.0], "data": {"rates": []}}
+
+
+class _AlwaysSoldOutApiParser:
+    def __init__(self):
+        self._proxy = "http://proxy.local:8080"
+
+    async def _api_search_direct(self, client, slug, checkin, checkout, nights):
+        return {"status": "sold_out", "prices": [], "data": {"rates": None}}
+
+
 class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self._old_cancel_event = da._cancel_event
@@ -114,6 +134,91 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
             da._API_RESCUE_MAX_PAIRS = original_cap
 
         self.assertEqual(selected, [0, 2])
+
+    def test_select_suspicious_sold_out_indices_prioritizes_short_and_holes(self):
+        today = date(2026, 5, 3)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (today, today + timedelta(days=3)),
+            (today, today + timedelta(days=4)),
+            (today, today + timedelta(days=5)),
+            (today + timedelta(days=1), today + timedelta(days=2)),
+        ]
+        states = [
+            da._ROW_SOLD_OUT,
+            da._ROW_PRICED,
+            da._ROW_SOLD_OUT,
+            da._ROW_SOLD_OUT,
+            da._ROW_PRICED,
+            da._ROW_SOLD_OUT,
+        ]
+        reasons = [
+            "api:sold_out",
+            "api:priced",
+            "api:sold_out",
+            "api:sold_out",
+            "api:priced",
+            "playwright:sold_out",
+        ]
+
+        selected = da._select_suspicious_sold_out_indices(
+            date_pairs=date_pairs,
+            states=states,
+            reasons=reasons,
+        )
+
+        self.assertEqual(selected, [0, 3])
+
+    async def test_api_batch_rechecks_proxy_sold_out_without_proxy(self):
+        today = date(2026, 5, 3)
+        date_pairs = [(today, today + timedelta(days=1))]
+        out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_PENDING)]
+        states = [da._ROW_PENDING]
+        reasons = [None]
+        parser = _ProxySoldOutApiParser()
+
+        result = await da._run_api_batch(
+            title="OBJ",
+            slug="object-slug",
+            date_pairs=date_pairs,
+            indices=[0],
+            out=out,
+            states=states,
+            reasons=reasons,
+            parser=parser,
+            api_headers={},
+            concurrency=1,
+        )
+
+        self.assertEqual(result["ok_count"], 1)
+        self.assertEqual(result["sold_out_count"], 0)
+        self.assertEqual(states[0], da._ROW_PRICED)
+        self.assertIn("12", out[0])
+        self.assertGreaterEqual(parser.calls, 2)
+
+    async def test_api_verify_sold_out_keeps_index_for_browser_check(self):
+        today = date(2026, 5, 3)
+        date_pairs = [(today, today + timedelta(days=1))]
+        out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_SOLD_OUT)]
+        states = [da._ROW_SOLD_OUT]
+        reasons = ["api:sold_out"]
+
+        remaining = await da._api_verify_sold_out_phase(
+            title="OBJ",
+            slug="object-slug",
+            date_pairs=date_pairs,
+            indices=[0],
+            out=out,
+            states=states,
+            reasons=reasons,
+            parser=_AlwaysSoldOutApiParser(),
+            api_headers={},
+        )
+
+        self.assertEqual(remaining, [0])
+        self.assertEqual(states[0], da._ROW_SOLD_OUT)
+        self.assertTrue(reasons[0].startswith("api-verify:sold_out"))
 
     async def test_final_verify_preserves_blocked_reason(self):
         today = date(2026, 4, 19)
@@ -299,7 +404,34 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(detected)
         self.assertIn("[sold_out]", out[0])
 
-    def test_minlos_marker_uses_confirmed_object_minlos_for_sold_out_boundary(self):
+    def test_minlos_marker_does_not_use_unverified_api_sold_out(self):
+        today = date(2026, 4, 19)
+        date_pairs = [
+            (today, today + timedelta(days=1)),
+            (today, today + timedelta(days=2)),
+            (today, today + timedelta(days=3)),
+        ]
+        states = [da._ROW_SOLD_OUT, da._ROW_SOLD_OUT, da._ROW_PRICED]
+        reasons = ["api:sold_out", "api:sold_out", "api:priced"]
+        out = [
+            da._format_row("OBJ", *date_pairs[0], status=states[0]),
+            da._format_row("OBJ", *date_pairs[1], status=states[1]),
+            da._format_row("OBJ", *date_pairs[2], status=states[2], price=9000),
+        ]
+
+        detected = da._apply_minlos_marker(
+            out=out,
+            states=states,
+            reasons=reasons,
+            title="OBJ",
+            date_pairs=date_pairs,
+        )
+
+        self.assertIsNone(detected)
+        self.assertIn("[sold_out]", out[0])
+        self.assertIn("[sold_out]", out[1])
+
+    def test_minlos_marker_does_not_guess_minlos_for_all_sold_out_checkin(self):
         today = date(2026, 4, 19)
         other = today + timedelta(days=1)
         date_pairs = [
@@ -330,7 +462,7 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(detected, 2)
         self.assertIn("[MinLOS]", out[0])
-        self.assertIn("[MinLOS]", out[2])
+        self.assertIn("[sold_out]", out[2])
         self.assertIn("[sold_out]", out[3])
 
     def test_minlos_marker_does_not_guess_when_all_rows_are_sold_out(self):

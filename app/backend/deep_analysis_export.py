@@ -348,8 +348,6 @@ def _min_los_label(nights: Optional[int]) -> str:
 def _pair_status_label(pair: PairResult) -> str:
     if pair.display_status == MIN_LOS:
         return _min_los_label(pair.min_los_nights or pair.nights)
-    if pair.display_status == PRICED:
-        return _min_los_label(pair.nights)
     return _status_label(pair.display_status)
 
 
@@ -360,16 +358,18 @@ def _matrix_cells_by_checkin(pairs: Sequence[PairResult]) -> Dict[date, Dict[str
 
     matrix: Dict[date, Dict[str, Any]] = {}
     for checkin, items in by_checkin.items():
-        priced = sorted(
-            (p for p in items if p.status == PRICED and p.price and p.price > 0),
-            key=lambda p: (p.nights, p.price or 0),
+        one_night = next(
+            (
+                p for p in items
+                if p.nights == 1 and p.status == PRICED and p.price and p.price > 0
+            ),
+            None,
         )
-        if priced:
-            chosen = priced[0]
+        if one_night:
             matrix[checkin] = {
                 "status": PRICED,
-                "price": chosen.price,
-                "nights": chosen.nights,
+                "price": one_night.price,
+                "nights": one_night.nights,
             }
             continue
 

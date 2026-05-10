@@ -36,6 +36,7 @@ re-bootstrap → C goto fallback) разобран, потому что логи
 from __future__ import annotations
 
 import asyncio
+import re
 import sys
 import time
 from collections import Counter
@@ -143,6 +144,9 @@ _API_RESCUE_CONCURRENCY = 2
 _API_RESCUE_PAIR_TIMEOUT_S = 7.0
 _API_RESCUE_DELAYS_S    = (0.0, 0.6, 1.4, 2.4)
 _API_RESCUE_MAX_PAIRS   = 12
+_SOLD_OUT_VERIFY_CONCURRENCY = 6
+_SOLD_OUT_VERIFY_TIMEOUT_S = 5.0
+_SOLD_OUT_VERIFY_MAX_PAIRS = 90
 _FINAL_VERIFY_GRACE_S   = 0.35
 _SLOW_LANE_TRIGGER_COUNT = 3
 _SLOW_LANE_TRIGGER_RATIO = 0.10
@@ -411,6 +415,87 @@ def _select_api_rescue_indices(
     return selected
 
 
+def _is_api_sold_out_reason(reason: Optional[str]) -> bool:
+    return bool(
+        reason
+        and (
+            reason.startswith("api:sold_out")
+            or reason.startswith("api-rescue:sold_out")
+        )
+    )
+
+
+def _is_confirmed_sold_out_reason(
+    reason: Optional[str],
+    *,
+    require_confirmation: bool,
+) -> bool:
+    if not require_confirmation:
+        return True
+    if not reason:
+        return False
+    if _is_api_sold_out_reason(reason):
+        return False
+    return ":sold_out" in reason
+
+
+def _select_suspicious_sold_out_indices(
+    *,
+    date_pairs: List[Tuple[date, date]],
+    states: List[str],
+    reasons: List[Optional[str]],
+) -> List[int]:
+    by_checkin: Dict[date, Dict[int, int]] = {}
+    for idx, (ci, co) in enumerate(date_pairs):
+        nights = (co - ci).days
+        if nights <= 0:
+            continue
+        by_checkin.setdefault(ci, {})[nights] = idx
+
+    selected: List[int] = []
+    selected_set: set[int] = set()
+    for _ci, nights_to_idx in by_checkin.items():
+        priced_nights = sorted(
+            n for n, idx in nights_to_idx.items()
+            if idx < len(states) and states[idx] == _ROW_PRICED
+        )
+
+        for nights, idx in nights_to_idx.items():
+            if idx >= len(states) or states[idx] != _ROW_SOLD_OUT:
+                continue
+            reason = reasons[idx] if idx < len(reasons) else None
+            if not _is_api_sold_out_reason(reason):
+                continue
+
+            if nights == 1:
+                if idx not in selected_set:
+                    selected.append(idx)
+                    selected_set.add(idx)
+                continue
+
+            has_priced_before = any(n < nights for n in priced_nights)
+            has_priced_after = any(n > nights for n in priced_nights)
+            has_sold_out_before = any(
+                n < nights
+                and states[nights_to_idx[n]] == _ROW_SOLD_OUT
+                and _is_api_sold_out_reason(
+                    reasons[nights_to_idx[n]]
+                    if nights_to_idx[n] < len(reasons) else None
+                )
+                for n in nights_to_idx
+            )
+            if has_priced_before and has_priced_after and not (nights <= 3 and has_sold_out_before):
+                if idx not in selected_set:
+                    selected.append(idx)
+                    selected_set.add(idx)
+            elif nights <= 3 and not has_sold_out_before:
+                if idx not in selected_set:
+                    selected.append(idx)
+                    selected_set.add(idx)
+
+    return selected[:_SOLD_OUT_VERIFY_MAX_PAIRS]
+
+
 def _apply_terminal_result(
     *,
     result: Dict[str, Any],
@@ -660,6 +745,7 @@ async def _do_analysis(prop_ids: List[int]) -> None:
             _apply_minlos_marker(
                 out=pair_results,
                 states=pair_states,
+                reasons=pair_reasons,
                 title=title,
                 date_pairs=date_pairs,
             )
@@ -742,6 +828,45 @@ async def _analyze_property(
             f"URL {base_url[:100]} — будет использован только Playwright"
         )
         missing_error = list(range(len(date_pairs)))
+
+    sold_out_verify = _select_suspicious_sold_out_indices(
+        date_pairs=date_pairs,
+        states=states,
+        reasons=reasons,
+    )
+    if sold_out_verify and not _cancel_event.is_set():
+        logger.info(
+            f'DeepAnalysis "{title[:40]}" API-verifying '
+            f"{len(sold_out_verify)} suspicious API sold_out pairs"
+        )
+        still_suspicious = await _api_verify_sold_out_phase(
+            title       = title,
+            slug        = slug,
+            date_pairs  = date_pairs,
+            indices     = sold_out_verify,
+            out         = out,
+            states      = states,
+            reasons     = reasons,
+            parser      = parser,
+            api_headers = api_headers,
+        )
+        if still_suspicious and not _cancel_event.is_set():
+            logger.info(
+                f'DeepAnalysis "{title[:40]}" Playwright-verifying '
+                f"{len(still_suspicious)} unresolved suspicious sold_out pairs"
+            )
+            await _playwright_phase(
+                browser      = browser,
+                user_agent   = user_agent,
+                title        = title,
+                base_url     = base_url,
+                date_pairs   = date_pairs,
+                indices      = still_suspicious,
+                out          = out,
+                states       = states,
+                reasons      = reasons,
+                price_parser = price_parser,
+            )
 
     if not missing_error or _cancel_event.is_set():
         return
@@ -1010,6 +1135,13 @@ async def _api_rescue_phase(
                     if res.get("status") != "error":
                         break
 
+                if res.get("status") == "sold_out" and direct_client is not None:
+                    direct_res = await parser._api_search_direct(
+                        direct_client, slug, ci_s, co_s, nights,
+                    )
+                    if direct_res.get("status") != "sold_out":
+                        res = direct_res
+
             status = res.get("status")
             if status == "ok":
                 _set_pair_status(
@@ -1058,6 +1190,94 @@ async def _api_rescue_phase(
     return remaining
 
 
+async def _api_verify_sold_out_phase(
+    *,
+    title: str,
+    slug: str,
+    date_pairs: List[Tuple[date, date]],
+    indices: List[int],
+    out: List[str],
+    states: List[str],
+    reasons: List[Optional[str]],
+    parser,
+    api_headers: Dict[str, str],
+) -> List[int]:
+    if not indices:
+        return []
+
+    t0 = time.time()
+    recovered_ok = confirmed_sold_out = unresolved = 0
+    remaining: List[int] = []
+    sem = asyncio.Semaphore(_SOLD_OUT_VERIFY_CONCURRENCY)
+    verify_kwargs = _api_client_kwargs(
+        parser=parser,
+        api_headers=api_headers,
+        concurrency=_SOLD_OUT_VERIFY_CONCURRENCY,
+        pair_timeout_s=_SOLD_OUT_VERIFY_TIMEOUT_S,
+    )
+    direct_kwargs = dict(verify_kwargs)
+    direct_kwargs["proxy"] = None
+
+    async with httpx.AsyncClient(**direct_kwargs) as direct_client:
+        async def run_pair(idx: int) -> None:
+            nonlocal recovered_ok, confirmed_sold_out, unresolved
+            if _cancel_event.is_set():
+                return
+            ci, co = date_pairs[idx]
+            nights = (co - ci).days
+            async with sem:
+                if _cancel_event.is_set():
+                    return
+                res = await parser._api_search_direct(
+                    direct_client,
+                    slug,
+                    ci.isoformat(),
+                    co.isoformat(),
+                    nights,
+                )
+
+            status = res.get("status")
+            if status == "ok":
+                _set_pair_status(
+                    out,
+                    states,
+                    idx,
+                    title,
+                    ci,
+                    co,
+                    status=_ROW_PRICED,
+                    price=min(res["prices"]),
+                    count_progress=True,
+                    reasons=reasons,
+                    reason=_compose_reason("api-verify", "priced"),
+                )
+                recovered_ok += 1
+            elif status == "sold_out":
+                _set_pair_reason(
+                    reasons,
+                    idx,
+                    _compose_reason("api-verify", "sold_out"),
+                )
+                remaining.append(idx)
+                confirmed_sold_out += 1
+            else:
+                remaining.append(idx)
+                unresolved += 1
+
+        await asyncio.gather(
+            *(run_pair(i) for i in indices),
+            return_exceptions=True,
+        )
+
+    dt = time.time() - t0
+    logger.info(
+        f'DeepAnalysis "{title[:40]}" API sold_out verify done in {dt:.1f}s: '
+        f"recovered_ok={recovered_ok} confirmed_sold_out={confirmed_sold_out} "
+        f"unresolved={unresolved}"
+    )
+    return sorted(remaining)
+
+
 async def _run_api_batch(
     *,
     title: str,
@@ -1077,14 +1297,23 @@ async def _run_api_batch(
     slow_over_5s = 0
     sem = asyncio.Semaphore(concurrency)
 
-    async with httpx.AsyncClient(
-        **_api_client_kwargs(
-            parser=parser,
-            api_headers=api_headers,
-            concurrency=concurrency,
-            pair_timeout_s=_API_PAIR_TIMEOUT_S,
-        )
-    ) as client:
+    client_kwargs = _api_client_kwargs(
+        parser=parser,
+        api_headers=api_headers,
+        concurrency=concurrency,
+        pair_timeout_s=_API_PAIR_TIMEOUT_S,
+    )
+
+    async with AsyncExitStack() as stack:
+        client = await stack.enter_async_context(httpx.AsyncClient(**client_kwargs))
+        direct_client = None
+        if getattr(parser, "_proxy", None):
+            direct_kwargs = dict(client_kwargs)
+            direct_kwargs["proxy"] = None
+            direct_client = await stack.enter_async_context(
+                httpx.AsyncClient(**direct_kwargs)
+            )
+
         async def run_pair(idx: int) -> None:
             nonlocal ok_count, sold_out_count, error_count, slow_over_5s
             if _cancel_event.is_set():
@@ -1111,6 +1340,12 @@ async def _run_api_batch(
                     res = await parser._api_search_direct(
                         client, slug, ci_s, co_s, nights,
                     )
+                if res.get("status") == "sold_out" and direct_client is not None:
+                    direct_res = await parser._api_search_direct(
+                        direct_client, slug, ci_s, co_s, nights,
+                    )
+                    if direct_res.get("status") != "sold_out":
+                        res = direct_res
                 if (time.time() - pair_t0) > 5.0:
                     slow_over_5s += 1
 
@@ -1749,6 +1984,10 @@ class _PageWorker:
                 if self._cur_prices:
                     return {"status": "ok", "price": min(self._cur_prices)}
 
+                dom_price = await _dom_rub_price_from_page(self._page)
+                if dom_price:
+                    return {"status": "ok", "price": dom_price}
+
                 if self._saw_authoritative_sold_out:
                     try:
                         await asyncio.sleep(_XHR_GRACE_S)
@@ -1756,6 +1995,9 @@ class _PageWorker:
                         pass
                     if self._cur_prices:
                         return {"status": "ok", "price": min(self._cur_prices)}
+                    dom_price = await _dom_rub_price_from_page(self._page)
+                    if dom_price:
+                        return {"status": "ok", "price": dom_price}
                     return {"status": "sold_out", "price": None}
 
                 return {"status": "error", "price": None, "error": "fallback:no_price"}
@@ -1771,6 +2013,28 @@ class _PageWorker:
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
+async def _dom_rub_price_from_page(page) -> Optional[float]:
+    try:
+        text = await page.locator("body").inner_text(timeout=1500)
+    except Exception:
+        return None
+    candidates: List[float] = []
+    patterns = (
+        r"(?:Итого|от)\s+(\d[\d\s\u00a0\u202f]{2,8})\s*₽",
+        r"(\d[\d\s\u00a0\u202f]{2,8})\s*₽",
+    )
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            digits = re.sub(r"\D", "", match.group(1))
+            if not digits:
+                continue
+            price = float(digits)
+            if 500 <= price <= 300_000:
+                candidates.append(price)
+        if candidates:
+            return min(candidates)
+    return None
 
 def _format_row(
     title: str,
@@ -1868,6 +2132,7 @@ def _apply_minlos_marker(
     *,
     out: List[str],
     states: List[str],
+    reasons: Optional[List[Optional[str]]] = None,
     title: str,
     date_pairs: List[Tuple[date, date]],
 ) -> Optional[int]:
@@ -1894,13 +2159,11 @@ def _apply_minlos_marker(
         if len(states) != len(date_pairs) or len(out) != len(date_pairs):
             return None
 
-        # Conservative two-pass detection:
-        # 1) Strong local proof: same check-in has sold_out for 1..K-1 nights
-        #    and a price at K nights.
-        # 2) If this object has a confirmed dominant K, use it as a weak proof
-        #    for rows where 1..K nights are all sold_out. The K-night row remains
-        #    sold_out; only shorter rows become MinLOS. This handles dates where
-        #    the stay length is sufficient but the object is sold out.
+        # Conservative local proof only: same check-in has sold_out for 1..K-1
+        # nights and a real price at K nights. We intentionally do not infer
+        # MinLOS for all-sold-out check-ins from other dates; API sold_out can be
+        # stale or proxy-dependent, and weak inference was the source of false
+        # MinLOS rows.
         by_checkin: Dict[date, Dict[int, int]] = {}
         for idx, (ci, co) in enumerate(date_pairs):
             n = (co - ci).days
@@ -1910,7 +2173,6 @@ def _apply_minlos_marker(
 
         candidate_counts: Counter[int] = Counter()
         mark_indices = set()
-        weak_candidates: Dict[int, List[int]] = {}
 
         for ci, nights_to_idx in by_checkin.items():
             priced_nights = sorted(
@@ -1924,50 +2186,26 @@ def _apply_minlos_marker(
                     valid_anchor = True
                     for k_prime in range(1, k_min_priced):
                         idx = nights_to_idx.get(k_prime)
-                        if idx is None or states[idx] != _ROW_SOLD_OUT:
+                        if (
+                            idx is None
+                            or states[idx] != _ROW_SOLD_OUT
+                            or not _is_confirmed_sold_out_reason(
+                                reasons[idx] if reasons and idx < len(reasons) else None,
+                                require_confirmation=reasons is not None,
+                            )
+                        ):
                             valid_anchor = False
                             break
                         shorter_indices.append(idx)
 
                     if valid_anchor:
-                        candidate_counts[k_min_priced] += 1
+                        candidate_counts[3 if k_min_priced >= 3 else k_min_priced] += 1
                         mark_indices.update(shorter_indices)
-                continue
-
-            sold_out_nights = {
-                n for n, idx in nights_to_idx.items()
-                if states[idx] == _ROW_SOLD_OUT
-            }
-            if not sold_out_nights:
-                continue
-
-            max_contiguous_sold_out = 0
-            while (max_contiguous_sold_out + 1) in sold_out_nights:
-                max_contiguous_sold_out += 1
-
-            if max_contiguous_sold_out >= 2:
-                weak_candidates[ci.toordinal()] = [
-                    nights_to_idx[n]
-                    for n in range(1, max_contiguous_sold_out + 1)
-                ]
 
         dominant_minlos: Optional[int] = None
         if candidate_counts:
             most_common = candidate_counts.most_common()
             dominant_minlos = most_common[0][0]
-            dominant_count = most_common[0][1]
-            runner_up_count = most_common[1][1] if len(most_common) > 1 else 0
-            if runner_up_count and runner_up_count >= dominant_count:
-                dominant_minlos = None
-
-        if dominant_minlos and dominant_minlos > 1:
-            for indices in weak_candidates.values():
-                if len(indices) < dominant_minlos:
-                    continue
-                shorter_indices = indices[:dominant_minlos - 1]
-                boundary_idx = indices[dominant_minlos - 1]
-                if states[boundary_idx] == _ROW_SOLD_OUT:
-                    mark_indices.update(shorter_indices)
 
         if not mark_indices:
             return None
@@ -2018,7 +2256,8 @@ async def _any_event(events: List[asyncio.Event]) -> None:
 def _build_page_url(base_url: str, ci: date, co: date) -> str:
     return (
         f"{base_url}"
-        f"?dates={ci.strftime('%d.%m.%Y')}-{co.strftime('%d.%m.%Y')}"
+        f"?checkin={ci.isoformat()}"
+        f"&checkout={co.isoformat()}"
         f"&guests=2"
     )
 
