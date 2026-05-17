@@ -1,37 +1,31 @@
 """
-Deep Analysis Engine v5 — unified turbo-goto pool.
+Deep Analysis Engine v6 — direct-API only.
 
-Прежний пайплайн (v4: Phase A bootstrap → B httpx replay → B2 retry → B3
-re-bootstrap → C goto fallback) разобран, потому что логи показали:
-  • Ostrovok отдаёт `/search` endpoint на дефолтных goto-ах;
-  • `/search` возвращает `{rates: null, related_hotels_session_id: ...}` на
-    ~87% дат — бесполезен как replay-источник;
-  • реальные цены приходят из `/rates`, который вызывается фронтом только
-    после interactive trigger (scroll/hover на блок цен).
+Прежняя архитектура (Playwright goto-пул + DOM fallback) была удалена,
+потому что страницы Ostrovok игнорируют checkin/checkout в URL и не
+триггерят /search или /rates без интерактивной работы пользователя с
+календарём. DOM-фолбэк подбирал маркетинговый заголовок "от X ₽" из
+шапки страницы — так в файлы попадали выдуманные цены 6 399 / 6 836 /
+6 962 ₽ для каждого Property (~28 ложных recoveries в каждом прогоне).
 
-Новая архитектура — **один большой параллельный goto-пул на property**:
+Текущий пайплайн:
+  Phase A  — direct /hotel/search/v1/site/hp/search для всех 435 пар
+             параллельно (httpx, concurrency=10, batch=60). При sold_out
+             повторяется без системного прокси — это уже встроено.
+  Phase B  — API-rescue для пар с сетевыми ошибками (httpx, concurrency=2,
+             до 4 попыток с растущей задержкой). Только сетевой error.
+  Post-pr  — MinLOS пост-обработка: для check-in, где есть priced ≥ K ночей
+             и sold_out для всех 1..K-1, короткие длительности
+             переписываются [sold_out] → [MinLOS].
 
-  Property processor:
-    1 browser.new_context (общий для всех пар property)
-    N страниц в пуле (_PAGES_PER_PROPERTY = 12)
-    Каждая страница — независимый _PageWorker с seq-race-guard
-    Каждая пара: page.goto('commit') → XHR intercept → return price
+Точность: единственный источник истины — JSON-ответ /search. Если он
+вернул rates с прайсом — это и есть цена бронирования. Если rates=null
+— непродаётся (true sold_out, MinLOS, max-stay или cutoff времени;
+MinLOS отделяется пост-обработкой). Сетевые сбои честно остаются [error]
+вместо инвентов цен.
 
-  Ключевые оптимизации, взятые из исследования:
-    • init_script с auto-scroll — триггерит lazy-load /rates без
-      отдельного JS-вызова для каждой пары;
-    • route.abort для image/font/media/stylesheet/трекеры — убирает
-      80% трафика;
-    • authoritative price events — считаем ценой только /rates или
-      /search с реально заполненным rates;
-    • wait_until='commit' + early-exit по XHR — средний pair <2с;
-    • pages reuse через seq-счётчик — без overhead на создание страницы
-      каждый раз;
-    • fail-fast 8с на pair — не залипаем на медленных ответах.
-
-Параллелизм: _PROPERTY_CONCURRENCY=2 × _PAGES_PER_PROPERTY=12 = 24
-одновременных goto. На 435 пар это ~35 волн × 3.5с ≈ 120с вместо
-прежних 565с.
+Скорость: ~30-60 с на property вместо прежних 150-450 с. На 3 properties
+полный прогон укладывается в ~1.5-3 минуты против прежних 7-15.
 """
 from __future__ import annotations
 
@@ -98,59 +92,30 @@ def _fmt_short(d: date) -> str:
 
 # ── Tuning ───────────────────────────────────────────────────────────────────
 
-# Ключевая ручка: сколько страниц-воркеров на property.
-# Замеры: 12 страниц на Chromium 120+ держатся стабильно на 8GB RAM,
-# дают ~1.2 GB памяти на property context (вкл. overhead изоляции).
-_PAGES_PER_PROPERTY   = 12
-
-# Одновременно обрабатываем только 1 property.
-# После перехода на API-first это самый безопасный режим: он убирает
-# межобъектное самозадушение через один IP/прокси и при этом сохраняет
-# быстрый per-property API пул.
+# Одновременно обрабатываем только одно property — снижает межобъектное
+# самозадушение через один IP/прокси и стабилизирует Ostrovok rate-limit.
 _PROPERTY_CONCURRENCY = 1
 
-# Таймауты per pair. 12 сек — с запасом для медленного XHR под нагрузкой
-# (24 одновременных goto-ов создают реальную нагрузку на сервер).
-_NAV_TIMEOUT_MS       = 12_000
-_PAIR_TIMEOUT_S       = 12.0
-# grace после первого прайса — даём параллельным XHR принести более дешёвый rate
-_XHR_GRACE_S          = 0.30
-# Если за это время не пришёл ни один XHR — триггерим скролл принудительно.
-# Опустили с 1.8→0.8: init_script поллит body до mount-а, но как safety
-# Python тоже шлёт скролл пораньше — особенно важно для сервера под нагрузкой.
-_FORCE_SCROLL_AFTER_S = 0.8
-
-# Retry-проход для пар, которые не вернули цену в main-проходе.
-# Меньше concurrency → меньше нагрузки → выше reliability для тех же дат.
-_RETRY_CONCURRENCY      = 4
-_RETRY_PAIR_TIMEOUT_S   = 22.0
-_RETRY_FORCE_SCROLL_S   = 1.5
-
-# ── Direct-API phase ─────────────────────────────────────────────
-# Ostrovok отдаёт /hotel/search/v1/site/hp/search без cookies/CSRF, и
-# ответ {rates: null, related_hotels_session_id: ...} — авторитетный
-# сигнал «max-stay превышен / непродаётся» (не нужно ждать 12-22 сек).
-# Поэтому основная фаза — httpx-пул по всем 435 парам; Playwright
-# включается только для пар, где API упал по сети/5xx/Cloudflare.
-_API_CONCURRENCY        = 10
-_API_PAIR_TIMEOUT_S     = 5.0
-_API_CONNECT_TIMEOUT_S  = 4.0
-_API_RETRY_DELAY_S      = 0.3
-_API_BATCH_SIZE         = 60
+# ── Direct-API phase ─────────────────────────────────────────────────────────
+# Ostrovok отдаёт /hotel/search/v1/site/hp/search без cookies/CSRF.
+# Ответ {rates: null, related_hotels_session_id: ...} — авторитетный сигнал
+# "недоступно на эти даты" (true sold-out, MinLOS, max-stay, cutoff времени).
+# Это единственный надёжный источник истины: попытка догнать прайс через
+# Playwright заканчивалась чтением "от X ₽" заголовка с витрины, что давало
+# фальшивые цены. Сетевые сбои API лечатся одним повторным проходом без
+# системного прокси, а оставшиеся ошибки честно фиксируются как [error].
+_API_CONCURRENCY          = 10
+_API_PAIR_TIMEOUT_S       = 5.0
+_API_CONNECT_TIMEOUT_S    = 4.0
+_API_RETRY_DELAY_S        = 0.3
+_API_BATCH_SIZE           = 60
 _API_DEGRADED_CONCURRENCY = 4
 _API_DEGRADE_NET_ERRORS   = 4
 _API_ABORT_NET_ERRORS     = 12
-_API_RESCUE_CONCURRENCY = 2
+_API_RESCUE_CONCURRENCY    = 2
 _API_RESCUE_PAIR_TIMEOUT_S = 7.0
-_API_RESCUE_DELAYS_S    = (0.0, 0.6, 1.4, 2.4)
-_API_RESCUE_MAX_PAIRS   = 12
-_SOLD_OUT_VERIFY_CONCURRENCY = 6
-_SOLD_OUT_VERIFY_TIMEOUT_S = 5.0
-_SOLD_OUT_VERIFY_MAX_PAIRS = 90
-_FINAL_VERIFY_GRACE_S   = 0.35
-_SLOW_LANE_TRIGGER_COUNT = 3
-_SLOW_LANE_TRIGGER_RATIO = 0.10
-_SLOW_LANE_PAUSE_S       = 2.0
+_API_RESCUE_DELAYS_S       = (0.0, 0.6, 1.4, 2.4)
+_API_RESCUE_MAX_PAIRS      = 12
 
 _ROW_PENDING   = "pending"
 _ROW_FALLBACK  = "fallback"
@@ -173,27 +138,7 @@ _FINAL_PROGRESS_STATES = {
     _ROW_ERROR,
 }
 _UNRESOLVED_STATES     = {_ROW_PENDING, _ROW_FALLBACK}
-_SLOW_LANE_RETRY_STATES = {_ROW_BLOCKED, _ROW_CAPTCHA, _ROW_NETWORK}
 
-_NO_OFFERS_MARKERS = (
-    "нет доступных предложений",
-    "нет предложений",
-    "no available offers",
-    "no offers available",
-)
-_CAPTCHA_MARKERS = (
-    "captcha",
-    "recaptcha",
-    "hcaptcha",
-)
-_BLOCKED_MARKERS = (
-    "access denied",
-    "forbidden",
-    "blocked",
-    "you have been blocked",
-    "cf-challenge",
-    "cloudflare",
-)
 _NETWORK_ERROR_MARKERS = (
     "net:",
     "http:",
@@ -219,68 +164,6 @@ _NETWORK_ERROR_MARKERS = (
     "err_",
     "ns_error",
 )
-
-# Ресурсы, безопасно блокируемые (не ломают XHR с ценами).
-_BLOCK_RESOURCE_TYPES = {"image", "font", "media", "stylesheet"}
-
-# Трекеры и 3rd-party — тоже в мусор.
-_BLOCK_URL_SUBSTRINGS = (
-    "google-analytics", "googletagmanager", "doubleclick",
-    "mc.yandex.ru", "yandex.ru/metrika", "metrika.yandex",
-    "facebook.com", "fbevents", "hotjar",
-    "criteo", "adriver", "adfox",
-    "sentry.io", "bugsnag",
-    "vk.com/rtrg", "vk.ru/rtrg",
-)
-
-# XHR paths, которые могут содержать цены.
-_OSTROVOK_XHR_PATHS = (
-    "/hotel/search/v2/site/hp/rates",
-    "/hotel/search/v1/site/hp/rates",
-    "/hotel/search/v2/site/hp/search",
-    "/hotel/search/v1/site/hp/search",
-)
-
-# Authoritative /rates — на них null/empty-rates означает реальную непродажу.
-_OSTROVOK_AUTHORITATIVE_PATHS = (
-    "/hotel/search/v2/site/hp/rates",
-    "/hotel/search/v1/site/hp/rates",
-)
-
-# Auto-scroll init script — вставляется в каждую страницу контекста
-# и триггерит lazy-load /rates без отдельных evaluate-ов на каждую пару.
-#
-# Проблема старой версии: setTimeout(kick, 400) мог сработать когда
-# document.body ещё пустой, скролл улетал в никуда, /rates не триггерился.
-#
-# Решение: polling каждые 100мс до тех пор, пока body не наполнится
-# детьми (то есть SPA реально отрисовалась). Только после этого скроллим.
-# Троекратный скролл (низ → середина → верх) имитирует реального
-# пользователя, надёжнее срабатывают IntersectionObserver-ы.
-_AUTOSCROLL_INIT_SCRIPT = """
-(() => {
-  let triggered = false;
-  const kick = () => {
-    if (triggered) return;
-    if (!document.body || document.body.children.length === 0) return;
-    triggered = true;
-    try {
-      const h = Math.max(1500, document.body.scrollHeight || 2000);
-      window.scrollTo(0, h);
-      setTimeout(() => { try { window.scrollTo(0, Math.floor(h * 0.5)); } catch (e) {} }, 60);
-      setTimeout(() => { try { window.scrollTo(0, 0); } catch (e) {} }, 160);
-    } catch (e) {}
-  };
-  // Polling — надёжнее одиночного setTimeout.
-  let tries = 0;
-  const iv = setInterval(() => {
-    tries++;
-    kick();
-    if (triggered || tries > 40) clearInterval(iv);
-  }, 100);
-  document.addEventListener('DOMContentLoaded', kick, { once: true });
-})();
-"""
 
 
 # ── Global state ─────────────────────────────────────────────────────────────
@@ -321,61 +204,8 @@ def _has_any_marker(text: str, markers: Tuple[str, ...]) -> bool:
     return any(marker in text for marker in markers)
 
 
-def _is_no_offers_error(error: str) -> bool:
-    return _has_any_marker((error or "").lower(), _NO_OFFERS_MARKERS)
-
-
 def _is_network_error(error: str) -> bool:
     return _has_any_marker((error or "").lower(), _NETWORK_ERROR_MARKERS)
-
-
-def _is_blocked_error(status: str, error: str) -> bool:
-    if status == "blocked":
-        return True
-    return _has_any_marker((error or "").lower(), _BLOCKED_MARKERS)
-
-
-def _is_captcha_error(status: str, error: str) -> bool:
-    if status == "captcha":
-        return True
-    return _has_any_marker((error or "").lower(), _CAPTCHA_MARKERS)
-
-
-def _classify_terminal_result(
-    result: Dict[str, Any],
-    *,
-    phase: str,
-) -> Tuple[str, Optional[float], str]:
-    status = str(result.get("status") or "")
-    price = result.get("price")
-    error = str(result.get("error") or "")
-
-    if status == "ok" and isinstance(price, (int, float)) and price > 0:
-        return _ROW_PRICED, float(price), _compose_reason(phase, "priced")
-
-    if status == "occupied" or (status == "not_found" and _is_no_offers_error(error)):
-        return _ROW_SOLD_OUT, None, _compose_reason(phase, "sold_out", status or None)
-
-    if _is_captcha_error(status, error):
-        return _ROW_CAPTCHA, None, _compose_reason(phase, "captcha", error or status)
-
-    if _is_blocked_error(status, error):
-        return _ROW_BLOCKED, None, _compose_reason(phase, "blocked", error or status)
-
-    if status in {"error", "not_found"} and _is_network_error(error):
-        return _ROW_NETWORK, None, _compose_reason(phase, "network", error or status)
-
-    detail = f"{status}:{error}" if error else (status or "unknown")
-    return _ROW_ERROR, None, _compose_reason(phase, "error", detail)
-
-
-def _should_run_slow_lane(unresolved_count: int, degraded_count: int) -> bool:
-    if unresolved_count <= 0 or degraded_count <= 0:
-        return False
-    return (
-        degraded_count >= _SLOW_LANE_TRIGGER_COUNT
-        or (degraded_count / unresolved_count) > _SLOW_LANE_TRIGGER_RATIO
-    )
 
 
 def _summarize_terminal_states(states: List[str]) -> Dict[str, int]:
@@ -430,100 +260,17 @@ def _is_confirmed_sold_out_reason(
     *,
     require_confirmation: bool,
 ) -> bool:
+    """
+    Now that the pipeline trusts the direct API as the authoritative source
+    (Playwright DOM fallback was generating false 6 399 ₽ recoveries from
+    the "от X ₽" marketing header), every ":sold_out" reason — including
+    "api:sold_out" — is treated as confirmed for MinLOS post-processing.
+    """
     if not require_confirmation:
         return True
     if not reason:
         return False
-    if _is_api_sold_out_reason(reason):
-        return False
     return ":sold_out" in reason
-
-
-def _select_suspicious_sold_out_indices(
-    *,
-    date_pairs: List[Tuple[date, date]],
-    states: List[str],
-    reasons: List[Optional[str]],
-) -> List[int]:
-    by_checkin: Dict[date, Dict[int, int]] = {}
-    for idx, (ci, co) in enumerate(date_pairs):
-        nights = (co - ci).days
-        if nights <= 0:
-            continue
-        by_checkin.setdefault(ci, {})[nights] = idx
-
-    selected: List[int] = []
-    selected_set: set[int] = set()
-    for _ci, nights_to_idx in by_checkin.items():
-        priced_nights = sorted(
-            n for n, idx in nights_to_idx.items()
-            if idx < len(states) and states[idx] == _ROW_PRICED
-        )
-
-        for nights, idx in nights_to_idx.items():
-            if idx >= len(states) or states[idx] != _ROW_SOLD_OUT:
-                continue
-            reason = reasons[idx] if idx < len(reasons) else None
-            if not _is_api_sold_out_reason(reason):
-                continue
-
-            if nights == 1:
-                if idx not in selected_set:
-                    selected.append(idx)
-                    selected_set.add(idx)
-                continue
-
-            has_priced_before = any(n < nights for n in priced_nights)
-            has_priced_after = any(n > nights for n in priced_nights)
-            has_sold_out_before = any(
-                n < nights
-                and states[nights_to_idx[n]] == _ROW_SOLD_OUT
-                and _is_api_sold_out_reason(
-                    reasons[nights_to_idx[n]]
-                    if nights_to_idx[n] < len(reasons) else None
-                )
-                for n in nights_to_idx
-            )
-            if has_priced_before and has_priced_after and not (nights <= 3 and has_sold_out_before):
-                if idx not in selected_set:
-                    selected.append(idx)
-                    selected_set.add(idx)
-            elif nights <= 3 and not has_sold_out_before:
-                if idx not in selected_set:
-                    selected.append(idx)
-                    selected_set.add(idx)
-
-    return selected[:_SOLD_OUT_VERIFY_MAX_PAIRS]
-
-
-def _apply_terminal_result(
-    *,
-    result: Dict[str, Any],
-    phase: str,
-    out: List[str],
-    states: List[str],
-    reasons: Optional[List[Optional[str]]],
-    idx: int,
-    title: str,
-    ci: date,
-    co: date,
-    count_progress: bool,
-) -> Tuple[str, Optional[float], str]:
-    status, price, reason = _classify_terminal_result(result, phase=phase)
-    _set_pair_status(
-        out,
-        states,
-        idx,
-        title,
-        ci,
-        co,
-        status=status,
-        price=price,
-        count_progress=count_progress,
-        reasons=reasons,
-        reason=reason,
-    )
-    return status, price, reason
 
 
 def _api_client_kwargs(
@@ -650,11 +397,11 @@ async def _do_analysis(prop_ids: List[int]) -> None:
     _state["file_path"] = str(file_path)
     logger.info(f"DeepAnalysis: output → {file_path}")
 
-    # Reuse dispatcher-singleton-а: один Chromium на весь процесс.
+    # Reuse dispatcher singleton parser; deep analysis is API-only so no
+    # Chromium browser is launched here.
     if "ostrovok" not in _PARSER_INSTANCES:
         _PARSER_INSTANCES["ostrovok"] = _make_parser("ostrovok")
     parser: OstrovokParser = _PARSER_INSTANCES["ostrovok"]  # type: ignore[assignment]
-    browser = await parser._get_browser()
     api_headers = parser._headers()
     api_headers["User-Agent"] = PARSER_USER_AGENTS[0]
 
@@ -709,15 +456,12 @@ async def _do_analysis(prop_ids: List[int]) -> None:
                 if _cancel_event.is_set():
                     return
                 await _analyze_property(
-                    browser      = browser,
-                    user_agent   = PARSER_USER_AGENTS[0],
                     title        = title,
                     base_url     = base_url,
                     date_pairs   = date_pairs,
                     out          = pair_results,
                     states       = pair_states,
                     reasons      = pair_reasons,
-                    price_parser = parser._prices_from_xhr,
                     parser       = parser,
                     api_headers  = api_headers,
                 )
@@ -780,103 +524,75 @@ async def _do_analysis(prop_ids: List[int]) -> None:
 
 # ── Per-property pipeline ────────────────────────────────────────────────────
 #
-# v6 pipeline:
-#   Phase A  — direct-API httpx pool по всем парам. Работает без браузера,
-#              даёт авторитетный sold_out на rates=null за ~300 мс.
-#   Phase B  — Playwright goto-пул только для пар, где API вернул сетевую
-#              ошибку (5xx/Cloudflare/HTML). Это те же воркеры что раньше,
-#              но на значительно меньшем множестве индексов.
+# v6 pipeline (API-only):
+#   Phase A  — direct-API httpx pool по всем парам. Авторитетный sold_out
+#              на rates=null за ~300 мс; цены — из заполненного rates[].
+#   Phase B  — API-rescue для пар с сетевыми ошибками (httpx no-proxy,
+#              concurrency=2, до 4 попыток). Только net:* классификация.
 #
-# Почему два прохода, а не один:
-#   • API покрывает >95% пар за секунды — нет смысла гнать браузером;
-#   • редкие 4xx/5xx от API — реальный повод переключиться на браузер
-#     (там и Cloudflare-токены, и JS-rendered ответы);
-#   • rates=null от API — авторитет, Playwright тот же ответ дал бы только
-#     через 12-22 сек ожидания XHR (именно это ломало Moscow-apartment).
+# Playwright goto-пул удалён: страницы Ostrovok игнорируют URL-даты, /rates
+# не триггерится без клика по календарю, а DOM содержит лишь "от X ₽" из
+# шапки витрины — это давало фальшивые "восстановленные" цены.
 
 async def _analyze_property(
     *,
-    browser,
-    user_agent: str,
     title: str,
     base_url: str,
     date_pairs: List[Tuple[date, date]],
     out: List[str],
     states: List[str],
     reasons: List[Optional[str]],
-    price_parser,
     parser,
     api_headers: Dict[str, str],
 ) -> None:
+    """
+    API-only pipeline. Direct /hotel/search/v1/site/hp/search is the only
+    authoritative source for Ostrovok prices and availability.
+
+    The previous architecture had a Playwright "verification" fallback that
+    opened the hotel page and scraped any RUB amount from the DOM when XHR
+    didn't fire — but Ostrovok's detail page never triggers /search or /rates
+    when the URL already has checkin/checkout params (the UI shows "Укажите
+    даты"). The DOM only contains the marketing "от X ₽" header price, so
+    every "playwright:priced" recovery was that bogus advertised value.
+    Removing the fallback eliminates that source of fabricated prices and
+    cuts runtime by ~3x.
+
+    Real network errors are retried via a small API-rescue pool with no-proxy
+    direct connection. Pairs that survive both attempts are honestly marked
+    as [error] / [network] rather than papered over with a fake price.
+    """
     slug = parser._extract_slug(base_url)
 
-    # ── Phase A: direct-API ─────────────────────────────────────
-    if slug:
-        missing_error = await _api_phase(
-            title      = title,
-            slug       = slug,
-            date_pairs = date_pairs,
-            out        = out,
-            states     = states,
-            reasons    = reasons,
-            parser     = parser,
-            api_headers= api_headers,
-        )
-    else:
+    if not slug:
         logger.warning(
             f"DeepAnalysis «{title[:40]}»: не удалось извлечь slug из "
-            f"URL {base_url[:100]} — будет использован только Playwright"
+            f"URL {base_url[:100]} — Ostrovok API недоступен, пары будут "
+            "помечены как [error]"
         )
-        missing_error = list(range(len(date_pairs)))
-
-    sold_out_verify = _select_suspicious_sold_out_indices(
-        date_pairs=date_pairs,
-        states=states,
-        reasons=reasons,
-    )
-    if sold_out_verify and not _cancel_event.is_set():
-        logger.info(
-            f'DeepAnalysis "{title[:40]}" API-verifying '
-            f"{len(sold_out_verify)} suspicious API sold_out pairs"
-        )
-        still_suspicious = await _api_verify_sold_out_phase(
-            title       = title,
-            slug        = slug,
-            date_pairs  = date_pairs,
-            indices     = sold_out_verify,
-            out         = out,
-            states      = states,
-            reasons     = reasons,
-            parser      = parser,
-            api_headers = api_headers,
-        )
-        if still_suspicious and not _cancel_event.is_set():
-            logger.info(
-                f'DeepAnalysis "{title[:40]}" Playwright-verifying '
-                f"{len(still_suspicious)} unresolved suspicious sold_out pairs"
-            )
-            await _playwright_phase(
-                browser      = browser,
-                user_agent   = user_agent,
-                title        = title,
-                base_url     = base_url,
-                date_pairs   = date_pairs,
-                indices      = still_suspicious,
-                out          = out,
-                states       = states,
-                reasons      = reasons,
-                price_parser = price_parser,
-            )
-
-    if not missing_error or _cancel_event.is_set():
         return
 
-    rescue_candidates = [
-        idx for idx in missing_error
-        if _should_try_api_rescue(reasons[idx])
-    ]
+    # ── Phase A: direct API for all pairs ───────────────────────
+    missing_error = await _api_phase(
+        title      = title,
+        slug       = slug,
+        date_pairs = date_pairs,
+        out        = out,
+        states     = states,
+        reasons    = reasons,
+        parser     = parser,
+        api_headers= api_headers,
+    )
+
+    if _cancel_event.is_set():
+        return
+
+    # ── Phase B: API-rescue for network errors only (no Playwright) ─────
     rescue_indices = _select_api_rescue_indices(missing_error, reasons)
     if rescue_indices:
+        skipped = sum(
+            1 for idx in missing_error if _should_try_api_rescue(reasons[idx])
+        ) - len(rescue_indices)
         rescued_remaining = await _api_rescue_phase(
             title       = title,
             slug        = slug,
@@ -888,81 +604,16 @@ async def _analyze_property(
             parser      = parser,
             api_headers = api_headers,
         )
-        rescued_set = set(rescue_indices)
-        missing_error = [
-            idx for idx in missing_error
-            if idx not in rescued_set
-        ] + rescued_remaining
-        skipped = len(rescue_candidates) - len(rescue_indices)
         if skipped > 0:
             logger.info(
                 f'DeepAnalysis "{title[:40]}" skipped API-rescue for '
                 f"{skipped} degraded pairs to avoid long stalls"
             )
-    elif missing_error:
-        logger.info(
-            f'DeepAnalysis "{title[:40]}" skipping API-rescue: '
-            "remaining errors are non-network or capped"
-        )
-
-    if not missing_error or _cancel_event.is_set():
-        return
-
-    # ── Phase B: Playwright fallback только для error-пар ────────
-    logger.info(
-        f"DeepAnalysis «{title[:40]}»: Playwright fallback для "
-        f"{len(missing_error)} пар (API network error)"
-    )
-    await _playwright_phase(
-        browser      = browser,
-        user_agent   = user_agent,
-        title        = title,
-        base_url     = base_url,
-        date_pairs   = date_pairs,
-        indices      = missing_error,
-        out          = out,
-        states       = states,
-        reasons      = reasons,
-        price_parser = price_parser,
-    )
-
-    if _cancel_event.is_set():
-        return
-
-    fallback_missing = [
-        idx for idx in missing_error
-        if states[idx] == _ROW_FALLBACK
-    ]
-    if not fallback_missing:
-        return
-
-    verify = await _final_verify_phase(
-        title      = title,
-        base_url   = base_url,
-        date_pairs = date_pairs,
-        indices    = fallback_missing,
-        out        = out,
-        states     = states,
-        reasons    = reasons,
-        parser     = parser,
-    )
-
-    degraded_candidates = verify["slow_lane_candidates"]
-    if (
-        degraded_candidates
-        and _should_run_slow_lane(len(fallback_missing), len(degraded_candidates))
-        and not _cancel_event.is_set()
-    ):
-        await _slow_lane_phase(
-            title      = title,
-            base_url   = base_url,
-            date_pairs = date_pairs,
-            indices    = degraded_candidates,
-            out        = out,
-            states     = states,
-            reasons    = reasons,
-            parser     = parser,
-        )
+        if rescued_remaining:
+            logger.info(
+                f'DeepAnalysis "{title[:40]}" {len(rescued_remaining)} pairs '
+                "remain in error state after API rescue"
+            )
 
 
 async def _api_phase(
@@ -1190,94 +841,6 @@ async def _api_rescue_phase(
     return remaining
 
 
-async def _api_verify_sold_out_phase(
-    *,
-    title: str,
-    slug: str,
-    date_pairs: List[Tuple[date, date]],
-    indices: List[int],
-    out: List[str],
-    states: List[str],
-    reasons: List[Optional[str]],
-    parser,
-    api_headers: Dict[str, str],
-) -> List[int]:
-    if not indices:
-        return []
-
-    t0 = time.time()
-    recovered_ok = confirmed_sold_out = unresolved = 0
-    remaining: List[int] = []
-    sem = asyncio.Semaphore(_SOLD_OUT_VERIFY_CONCURRENCY)
-    verify_kwargs = _api_client_kwargs(
-        parser=parser,
-        api_headers=api_headers,
-        concurrency=_SOLD_OUT_VERIFY_CONCURRENCY,
-        pair_timeout_s=_SOLD_OUT_VERIFY_TIMEOUT_S,
-    )
-    direct_kwargs = dict(verify_kwargs)
-    direct_kwargs["proxy"] = None
-
-    async with httpx.AsyncClient(**direct_kwargs) as direct_client:
-        async def run_pair(idx: int) -> None:
-            nonlocal recovered_ok, confirmed_sold_out, unresolved
-            if _cancel_event.is_set():
-                return
-            ci, co = date_pairs[idx]
-            nights = (co - ci).days
-            async with sem:
-                if _cancel_event.is_set():
-                    return
-                res = await parser._api_search_direct(
-                    direct_client,
-                    slug,
-                    ci.isoformat(),
-                    co.isoformat(),
-                    nights,
-                )
-
-            status = res.get("status")
-            if status == "ok":
-                _set_pair_status(
-                    out,
-                    states,
-                    idx,
-                    title,
-                    ci,
-                    co,
-                    status=_ROW_PRICED,
-                    price=min(res["prices"]),
-                    count_progress=True,
-                    reasons=reasons,
-                    reason=_compose_reason("api-verify", "priced"),
-                )
-                recovered_ok += 1
-            elif status == "sold_out":
-                _set_pair_reason(
-                    reasons,
-                    idx,
-                    _compose_reason("api-verify", "sold_out"),
-                )
-                remaining.append(idx)
-                confirmed_sold_out += 1
-            else:
-                remaining.append(idx)
-                unresolved += 1
-
-        await asyncio.gather(
-            *(run_pair(i) for i in indices),
-            return_exceptions=True,
-        )
-
-    dt = time.time() - t0
-    logger.info(
-        f'DeepAnalysis "{title[:40]}" API sold_out verify done in {dt:.1f}s: '
-        f"recovered_ok={recovered_ok} confirmed_sold_out={confirmed_sold_out} "
-        f"unresolved={unresolved}"
-    )
-    return sorted(remaining)
-
-
 async def _run_api_batch(
     *,
     title: str,
@@ -1403,638 +966,6 @@ async def _run_api_batch(
         "slow_over_5s": slow_over_5s,
     }
 
-
-async def _playwright_phase(
-    *,
-    browser,
-    user_agent: str,
-    title: str,
-    base_url: str,
-    date_pairs: List[Tuple[date, date]],
-    indices: List[int],
-    out: List[str],
-    states: List[str],
-    reasons: List[Optional[str]],
-    price_parser,
-) -> None:
-    """
-    Playwright goto-пул для пар-индексов, которые не ответили через API.
-    Не меняет _state.progress — он уже финализирован в API-фазе.
-    Перезаписывает out[idx] только если удалось достать цену.
-    """
-    context = await browser.new_context(
-        user_agent=user_agent,
-        viewport={"width": 1366, "height": 768},
-        locale="ru-RU",
-        timezone_id="Europe/Moscow",
-        ignore_https_errors=True,
-        extra_http_headers={
-            "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
-    )
-    try:
-        await context.add_init_script(
-            "Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
-            "Object.defineProperty(navigator,'plugins',{get:()=>[1,2,3,4,5]});"
-            "window.chrome={runtime:{}};"
-        )
-        await context.add_init_script(_AUTOSCROLL_INIT_SCRIPT)
-        await context.route("**/*", _route_filter)
-
-        pool_size = min(_PAGES_PER_PROPERTY, max(1, len(indices)))
-        workers: List[_PageWorker] = []
-        try:
-            for _ in range(pool_size):
-                if _cancel_event.is_set():
-                    break
-                page = await context.new_page()
-                workers.append(_PageWorker(page, price_parser))
-
-            if not workers:
-                return
-
-            logger.info(
-                f"DeepAnalysis «{title[:40]}» fallback: {len(workers)} workers, "
-                f"{len(indices)} pairs (patient=True, timeout={_RETRY_PAIR_TIMEOUT_S}s)"
-            )
-
-            sem      = asyncio.Semaphore(len(workers))
-            wi_ref   = [0]
-            recovered = 0
-            sold_out_recovered = 0
-            error_reasons: Counter[str] = Counter()
-
-            async def run_pair(idx: int) -> None:
-                nonlocal recovered, sold_out_recovered
-                if _cancel_event.is_set():
-                    return
-                ci, co = date_pairs[idx]
-                nights = (co - ci).days
-                url    = _build_page_url(base_url, ci, co)
-                try:
-                    async with sem:
-                        if _cancel_event.is_set():
-                            return
-                        w = workers[wi_ref[0] % len(workers)]
-                        wi_ref[0] += 1
-                        result = await w.fetch(url, nights, patient=True)
-                except Exception as e:
-                    error_reasons[f"worker:{e.__class__.__name__}"] += 1
-                    return
-                status = result.get("status")
-                price = result.get("price")
-                if status == "ok" and price and price > 0:
-                    _set_pair_status(
-                        out, states, idx, title, ci, co,
-                        status=_ROW_PRICED,
-                        price=price,
-                        count_progress=True,
-                        reasons=reasons,
-                        reason=_compose_reason("playwright", "priced"),
-                    )
-                    recovered += 1
-                elif status == "sold_out":
-                    _set_pair_status(
-                        out, states, idx, title, ci, co,
-                        status=_ROW_SOLD_OUT,
-                        count_progress=True,
-                        reasons=reasons,
-                        reason=_compose_reason("playwright", "sold_out"),
-                    )
-                    sold_out_recovered += 1
-                elif not _cancel_event.is_set():
-                    detail = str(result.get("error", "fallback:no_price"))
-                    _set_pair_reason(
-                        reasons,
-                        idx,
-                        _compose_reason("playwright", "fallback", detail),
-                    )
-                    error_reasons[detail] += 1
-
-            await asyncio.gather(
-                *(run_pair(i) for i in indices),
-                return_exceptions=True,
-            )
-            logger.info(
-                f"DeepAnalysis «{title[:40]}» fallback: recovered "
-                f"priced={recovered}, sold_out={sold_out_recovered}, "
-                f"still_unresolved={sum(1 for i in indices if states[i] == _ROW_FALLBACK)}, "
-                f"errors_top={dict(error_reasons.most_common(5))}"
-            )
-        finally:
-            for w in workers:
-                try:
-                    await w.close()
-                except Exception:
-                    pass
-    finally:
-        try:
-            await context.close()
-        except Exception:
-            pass
-
-
-# ── Route filter (context-level, применяется ко всем страницам) ──────────────
-
-async def _final_verify_phase(
-    *,
-    title: str,
-    base_url: str,
-    date_pairs: List[Tuple[date, date]],
-    indices: List[int],
-    out: List[str],
-    states: List[str],
-    reasons: List[Optional[str]],
-    parser,
-) -> Dict[str, Any]:
-    """
-    Последний страховочный проход только для пар, которые пережили и API, и
-    браузерный fallback без подтверждённой цены.
-
-    Здесь используем parser.fetch() целиком: direct API -> Playwright -> httpx
-    fallback с ретраями. Это дороже обычного fallback-пула, но применяется к
-    единичным аномалиям и снимает ложные [error], когда цена существует, но
-    не успела прийти в массовом параллельном режиме.
-    """
-    if not indices:
-        return {"slow_lane_candidates": []}
-
-    t0 = time.time()
-    ok_count = sold_out_count = error_count = 0
-    blocked_count = captcha_count = network_count = 0
-    error_reasons: Counter[str] = Counter()
-    slow_lane_candidates: List[int] = []
-
-    for idx in indices:
-        if _cancel_event.is_set():
-            return {"slow_lane_candidates": slow_lane_candidates}
-        if states[idx] != _ROW_FALLBACK:
-            continue
-
-        ci, co = date_pairs[idx]
-        url = _build_page_url(base_url, ci, co)
-        try:
-            result = await parser.fetch(url)
-        except Exception as e:
-            result = {"status": "error", "error": f"verify:{e.__class__.__name__}"}
-
-        terminal_state, _price, reason = _apply_terminal_result(
-            result=result,
-            phase="final-verify",
-            out=out,
-            states=states,
-            reasons=reasons,
-            idx=idx,
-            title=title,
-            ci=ci,
-            co=co,
-            count_progress=True,
-        )
-
-        if terminal_state == _ROW_PRICED:
-            ok_count += 1
-            continue
-
-        if terminal_state == _ROW_SOLD_OUT:
-            sold_out_count += 1
-            continue
-
-        if terminal_state == _ROW_BLOCKED:
-            blocked_count += 1
-            slow_lane_candidates.append(idx)
-            error_reasons[reason] += 1
-            try:
-                await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
-            except asyncio.CancelledError:
-                return {"slow_lane_candidates": slow_lane_candidates}
-            continue
-
-        if terminal_state == _ROW_CAPTCHA:
-            captcha_count += 1
-            slow_lane_candidates.append(idx)
-            error_reasons[reason] += 1
-            try:
-                await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
-            except asyncio.CancelledError:
-                return {"slow_lane_candidates": slow_lane_candidates}
-            continue
-
-        if terminal_state == _ROW_NETWORK:
-            network_count += 1
-            slow_lane_candidates.append(idx)
-            error_reasons[reason] += 1
-            try:
-                await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
-            except asyncio.CancelledError:
-                return {"slow_lane_candidates": slow_lane_candidates}
-            continue
-
-        error_count += 1
-        error_reasons[reason] += 1
-        try:
-            await asyncio.sleep(_FINAL_VERIFY_GRACE_S)
-        except asyncio.CancelledError:
-            return {"slow_lane_candidates": slow_lane_candidates}
-
-    dt = time.time() - t0
-    logger.info(
-        f'DeepAnalysis "{title[:40]}" final-verify done in {dt:.1f}s: '
-        f"recovered_ok={ok_count} recovered_sold_out={sold_out_count} "
-        f"blocked={blocked_count} captcha={captcha_count} network={network_count} "
-        f"still_error={error_count}, errors_top={dict(error_reasons.most_common(5))}"
-    )
-    return {"slow_lane_candidates": slow_lane_candidates}
-
-
-async def _slow_lane_phase(
-    *,
-    title: str,
-    base_url: str,
-    date_pairs: List[Tuple[date, date]],
-    indices: List[int],
-    out: List[str],
-    states: List[str],
-    reasons: List[Optional[str]],
-    parser,
-) -> None:
-    if not indices:
-        return
-
-    try:
-        await asyncio.sleep(_SLOW_LANE_PAUSE_S)
-    except asyncio.CancelledError:
-        return
-
-    recovered_ok = recovered_sold_out = 0
-    blocked_count = captcha_count = network_count = kept_terminal = 0
-    error_reasons: Counter[str] = Counter()
-    t0 = time.time()
-
-    for idx in indices:
-        if _cancel_event.is_set():
-            return
-        if states[idx] not in _SLOW_LANE_RETRY_STATES:
-            continue
-
-        ci, co = date_pairs[idx]
-        url = _build_page_url(base_url, ci, co)
-        previous_state = states[idx]
-        previous_reason = reasons[idx]
-        fresh_parser = parser.__class__()
-        try:
-            fresh_parser._proxy = getattr(parser, "_proxy", None)
-            result = await fresh_parser.fetch(url)
-        except Exception as e:
-            result = {"status": "error", "error": f"slow-lane:{e.__class__.__name__}"}
-        finally:
-            try:
-                await fresh_parser.close()
-            except Exception:
-                pass
-
-        terminal_state, price, reason = _classify_terminal_result(
-            result,
-            phase="slow-lane",
-        )
-
-        if terminal_state in {_ROW_PRICED, _ROW_SOLD_OUT}:
-            _set_pair_status(
-                out,
-                states,
-                idx,
-                title,
-                ci,
-                co,
-                status=terminal_state,
-                price=price,
-                count_progress=True,
-                reasons=reasons,
-                reason=reason,
-            )
-            if terminal_state == _ROW_PRICED:
-                recovered_ok += 1
-            else:
-                recovered_sold_out += 1
-            continue
-
-        if terminal_state in _SLOW_LANE_RETRY_STATES:
-            _set_pair_status(
-                out,
-                states,
-                idx,
-                title,
-                ci,
-                co,
-                status=terminal_state,
-                count_progress=True,
-                reasons=reasons,
-                reason=reason,
-            )
-            if terminal_state == _ROW_BLOCKED:
-                blocked_count += 1
-            elif terminal_state == _ROW_CAPTCHA:
-                captcha_count += 1
-            else:
-                network_count += 1
-            error_reasons[reason] += 1
-            continue
-
-        _set_pair_status(
-            out,
-            states,
-            idx,
-            title,
-            ci,
-            co,
-            status=previous_state,
-            count_progress=True,
-            reasons=reasons,
-            reason=previous_reason or reason,
-        )
-        kept_terminal += 1
-        error_reasons[reason] += 1
-
-    dt = time.time() - t0
-    logger.info(
-        f'DeepAnalysis "{title[:40]}" slow-lane done in {dt:.1f}s: '
-        f"recovered_ok={recovered_ok} recovered_sold_out={recovered_sold_out} "
-        f"blocked={blocked_count} captcha={captcha_count} network={network_count} "
-        f"kept_terminal={kept_terminal}, errors_top={dict(error_reasons.most_common(5))}"
-    )
-
-
-async def _route_filter(route) -> None:
-    """Блокируем тяжёлые ресурсы и трекеры. XHR и document пропускаем."""
-    try:
-        req = route.request
-        rt  = req.resource_type
-        url = req.url
-        if rt in _BLOCK_RESOURCE_TYPES:
-            await route.abort()
-            return
-        if any(s in url for s in _BLOCK_URL_SUBSTRINGS):
-            await route.abort()
-            return
-        await route.continue_()
-    except Exception:
-        try:
-            await route.continue_()
-        except Exception:
-            pass
-
-
-# ── Page worker ──────────────────────────────────────────────────────────────
-
-class _PageWorker:
-    """
-    Одна Playwright-страница, обрабатывает fetch() последовательно.
-
-    Race-guard: seq-счётчик + _own_request_ids set.
-      - seq фиксирует «поколение» fetch-а;
-      - _own_request_ids запоминает объекты Request, которые вылетели
-        во время текущего fetch-а (на page.on("request")).
-      - в _on_response мы сначала проверяем что response.request
-        принадлежит текущему fetch-у → отсекаем опоздавшие XHR от
-        предыдущих goto-ов (иначе они могли бы «украсть» price_event
-        и выдать соседнюю дату как свою цену).
-    """
-
-    def __init__(self, page, price_parser):
-        self._page         = page
-        self._price_parser = price_parser
-
-        self._seq          = 0
-        self._cur_seq      = 0
-        self._cur_nights   = 0
-        self._cur_prices: List[float]           = []
-        self._price_event: Optional[asyncio.Event]    = None
-        self._sold_out_event: Optional[asyncio.Event] = None
-        self._saw_authoritative_sold_out = False
-        self._lock         = asyncio.Lock()
-        self._pending_tasks: List[asyncio.Task] = []
-        # Пул id запросов, начатых во время текущего fetch. Чистится на
-        # каждом fetch(). id(request) стабилен пока Playwright держит
-        # ссылку на Request (до закрытия страницы), так что для нашего
-        # time-window безопасен.
-        self._own_request_ids: set[int] = set()
-
-        page.on("request",  self._on_request)
-        page.on("response", self._on_response)
-
-    async def close(self) -> None:
-        # Cleanup orphan consume-тасков — иначе Python 3.14
-        # ругается "Task was destroyed but it is pending!".
-        snapshot = list(self._pending_tasks)
-        for t in snapshot:
-            if not t.done():
-                t.cancel()
-        if snapshot:
-            try:
-                await asyncio.wait_for(
-                    asyncio.gather(*snapshot, return_exceptions=True),
-                    timeout=1.0,
-                )
-            except Exception:
-                pass
-        try:
-            await self._page.close()
-        except Exception:
-            pass
-
-    def _on_request(self, request) -> None:
-        # Тэгируем каждый request, вылетевший во время активного fetch.
-        # Используем id(), потому что объект Request хранится у Playwright
-        # до закрытия страницы — значит id стабилен в нашем time-window.
-        if self._price_event is None:
-            return
-        try:
-            url = request.url
-            if not any(ep in url for ep in _OSTROVOK_XHR_PATHS):
-                return
-        except Exception:
-            return
-        self._own_request_ids.add(id(request))
-
-    def _on_response(self, response) -> None:
-        if self._price_event is None:
-            return
-        seq = self._cur_seq
-        try:
-            if response.status != 200:
-                return
-            rurl = response.url
-            if not any(ep in rurl for ep in _OSTROVOK_XHR_PATHS):
-                return
-            # Ключевая защита от stale-XHR: response принадлежит текущему
-            # fetch только если его request был зарегистрирован в нашем
-            # own-set. Иначе это опоздавший XHR от предыдущей даты.
-            if id(response.request) not in self._own_request_ids:
-                return
-            if "json" not in response.headers.get("content-type", ""):
-                return
-        except Exception:
-            return
-        t = asyncio.create_task(self._consume(response, seq, rurl))
-        self._pending_tasks.append(t)
-        t.add_done_callback(
-            lambda done: self._pending_tasks.remove(done)
-            if done in self._pending_tasks else None
-        )
-
-    async def _consume(self, response, seq: int, rurl: str) -> None:
-        try:
-            data = await response.json()
-        except Exception:
-            return
-        if seq != self._cur_seq:
-            return
-
-        try:
-            prices = self._price_parser(data, self._cur_nights)
-        except Exception:
-            prices = []
-
-        if seq != self._cur_seq:
-            return
-
-        if prices:
-            self._cur_prices.extend(prices)
-            if self._price_event and not self._price_event.is_set():
-                self._price_event.set()
-            return
-
-        # Authoritative sold-out: только от /rates с реальным полем rates
-        # (не null — null ответ от /search НЕ считается sold-out).
-        if any(p in rurl for p in _OSTROVOK_AUTHORITATIVE_PATHS):
-            if isinstance(data, dict) and data.get("rates") == []:
-                self._saw_authoritative_sold_out = True
-                if self._sold_out_event and not self._sold_out_event.is_set():
-                    self._sold_out_event.set()
-
-    async def fetch(
-        self, url: str, nights: int, *, patient: bool = False,
-    ) -> Dict[str, Any]:
-        """
-        patient=False → main-проход: force-scroll 0.8с, total 12с.
-        patient=True  → retry-проход: force-scroll 1.5с, total 22с.
-                         Ожидание длиннее, потому что сервер мог подтупить
-                         в прошлый раз — даём ему шанс отдать /rates.
-        """
-        force_scroll_s = _RETRY_FORCE_SCROLL_S if patient else _FORCE_SCROLL_AFTER_S
-        total_s        = _RETRY_PAIR_TIMEOUT_S if patient else _PAIR_TIMEOUT_S
-
-        async with self._lock:
-            self._seq        += 1
-            self._cur_seq     = self._seq
-            self._cur_nights  = nights
-            self._cur_prices  = []
-            self._saw_authoritative_sold_out = False
-            self._own_request_ids = set()   # сброс stale-XHR защиты
-            self._price_event    = asyncio.Event()
-            self._sold_out_event = asyncio.Event()
-
-            try:
-                try:
-                    await self._page.goto(
-                        url, wait_until="commit", timeout=_NAV_TIMEOUT_MS,
-                    )
-                except Exception:
-                    # XHR мог уже полететь даже при nav-ошибке — продолжаем ждать.
-                    pass
-
-                # Гонка: ждём либо цену/sold-out, либо force_scroll_s
-                # → форсим скролл, либо общий таймаут total_s.
-                try:
-                    await asyncio.wait_for(
-                        _any_event([self._price_event, self._sold_out_event]),
-                        timeout=force_scroll_s,
-                    )
-                except asyncio.TimeoutError:
-                    # Init-script обычно триггерит скролл сам, но если
-                    # страница медленная — дожимаем здесь. Двойной скролл
-                    # вниз→верх эмитит больше IntersectionObserver-ов.
-                    try:
-                        await self._page.evaluate(
-                            "(() => {"
-                            "  const h = Math.max(1500, document.body ? "
-                            "    document.body.scrollHeight : 2000);"
-                            "  window.scrollTo(0, h);"
-                            "  setTimeout(() => window.scrollTo(0, h*0.4), 80);"
-                            "  setTimeout(() => window.scrollTo(0, 0), 200);"
-                            "})()"
-                        )
-                    except Exception:
-                        pass
-                    try:
-                        await asyncio.wait_for(
-                            _any_event([self._price_event, self._sold_out_event]),
-                            timeout=total_s - force_scroll_s,
-                        )
-                    except asyncio.TimeoutError:
-                        pass
-
-                # grace — ловим параллельный более дешёвый XHR
-                if self._cur_prices:
-                    try:
-                        await asyncio.sleep(_XHR_GRACE_S)
-                    except asyncio.CancelledError:
-                        pass
-
-                if self._cur_prices:
-                    return {"status": "ok", "price": min(self._cur_prices)}
-
-                dom_price = await _dom_rub_price_from_page(self._page)
-                if dom_price:
-                    return {"status": "ok", "price": dom_price}
-
-                if self._saw_authoritative_sold_out:
-                    try:
-                        await asyncio.sleep(_XHR_GRACE_S)
-                    except asyncio.CancelledError:
-                        pass
-                    if self._cur_prices:
-                        return {"status": "ok", "price": min(self._cur_prices)}
-                    dom_price = await _dom_rub_price_from_page(self._page)
-                    if dom_price:
-                        return {"status": "ok", "price": dom_price}
-                    return {"status": "sold_out", "price": None}
-
-                return {"status": "error", "price": None, "error": "fallback:no_price"}
-            finally:
-                # Инвалидируем seq, чтобы запоздавшие отклики не лезли в
-                # следующий fetch этой же страницы (доп. защита поверх
-                # _own_request_ids).
-                self._cur_seq += 1000
-                self._price_event    = None
-                self._sold_out_event = None
-                self._saw_authoritative_sold_out = False
-                self._own_request_ids = set()
-
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-async def _dom_rub_price_from_page(page) -> Optional[float]:
-    try:
-        text = await page.locator("body").inner_text(timeout=1500)
-    except Exception:
-        return None
-    candidates: List[float] = []
-    patterns = (
-        r"(?:Итого|от)\s+(\d[\d\s\u00a0\u202f]{2,8})\s*₽",
-        r"(\d[\d\s\u00a0\u202f]{2,8})\s*₽",
-    )
-    for pattern in patterns:
-        for match in re.finditer(pattern, text, re.IGNORECASE):
-            digits = re.sub(r"\D", "", match.group(1))
-            if not digits:
-                continue
-            price = float(digits)
-            if 500 <= price <= 300_000:
-                candidates.append(price)
-        if candidates:
-            return min(candidates)
-    return None
 
 def _format_row(
     title: str,
@@ -2233,33 +1164,6 @@ def _apply_minlos_marker(
             f"DeepAnalysis: _apply_minlos_marker ошибка для «{title[:40]}»: {e}"
         )
         return None
-
-
-async def _any_event(events: List[asyncio.Event]) -> None:
-    """Возвращается при срабатывании любого из переданных event-ов."""
-    tasks = [asyncio.create_task(e.wait()) for e in events]
-    try:
-        _done, pending = await asyncio.wait(
-            tasks, return_when=asyncio.FIRST_COMPLETED
-        )
-        for t in pending:
-            t.cancel()
-        if pending:
-            await asyncio.gather(*pending, return_exceptions=True)
-    except BaseException:
-        for t in tasks:
-            t.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        raise
-
-
-def _build_page_url(base_url: str, ci: date, co: date) -> str:
-    return (
-        f"{base_url}"
-        f"?checkin={ci.isoformat()}"
-        f"&checkout={co.isoformat()}"
-        f"&guests=2"
-    )
 
 
 # ── File writer ──────────────────────────────────────────────────────────────

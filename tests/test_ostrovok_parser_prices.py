@@ -125,17 +125,5 @@ class OstrovokPriceExtractionTests(unittest.TestCase):
         self.assertIn("guests=2", normalized)
         self.assertNotIn("dates=", normalized)
 
-    def test_deep_analysis_fallback_url_uses_checkin_checkout(self):
-        url = da._build_page_url(
-            "https://ostrovok.ru/hotel/russia/terskol/mid13437806/object/",
-            date(2026, 5, 3),
-            date(2026, 5, 4),
-        )
-
-        self.assertIn("checkin=2026-05-03", url)
-        self.assertIn("checkout=2026-05-04", url)
-        self.assertNotIn("dates=", url)
-
-
 if __name__ == "__main__":
     unittest.main()

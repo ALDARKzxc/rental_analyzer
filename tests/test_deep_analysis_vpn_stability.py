@@ -5,20 +5,9 @@ from datetime import date, timedelta
 from app.backend import deep_analysis as da
 
 
-class _SingleFetchParser:
-    result = {"status": "error", "error": "unset"}
-
-    def __init__(self):
-        self._proxy = None
-
-    async def fetch(self, url: str):
-        return dict(type(self).result)
-
-    async def close(self):
-        return None
-
-
 class _ProxySoldOutApiParser:
+    """API returns sold_out via proxy, then ok via no-proxy direct client."""
+
     def __init__(self):
         self._proxy = "http://proxy.local:8080"
         self.calls = 0
@@ -30,90 +19,22 @@ class _ProxySoldOutApiParser:
         return {"status": "ok", "prices": [12345.0], "data": {"rates": []}}
 
 
-class _AlwaysSoldOutApiParser:
-    def __init__(self):
-        self._proxy = "http://proxy.local:8080"
-
-    async def _api_search_direct(self, client, slug, checkin, checkout, nights):
-        return {"status": "sold_out", "prices": [], "data": {"rates": None}}
-
-
 class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
+    """
+    Tests for the v6 API-only pipeline. The Playwright fallback that was
+    fabricating "от X ₽" prices from the page DOM has been removed; the
+    direct /hotel/search/v1/site/hp/search API is the sole source of truth.
+    """
+
     def setUp(self):
         self._old_cancel_event = da._cancel_event
         self._old_progress = da._state["progress"]
-        self._old_pause = da._SLOW_LANE_PAUSE_S
         da._cancel_event = asyncio.Event()
         da._state["progress"] = 0
-        da._SLOW_LANE_PAUSE_S = 0.0
 
     def tearDown(self):
         da._cancel_event = self._old_cancel_event
         da._state["progress"] = self._old_progress
-        da._SLOW_LANE_PAUSE_S = self._old_pause
-
-    def test_classify_terminal_result(self):
-        cases = [
-            (
-                {"status": "ok", "price": 8123},
-                da._ROW_PRICED,
-                8123.0,
-                "phase:priced",
-            ),
-            (
-                {"status": "occupied", "error": "occupied"},
-                da._ROW_SOLD_OUT,
-                None,
-                "phase:sold_out:occupied",
-            ),
-            (
-                {"status": "not_found", "error": "Нет доступных предложений"},
-                da._ROW_SOLD_OUT,
-                None,
-                "phase:sold_out:not_found",
-            ),
-            (
-                {"status": "blocked", "error": "Access denied"},
-                da._ROW_BLOCKED,
-                None,
-                "phase:blocked:Access denied",
-            ),
-            (
-                {"status": "captcha", "error": "captcha"},
-                da._ROW_CAPTCHA,
-                None,
-                "phase:captcha:captcha",
-            ),
-            (
-                {"status": "error", "error": "net:ConnectTimeout"},
-                da._ROW_NETWORK,
-                None,
-                "phase:network:net:ConnectTimeout",
-            ),
-            (
-                {"status": "error", "error": "unexpected failure"},
-                da._ROW_ERROR,
-                None,
-                "phase:error:error:unexpected failure",
-            ),
-        ]
-
-        for result, expected_state, expected_price, expected_reason in cases:
-            with self.subTest(result=result):
-                state, price, reason = da._classify_terminal_result(
-                    result,
-                    phase="phase",
-                )
-                self.assertEqual(state, expected_state)
-                self.assertEqual(price, expected_price)
-                self.assertEqual(reason, expected_reason)
-
-    def test_should_run_slow_lane_thresholds(self):
-        self.assertFalse(da._should_run_slow_lane(0, 3))
-        self.assertFalse(da._should_run_slow_lane(10, 0))
-        self.assertTrue(da._should_run_slow_lane(20, 3))
-        self.assertTrue(da._should_run_slow_lane(20, 3))
-        self.assertTrue(da._should_run_slow_lane(19, 2))
 
     def test_select_api_rescue_indices_only_network_and_capped(self):
         original_cap = da._API_RESCUE_MAX_PAIRS
@@ -133,44 +54,12 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         finally:
             da._API_RESCUE_MAX_PAIRS = original_cap
 
+        # net:ConnectTimeout, http:503 are network errors per _NETWORK_ERROR_MARKERS;
+        # capped at 2 so first two network candidates win.
         self.assertEqual(selected, [0, 2])
 
-    def test_select_suspicious_sold_out_indices_prioritizes_short_and_holes(self):
-        today = date(2026, 5, 3)
-        date_pairs = [
-            (today, today + timedelta(days=1)),
-            (today, today + timedelta(days=2)),
-            (today, today + timedelta(days=3)),
-            (today, today + timedelta(days=4)),
-            (today, today + timedelta(days=5)),
-            (today + timedelta(days=1), today + timedelta(days=2)),
-        ]
-        states = [
-            da._ROW_SOLD_OUT,
-            da._ROW_PRICED,
-            da._ROW_SOLD_OUT,
-            da._ROW_SOLD_OUT,
-            da._ROW_PRICED,
-            da._ROW_SOLD_OUT,
-        ]
-        reasons = [
-            "api:sold_out",
-            "api:priced",
-            "api:sold_out",
-            "api:sold_out",
-            "api:priced",
-            "playwright:sold_out",
-        ]
-
-        selected = da._select_suspicious_sold_out_indices(
-            date_pairs=date_pairs,
-            states=states,
-            reasons=reasons,
-        )
-
-        self.assertEqual(selected, [0, 3])
-
     async def test_api_batch_rechecks_proxy_sold_out_without_proxy(self):
+        """Sold_out via proxy must trigger a no-proxy retry that recovers price."""
         today = date(2026, 5, 3)
         date_pairs = [(today, today + timedelta(days=1))]
         out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_PENDING)]
@@ -197,106 +86,6 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("12", out[0])
         self.assertGreaterEqual(parser.calls, 2)
 
-    async def test_api_verify_sold_out_keeps_index_for_browser_check(self):
-        today = date(2026, 5, 3)
-        date_pairs = [(today, today + timedelta(days=1))]
-        out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_SOLD_OUT)]
-        states = [da._ROW_SOLD_OUT]
-        reasons = ["api:sold_out"]
-
-        remaining = await da._api_verify_sold_out_phase(
-            title="OBJ",
-            slug="object-slug",
-            date_pairs=date_pairs,
-            indices=[0],
-            out=out,
-            states=states,
-            reasons=reasons,
-            parser=_AlwaysSoldOutApiParser(),
-            api_headers={},
-        )
-
-        self.assertEqual(remaining, [0])
-        self.assertEqual(states[0], da._ROW_SOLD_OUT)
-        self.assertTrue(reasons[0].startswith("api-verify:sold_out"))
-
-    async def test_final_verify_preserves_blocked_reason(self):
-        today = date(2026, 4, 19)
-        date_pairs = [(today, today + timedelta(days=1))]
-        out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_FALLBACK)]
-        states = [da._ROW_FALLBACK]
-        reasons = ["playwright:fallback:fallback:no_price"]
-
-        _SingleFetchParser.result = {"status": "blocked", "error": "Access denied"}
-        parser = _SingleFetchParser()
-
-        verify = await da._final_verify_phase(
-            title="OBJ",
-            base_url="https://example.com/hotel",
-            date_pairs=date_pairs,
-            indices=[0],
-            out=out,
-            states=states,
-            reasons=reasons,
-            parser=parser,
-        )
-
-        self.assertEqual(states[0], da._ROW_BLOCKED)
-        self.assertIn("[blocked]", out[0])
-        self.assertTrue(reasons[0].startswith("final-verify:blocked"))
-        self.assertEqual(verify["slow_lane_candidates"], [0])
-        self.assertEqual(da._state["progress"], 1)
-
-    async def test_slow_lane_can_recover_price(self):
-        today = date(2026, 4, 19)
-        date_pairs = [(today, today + timedelta(days=2))]
-        out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_NETWORK)]
-        states = [da._ROW_NETWORK]
-        reasons = ["final-verify:network:net:ConnectTimeout"]
-
-        _SingleFetchParser.result = {"status": "ok", "price": 15432}
-        parser = _SingleFetchParser()
-
-        await da._slow_lane_phase(
-            title="OBJ",
-            base_url="https://example.com/hotel",
-            date_pairs=date_pairs,
-            indices=[0],
-            out=out,
-            states=states,
-            reasons=reasons,
-            parser=parser,
-        )
-
-        self.assertEqual(states[0], da._ROW_PRICED)
-        self.assertIn("15", out[0])
-        self.assertTrue(reasons[0].startswith("slow-lane:priced"))
-
-    async def test_slow_lane_does_not_downgrade_known_reason_to_generic_error(self):
-        today = date(2026, 4, 19)
-        date_pairs = [(today, today + timedelta(days=3))]
-        out = [da._format_row("OBJ", *date_pairs[0], status=da._ROW_CAPTCHA)]
-        states = [da._ROW_CAPTCHA]
-        reasons = ["final-verify:captcha:captcha"]
-
-        _SingleFetchParser.result = {"status": "error", "error": "unexpected failure"}
-        parser = _SingleFetchParser()
-
-        await da._slow_lane_phase(
-            title="OBJ",
-            base_url="https://example.com/hotel",
-            date_pairs=date_pairs,
-            indices=[0],
-            out=out,
-            states=states,
-            reasons=reasons,
-            parser=parser,
-        )
-
-        self.assertEqual(states[0], da._ROW_CAPTCHA)
-        self.assertIn("[captcha]", out[0])
-        self.assertEqual(reasons[0], "final-verify:captcha:captcha")
-
     def test_seal_incomplete_pairs_keeps_explicit_terminal_states(self):
         today = date(2026, 4, 19)
         date_pairs = [
@@ -310,7 +99,11 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
             da._format_row("OBJ", *date_pairs[2], status=da._ROW_BLOCKED),
         ]
         states = [da._ROW_PENDING, da._ROW_FALLBACK, da._ROW_BLOCKED]
-        reasons = [None, "playwright:fallback:fallback:no_price", "final-verify:blocked:Access denied"]
+        reasons = [
+            None,
+            "api:fallback:net:ConnectTimeout",
+            "api:fallback:http:503",
+        ]
 
         sealed = da._seal_incomplete_pairs(
             out=out,
@@ -324,9 +117,17 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sealed, 2)
         self.assertEqual(states[0], da._ROW_ERROR)
         self.assertEqual(states[1], da._ROW_ERROR)
+        # Explicit terminal state must be preserved
         self.assertEqual(states[2], da._ROW_BLOCKED)
         self.assertTrue(reasons[0].startswith("seal:error"))
-        self.assertIn("playwright:fallback", reasons[1])
+        self.assertIn("api:fallback", reasons[1])
+
+    # ── MinLOS post-processing ──────────────────────────────────────────────
+    #
+    # New behavior: api:sold_out is now trusted as a confirmed sold_out signal
+    # (previous code required a playwright-confirmed reason, but Playwright
+    # verification was only producing false 6 399 ₽ recoveries from the DOM
+    # header — removing it means API sold_outs are the most reliable signal).
 
     def test_minlos_marker_uses_same_checkin_anchor(self):
         today = date(2026, 4, 19)
@@ -352,6 +153,7 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(detected, 3)
         self.assertIn("[MinLOS]", out[0])
         self.assertIn("[MinLOS]", out[1])
+        # MinLOS post-processing must not mutate pair_states
         self.assertEqual(states, [da._ROW_SOLD_OUT, da._ROW_SOLD_OUT, da._ROW_PRICED])
 
     def test_minlos_marker_does_not_mix_different_checkins(self):
@@ -404,7 +206,12 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(detected)
         self.assertIn("[sold_out]", out[0])
 
-    def test_minlos_marker_does_not_use_unverified_api_sold_out(self):
+    def test_minlos_marker_now_trusts_api_sold_out(self):
+        """
+        Previously this returned None because api:sold_out wasn't considered
+        "confirmed". After v6 (Playwright verification removed) the API is the
+        authoritative source, so api:sold_out + priced anchor → MinLOS.
+        """
         today = date(2026, 4, 19)
         date_pairs = [
             (today, today + timedelta(days=1)),
@@ -427,43 +234,9 @@ class DeepAnalysisVpnStabilityTests(unittest.IsolatedAsyncioTestCase):
             date_pairs=date_pairs,
         )
 
-        self.assertIsNone(detected)
-        self.assertIn("[sold_out]", out[0])
-        self.assertIn("[sold_out]", out[1])
-
-    def test_minlos_marker_does_not_guess_minlos_for_all_sold_out_checkin(self):
-        today = date(2026, 4, 19)
-        other = today + timedelta(days=1)
-        date_pairs = [
-            (today, today + timedelta(days=1)),
-            (today, today + timedelta(days=2)),
-            (other, other + timedelta(days=1)),
-            (other, other + timedelta(days=2)),
-        ]
-        states = [
-            da._ROW_SOLD_OUT,
-            da._ROW_PRICED,
-            da._ROW_SOLD_OUT,
-            da._ROW_SOLD_OUT,
-        ]
-        out = [
-            da._format_row("OBJ", *date_pairs[0], status=states[0]),
-            da._format_row("OBJ", *date_pairs[1], status=states[1], price=9000),
-            da._format_row("OBJ", *date_pairs[2], status=states[2]),
-            da._format_row("OBJ", *date_pairs[3], status=states[3]),
-        ]
-
-        detected = da._apply_minlos_marker(
-            out=out,
-            states=states,
-            title="OBJ",
-            date_pairs=date_pairs,
-        )
-
-        self.assertEqual(detected, 2)
+        self.assertEqual(detected, 3)
         self.assertIn("[MinLOS]", out[0])
-        self.assertIn("[sold_out]", out[2])
-        self.assertIn("[sold_out]", out[3])
+        self.assertIn("[MinLOS]", out[1])
 
     def test_minlos_marker_does_not_guess_when_all_rows_are_sold_out(self):
         today = date(2026, 4, 19)
